@@ -51,5 +51,5 @@ window.EE_SOURCE_TEXT = {
   "49": "磁通工作範圍：單向激磁與雙向激磁的 B 波形、可利用 ΔB 與伏秒平衡條件。",
   "50": "雙向激磁拓樸：Push-Pull、Half-Bridge、Full-Bridge；雙端式 PWM 交替開關圖。",
   "51": "磁芯 B-H、Core Loss：損耗密度與 fs^a、(ΔB)^b 有關；需查磁材實際損耗曲線。",
-  "52": "課程結語。"
+  "52": "課程結語：Thank you for your attention（中冊 52 頁課程結束，本頁非電路教學內容）。"
 };
