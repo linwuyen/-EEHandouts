@@ -5,6 +5,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import { chromium } from 'playwright';
+import { PDFDocument, StandardFonts } from 'pdf-lib';
 
 const BASE = process.env.PLAYWRIGHT_BASE_URL || 'http://127.0.0.1:4173';
 const outDir='tests/screenshots';
@@ -47,21 +48,66 @@ await run('完整 107 頁索引與複合頁碼',async()=>{
   await navigate(page,'#slide/42');
   assertCheck('GTO 第 42 頁有對應教材',await page.locator('a[href="#lesson/devices/legacy"]').count()>=1);
 });
-await run('逐頁原講義文字以及 PDF 對照',async()=>{
+async function makeSourceFixture(count,validTitle=true){
+  const file=await PDFDocument.create();
+  const font=await file.embedFont(StandardFonts.Helvetica);
+  for(let p=1;p<=count;p++){
+    const page=file.addPage([720,540]);
+    const title=p===1?(validTitle?'Power Electronics - Beginner Course':'Unrelated Handbook'):
+      p===24?(validTitle?'Transformer Equivalent Circuit':'Other Chapter'):
+      'Original Lecture Slide '+p;
+    page.drawText(title,{x:70,y:450,size:26,font});
+    page.drawText('Page '+p,{x:70,y:350,size:16,font});
+  }
+  return Buffer.from(await file.save());
+}
+async function waitSourceReady(page,p){
+  await page.waitForFunction((pg)=>{
+    const c=document.querySelector('#source-pdf-canvas');
+    const status=document.querySelector('#source-pdf-feedback');
+    return c && c.width>150 && c.height>150 &&
+      status && status.textContent.includes('第 '+pg+'／107 頁');
+  },p,{timeout:30000});
+}
+await run('實際 PDF 頁數與內容驗證，以及 canvas 逐頁呈現',async()=>{
   await navigate(page,'#slide/24');
-  assertCheck('第24頁有源文字',await page.locator('.slide-transcript').innerText().then(t=>t.includes('變壓器等效電路')));
-  assertCheck('PDF 載入控制',await page.locator('#source-pdf-file').count()===1);
-  const pdf=await page.pdf({format:'A4'});
-  await page.locator('#source-pdf-file').setInputFiles({name:'sample-source.pdf',mimeType:'application/pdf',buffer:pdf});
-  await page.locator('#source-pdf-frame').waitFor({state:'visible'});
-  assertCheck('開啟指定原始頁碼',await page.locator('#source-pdf-frame').getAttribute('src').then(s=>s.includes('#page=24')));
+  assertCheck('第24頁仍能看到原講義抽取文字',await page.locator('.slide-transcript').innerText().then(t=>t.includes('變壓器等效電路')));
+  assertCheck('PDF 檔案選擇器',await page.locator('#source-pdf-file').count()===1);
+
+  const badCount=await makeSourceFixture(106,true);
+  await page.locator('#source-pdf-file').setInputFiles({name:'wrong-count.pdf',mimeType:'application/pdf',buffer:badCount});
+  await page.waitForFunction(()=>document.querySelector('#source-pdf-feedback')?.textContent?.includes('頁數不符'),null,{timeout:30000});
+  assertCheck('拒絕106頁 PDF',await page.locator('#source-pdf-canvas').count()===0);
+
+  const badIdentity=await makeSourceFixture(107,false);
+  await page.locator('#source-pdf-file').setInputFiles({name:'unrelated-107.pdf',mimeType:'application/pdf',buffer:badIdentity});
+  await page.waitForFunction(()=>document.querySelector('#source-pdf-feedback')?.textContent?.includes('內容識別不符'),null,{timeout:30000});
+  assertCheck('拒絕無關的107頁 PDF',await page.locator('#source-pdf-canvas').count()===0);
+
+  const valid=await makeSourceFixture(107,true);
+  await page.locator('#source-pdf-file').setInputFiles({name:'ee-source-107.pdf',mimeType:'application/pdf',buffer:valid});
+  await waitSourceReady(page,24);
+  const pixels24=await page.locator('#source-pdf-canvas').evaluate(c=>c.toDataURL());
+  assertCheck('第24頁確實已渲染圖像',pixels24.length>1000);
+  await page.screenshot({path:outDir+'/source-p24-desktop.png',fullPage:true});
+
   await navigate(page,'#slide/25');
-  assertCheck('切頁更新 PDF 錨點',await page.locator('#source-pdf-frame').getAttribute('src').then(s=>s.includes('#page=25')));
+  await waitSourceReady(page,25);
+  const pixels25=await page.locator('#source-pdf-canvas').evaluate(c=>c.toDataURL());
+  assertCheck('第24、25頁像素不同',pixels24!==pixels25);
   await page.reload();
-  await page.locator('#source-pdf-frame').waitFor({state:'visible',timeout:7000});
-  assertCheck('重整後本機 PDF 快取可用',await page.locator('#source-pdf-frame').getAttribute('src').then(s=>s.includes('#page=25')));
+  await waitSourceReady(page,25);
+  assertCheck('重整後可從 IndexedDB 恢復有效 PDF',await page.locator('#source-pdf-feedback').innerText().then(t=>t.includes('已驗證講義')));
   await page.locator('#source-pdf-remove').click();
-  assertCheck('清除 PDF 後檢視器回到佔位狀態',await page.locator('.source-pdf-placeholder').count()===1);
+  assertCheck('清除後返回未載入狀態',await page.locator('.source-pdf-placeholder').count()===1);
+  await page.reload();
+  assertCheck('清除後不會重新恢復 PDF',await page.locator('.source-pdf-placeholder').count()===1);
+});
+await run('沒有文字的投影片顯示正確提示',async()=>{
+  for(const p of [23,52,84,92]){
+    await navigate(page,'#slide/'+p);
+    assertCheck('第 '+p+' 頁有圖片提示',await page.locator('.content-note').innerText().then(t=>t.includes('只有頁碼')));
+  }
 });
 await run('全部 7 個互動實驗',async()=>{
   for(const id of ['ac','magnetics','architecture','devices','rect1','rect3','analog']){
@@ -69,6 +115,34 @@ await run('全部 7 個互動實驗',async()=>{
     assertCheck(id+' 四項輸出',await page.locator('#lab-outputs .output-card').count()===4);
     assertCheck(id+' SVG 圖',await page.locator('#lab-chart svg').count()===1);
   }
+});
+await run('磁路圖與線性磁阻公式一致',async()=>{
+  await navigate(page,'#chapter/magnetics');
+  const chart=page.locator('#lab-chart');
+  assertCheck('不是假造的 B-H 曲線',await chart.innerText().then(x=>x.includes('B(I)')));
+  assertCheck('圖明確標註未模擬飽和',await chart.innerText().then(x=>x.includes('未包含飽和')));
+  await setRange(page,'current',2);
+  const initialB=await page.locator('#lab-outputs').innerText();
+  await setRange(page,'turns',100);
+  const laterB=await page.locator('#lab-outputs').innerText();
+  assertCheck('增加匝數會改變工作點磁通密度',initialB!==laterB);
+  const check=await page.evaluate(()=>{
+    const val=name=>Number(document.querySelector('[data-lab-input="'+name+'"]').value);
+    const mu0=4*Math.PI*1e-7, A=1e-4;
+    const N=val('turns'), I=val('current'), g=val('gap')/1000;
+    const R=.1/(mu0*2000*A)+g/(mu0*A);
+    const expectedB=N*I/(R*A);
+    const cards=[...document.querySelectorAll('#lab-outputs .output-card')];
+    const displayed=cards.find(x=>x.textContent.includes('磁通密度 B'));
+    return {expectedB,displayedB:Number(displayed.querySelector('strong').textContent.split(' ')[0])};
+  });
+  assertCheck('磁通密度與線性磁阻算式相符',Math.abs(check.expectedB-check.displayedB)<.002);
+});
+await run('PCC 時域與頻域符號分開',async()=>{
+  await navigate(page,'#lesson/rect1/notching');
+  const formula=await page.locator('.formula-text').innerText();
+  assertCheck('PCC 時域公式包含 Ldi/dt',formula.includes('Ls·di/dt'));
+  assertCheck('PCC 頻域公式有諧波阻抗 Z',formula.includes('Z̲h'));
 });
 await run('整流器：滑桿對齊、適用範圍與恢復',async()=>{
   await navigate(page,'#chapter/rect1');
@@ -113,6 +187,8 @@ await run('PF 與小測驗',async()=>{
 await run('搜尋、深色模式',async()=>{
   await navigate(page,'#home');
   await page.locator('#search-trigger').click();
+  await page.locator('#search-input').fill('頁碼 25');
+  assertCheck('搜尋提示頁碼25可找到正確頁',await page.locator('.search-result[href="#slide/25"]').count()>=1);
   await page.locator('#search-input').fill('107');
   assertCheck('搜尋包含第107頁',await page.locator('.search-result[href="#slide/107"]').count()>=1);
   await page.locator('.search-result[href="#slide/107"]').click();
@@ -134,6 +210,8 @@ await run('手機 390px：目錄與水平溢位',async()=>{
   await mobile.waitForFunction(()=>location.hash==='#chapter/rect1' && document.querySelector('#main-content h1')?.textContent?.includes('單相整流'));
   assertCheck('手機切章成功',await mobile.locator('#main-content h1').first().innerText().then(t=>t.includes('單相整流')));
   assertCheck('章節頁無水平溢位',await mobile.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+2));
+  await mobile.waitForFunction(()=>!document.body.classList.contains('menu-open'));
+  await mobile.locator('#sidebar').evaluate(async(node)=>{await Promise.all(node.getAnimations().map(a=>a.finished.catch(()=>{})))});
   await mobile.screenshot({path:outDir+'/chapter-mobile.png',fullPage:true});
   await mobile.goto(BASE+'/#slide/24');
   assertCheck('原講義頁手機無水平溢位',await mobile.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+2));
