@@ -95,7 +95,7 @@
   function slideCards(start,end){
     var cards=[];
     for(var p=start;p<=end;p++){
-      var c=chapterForPage(p),matches=related(c,p),text=sourceText[p]||'',preview=text.trim().replace(/\s+/g,' ').slice(0,110);
+      var c=chapterForPage(p),matches=related(c,p),text=sourceText[p]||'',preview=/^\d+\s*$/.test(text.trim())?'本頁以圖片／公式為主，請載入原始 PDF':text.trim().replace(/\s+/g,' ').slice(0,110);
       var links=matches.map(function(l){return '<a href="'+lessonPath(c,l)+'" class="slide-lesson-link">'+e(l.title)+' →</a>'}).join('');
       cards.push('<article class="slide-card" id="slide-p'+p+'"><span class="slide-pageno">P.'+p+'</span><div><a class="slide-title-link" href="#slide/'+p+'"><h3>'+e(D.slideTitles[p]||('第 '+p+' 頁'))+'</h3></a><p>'+(c?e(c.short):'原講義資訊頁')+(preview?' · '+e(preview):'')+'</p><div class="slide-card-links"><a href="#slide/'+p+'">查看原始文字與 PDF 對照 →</a>'+links+'</div></div></article>');
     }
@@ -106,8 +106,27 @@
     return '<div style="--c:'+(c?c.accent:'#4899EF')+'"><a class="back-link" href="'+(c?chapterPath(c):'#home')+'">← 返回'+(c?' '+e(c.title):'總覽')+'</a><header class="page-header"><div class="eyebrow">ORIGINAL LECTURE INDEX</div><h1>'+e(title)+'</h1><p>共 '+cards.length+' 頁。點擊任一頁即可查看原講義抽取文字，並可在本機載入原始 PDF，對照圖片與電路圖。</p></header><div class="content-note">原講義共 107 頁：第 1–2 頁為封面／課表，第 3–106 頁為教材，第 107 頁為結尾。文字來自 PPTX 擷取，公式圖與電路圖請以原始 PDF 視覺內容為準。</div><div class="slides-toolbar"><strong>'+cards.length+' 頁完整標題索引</strong>'+(c?buttonLink('#quiz/'+c.id,'章末測驗 →'):buttonLink('#home','返回主題首頁'))+'</div><div class="slide-grid">'+cards.join('')+'</div></div>';
   }
   function sourcePage(p){
-    var c=chapterForPage(p),matches=related(c,p),links=matches.map(function(l){return buttonLink(lessonPath(c,l),'學習：'+l.title)}).join(''),text=sourceText[p]||'沒有取得這頁的文字；請以原始 PDF 為準。';
-    return '<div class="lesson-layout" style="--c:'+(c?c.accent:'#4899EF')+'"><a class="back-link" href="#slides/all">← 返回完整講義索引</a><header class="lesson-header"><div class="eyebrow">ORIGINAL SLIDE / '+p+' OF 107</div><h1>第 '+p+' 頁｜'+e(D.slideTitles[p])+'</h1><p class="lesson-lead">'+(c?'對應主題：'+e(c.title):'封面、課程資訊或結語')+'</p><div class="chapter-actions">'+links+'</div></header><div id="source-pdf-holder"></div><section class="reading-block"><h2>原講義抽取文字</h2><p class="muted">這是從你上傳的 PPTX 逐頁抽取的文字，並非人工改寫。部分公式／圖形在 PPTX 中是圖片，文字可能不完整；請以原始 PDF 對照為準。</p><pre class="slide-transcript">'+e(text)+'</pre></section><div class="lesson-bottom"><div class="lesson-pager">'+(p>1?buttonLink('#slide/'+(p-1),'← 上一頁'):'')+(p<107?buttonLink('#slide/'+(p+1),'下一頁 →',true):'')+'</div>'+buttonLink('#slides/all','107 頁完整索引')+'</div></div>';
+    var c=chapterForPage(p),matches=related(c,p);
+    var links=matches.map(function(l){return buttonLink(lessonPath(c,l),'學習：'+l.title)}).join('');
+    var text=sourceText[p]||'';
+    var hasOnlyPageNumber=/^\d+\s*$/.test(text.trim()) || !text.trim();
+    var transcript=hasOnlyPageNumber?
+      '<div class="content-note">本頁的可抽取文字只有頁碼或完全空白，表示主要資訊位於圖片／公式中。請載入原始 PDF 查看完整內容。</div>':
+      '<pre class="slide-transcript">'+e(text)+'</pre>';
+    return '<div class="lesson-layout" style="--c:'+(c?c.accent:'#4899EF')+'">'+
+      '<a class="back-link" href="#slides/all">← 返回完整講義索引</a>'+
+      '<header class="lesson-header"><div class="eyebrow">ORIGINAL SLIDE / '+p+' OF 107</div>'+
+      '<h1>第 '+p+' 頁｜'+e(D.slideTitles[p])+'</h1>'+
+      '<p class="lesson-lead">'+(c?'對應主題：'+e(c.title):'封面、課程資訊或結語')+'</p>'+
+      '<div class="chapter-actions">'+links+'</div></header>'+
+      '<div id="source-pdf-holder"></div>'+
+      '<section class="reading-block"><h2>原講義抽取文字</h2>'+
+      '<p class="muted">文字由原始 PPTX 擷取，可能缺漏圖片形式的公式與電路圖；原講義 PDF 才是圖形內容的依據。</p>'+
+      transcript+'</section>'+
+      '<div class="lesson-bottom"><div class="lesson-pager">'+
+      (p>1?buttonLink('#slide/'+(p-1),'← 上一頁'):'')+
+      (p<107?buttonLink('#slide/'+(p+1),'下一頁 →',true):'')+
+      '</div>'+buttonLink('#slides/all','107 頁完整索引')+'</div></div>';
   }
   function initQuiz(c){state.quiz={chapter:c.id,index:0,score:0,answer:null,done:false}}
   function quiz(c){
@@ -139,7 +158,7 @@
   }
   var searchOverlay=$('#search-overlay'),searchInput=$('#search-input');
   function searchItems(q){
-    var s=q.trim().toLowerCase(),items=[];
+    var s=q.trim().toLowerCase().replace(/^頁碼\s*/,'').replace(/^第\s*(\d+)\s*頁$/,'$1'),items=[];
     D.chapters.forEach(function(c){
       items.push({type:'chapter',title:c.title,subtitle:'主題 · P.'+c.range[0]+'–'+c.range[1],url:chapterPath(c),text:c.title+' '+c.short+' '+c.subtitle});
       c.lessons.forEach(function(l){items.push({type:'lesson',title:l.title,subtitle:c.short+' · P.'+l.pages,url:lessonPath(c,l),text:l.title+' '+l.lead+' '+l.explain.join(' ')+' '+l.formula})});
