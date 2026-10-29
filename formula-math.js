@@ -226,8 +226,12 @@ window.EE_MATH = {
   ],
   "mid-isolation-feedback": [
     {
-      "label": "隔離回授的訊號流",
-      "tex": "V_o\\xrightarrow{\\text{measurement}}\\mathrm{Error}\\xrightarrow{\\text{isolation}}\\mathrm{PWM}"
+      "label": "第 34 頁｜PWM 在二次側，脈衝變壓器隔離傳送驅動脈波",
+      "tex": "V_o\\rightarrow\\mathrm{EA}_{\\mathrm{sec}}\\rightarrow\\mathrm{PWM}_{\\mathrm{sec}}\\xrightarrow{\\text{pulse transformer}}\\mathrm{Driver}_{\\mathrm{pri}}"
+    },
+    {
+      "label": "第 35 頁｜誤差控制在二次側，光耦回傳到一次側 PWM",
+      "tex": "V_o\\rightarrow\\mathrm{EA}_{\\mathrm{sec}}\\xrightarrow{\\text{optocoupler}}\\mathrm{PWM}_{\\mathrm{pri}}\\rightarrow\\mathrm{Driver}_{\\mathrm{pri}}"
     }
   ],
   "mid-multi-output": [
