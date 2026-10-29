@@ -8,6 +8,15 @@
   var CDN='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/';
   var pdfLibraryPromise=null, documentProxy=null, selectedBlob=null, selectedName='';
   var currentPage=1, mountTarget=null, cacheAttempted=false, loadVersion=0, renderVersion=0, loadedFromCache=false;
+  var storageQueue=Promise.resolve();
+  function queueStorage(action,value,epoch){
+    var operation=storageQueue.then(function(){
+      if(action==='put'&&epoch!==loadVersion)return null;
+      return localStore(action,value);
+    });
+    storageQueue=operation.catch(function(){});
+    return operation;
+  }
 
   function e(s){return String(s||'').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
   function normalizeText(t){return String(t||'').normalize('NFKC').replace(/\s+/g,'').toLowerCase()}
@@ -44,38 +53,44 @@
     return pdfLibraryPromise;
   }
   async function verifyPdf(file){
-    if(!(file instanceof Blob) || file.size<100 || file.size>50*1024*1024){
-      throw new Error('請選擇 100 bytes–50 MB 的 PDF 檔案');
-    }
+    if(!(file instanceof Blob)||file.size<100||file.size>50*1024*1024)throw new Error('請選擇 100 bytes–50 MB 的 PDF 檔案');
     if(await file.slice(0,5).text()!=='%PDF-')throw new Error('選取的檔案不是 PDF');
     var lib=await pdfLibrary(),task=lib.getDocument({data:new Uint8Array(await file.arrayBuffer()),isEvalSupported:false});
     var pdf=await task.promise;
     try{
-      if(pdf.numPages!==107)throw new Error('頁數不符：目前 '+pdf.numPages+' 頁，這份上冊必須是 107 頁');
-      var first=await pdf.getPage(1),reference=await pdf.getPage(24);
-      var firstText=normalizeText((await first.getTextContent()).items.map(function(x){return x.str||''}).join(''));
-      var referenceText=normalizeText((await reference.getTextContent()).items.map(function(x){return x.str||''}).join(''));
-      // The reference PDF is a PPTX export with searchable Chinese headings.
-      // Do not silently accept an arbitrary document that happens to have 107 pages.
-      var coverOK=/電力電子|powerelectronics/i.test(firstText);
-      var page24OK=/變壓器|transformer/i.test(referenceText);
-      if(!coverOK || !page24OK){
-        throw new Error('頁數正確，但內容識別不符：需要首頁「電力電子學」與第 24 頁「變壓器」相關標題。掃描版或不同講義請先轉成可搜尋文字的本課程 PDF。');
+      if(pdf.numPages!==107)throw new Error('頁數不符：目前 '+pdf.numPages+' 頁，上冊必須是 107 頁');
+      // SHA-256 pins the specific original export provided for this course; alternate exports use all anchors.
+      var knownHash='9cf8f8e2c4ac0876414b29eca7d2ef47f00a2b66dbead96a25abb5b1609280c1';
+      if(window.crypto&&window.crypto.subtle){
+        var digest=await window.crypto.subtle.digest('SHA-256',await file.arrayBuffer());
+        var hex=Array.from(new Uint8Array(digest)).map(function(x){return x.toString(16).padStart(2,'0')}).join('');
+        if(hex===knownHash)return pdf;
       }
+      var anchors=[[1,/電力電子|powerelectronics/i],[2,/thd|傅立葉|功因/i],
+        [12,/安培|ampere/i],[24,/變壓器|transformer/i],
+        [27,/功率半導體|powersemiconductor/i],[59,/電力電子系統|powerelectronicssystem/i],
+        [97,/op|operationalamplifier/i],[106,/adc/i],[107,/thankyou|謝謝/i]];
+      var failed=[];
+      for(var k=0;k<anchors.length;k++){
+        var pg=anchors[k][0],part=await pdf.getPage(pg);
+        var text=normalizeText((await part.getTextContent()).items.map(function(t){return t.str||''}).join(''));
+        if(!anchors[k][1].test(text))failed.push(pg);
+      }
+      if(failed.length)throw new Error('內容識別不符：第 '+failed.join('、')+' 頁缺少本講義特徵。請選擇原始 107 頁上冊 PDF。');
       return pdf;
     }catch(err){await pdf.destroy();throw err}
   }
   function html(){
     var yes=!!documentProxy;
     return '<section class="source-pdf-panel">'+
-      '<div class="source-pdf-top"><div><h3>原始投影片 PDF 對照</h3><p>先驗證 107 頁和內容，再直接顯示第 '+currentPage+' 頁的原始圖文。PDF 只留在瀏覽器本機。</p></div>'+
+      '<div class="source-pdf-top"><div><h3>原始投影片 PDF 對照</h3><p>先驗證 107 頁和多頁內容特徵，再顯示第 '+currentPage+' 頁的原始圖文。PDF 只留在瀏覽器本機。</p></div>'+
       '<label class="btn btn-primary source-pdf-picker" for="source-pdf-file">'+(yes?'更換 PDF':'載入原始講義 PDF')+'</label><input id="source-pdf-file" type="file" class="sr-only" accept="application/pdf,.pdf"></div>'+
       '<div id="source-pdf-feedback" class="source-pdf-feedback" role="status" aria-live="polite">'+
-      (yes?'已核對 107 頁及首頁／第 24 頁標題：'+e(selectedName):'尚未驗證原始 PDF，請先載入講義檔案。')+'</div>'+
+      (yes?'已驗證 107 頁和指定講義內容特徵：'+e(selectedName):'尚未驗證原始 PDF，請先載入講義檔案。')+'</div>'+
       (yes?
         '<div class="source-pdf-canvas-wrap"><canvas id="source-pdf-canvas" role="img" aria-label="原始講義第 '+currentPage+' 頁 PDF 圖文"></canvas></div>'+
         '<div class="source-pdf-actions"><button class="btn btn-muted" type="button" id="source-pdf-remove">清除這台裝置的 PDF</button></div>':
-        '<div class="source-pdf-placeholder"><div class="source-pdf-symbol">▧</div><strong>等待載入已驗證的 107 頁講義</strong><p>本檢視器會檢查實際頁數及部分講義標題，確認後才能顯示 PDF 原圖。</p></div>')+
+        '<div class="source-pdf-placeholder"><div class="source-pdf-symbol">▧</div><strong>等待載入已驗證的 107 頁講義</strong><p>本檢視器會檢查實際頁數及多頁講義內容特徵，確認後才能顯示 PDF 原圖。</p></div>')+
       '</section>';
   }
   function feedback(message,isError){
@@ -121,11 +136,17 @@
       documentProxy=newDocument;selectedBlob=file;selectedName=name||'原始講義.pdf';loadedFromCache=!!fromCache;
       if(old){renderVersion++;await old.destroy()}
       if(mountTarget&&mountTarget.isConnected){mountTarget.innerHTML=html();await renderCurrent()}
+      if(seq!==loadVersion||newDocument!==documentProxy)return;
       if(!fromCache){
-        try{await localStore('put',{file:file,name:selectedName})}
-        catch(err){feedback('已顯示原講義，但無法永久儲存：'+err.message,true)}
+        try{await queueStorage('put',{file:file,name:selectedName},seq)}
+        catch(err){if(seq===loadVersion)feedback('已顯示原講義，但無法永久儲存：'+err.message,true)}
       }
-    }catch(err){if(seq===loadVersion)feedback('檔案未接受：'+err.message,true)}
+    }catch(err){
+      if(seq===loadVersion){
+        feedback('檔案未接受：'+err.message,true);
+        if(fromCache)queueStorage('delete').catch(function(){});
+      }
+    }
   }
   function mount(el,page){
     currentPage=Math.min(107,Math.max(1,Math.floor(Number(page)||1)));
@@ -153,8 +174,10 @@
     ++loadVersion;++renderVersion;
     var old=documentProxy;documentProxy=null;selectedBlob=null;selectedName='';loadedFromCache=false;
     if(mountTarget&&mountTarget.isConnected)mountTarget.innerHTML=html();
-    if(old)await old.destroy();
-    try{await localStore('delete')}catch(err){feedback('PDF 已從目前畫面清除，但本機儲存未能刪除：'+err.message,true)}
+    // Queue deletion before awaiting destruction so a newer import cannot be erased.
+    var deleting=queueStorage('delete');
+    try{if(old)await old.destroy()}catch(err){}
+    try{await deleting}catch(err){feedback('PDF 已從目前畫面清除，但本機儲存未能刪除：'+err.message,true)}
   });
   window.EE_SOURCE_PDF={mount:mount};
 })();
