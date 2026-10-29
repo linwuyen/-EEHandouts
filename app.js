@@ -36,13 +36,24 @@
   }
   function typesetFormulas(){
     if(!window.katex)return;
-    main.querySelectorAll('.equation-list').forEach(function(list){
+    main.querySelectorAll('.equation-list:not(.math-ready)').forEach(function(list){
       try{
         list.querySelectorAll('[data-tex]').forEach(function(el){
           window.katex.render(el.dataset.tex,el,{
             displayMode:true,throwOnError:true,trust:false,strict:'warn'
           });
         });
+        // A loaded JS API does not guarantee its stylesheet loaded. Without
+        // the KaTeX CSS the MathML and HTML layers overlap, so do not hide the
+        // human-readable text until the CSS proves it is active.
+        var mathML=list.querySelector('.katex .katex-mathml');
+        var style=mathML&&window.getComputedStyle(mathML);
+        if(!style || style.position!=='absolute' || style.overflow!=='hidden'){
+          list.dataset.mathStyleMissing='true';
+          return;
+        }
+        delete list.dataset.mathStyleMissing;
+        delete list.dataset.mathError;
         list.classList.add('math-ready');
       }catch(err){
         // Preserve the readable original text rather than showing raw TeX or a broken expression.
@@ -247,6 +258,13 @@
     if(act==='quiz-answer'&&c&&state.quiz&&state.quiz.answer===null){var answer=Number(b.dataset.index);state.quiz.answer=answer;if(answer===c.lessons[state.quiz.index].quiz.correct)state.quiz.score++;main.innerHTML=quiz(c)}
     if(act==='quiz-next'&&c&&state.quiz){state.quiz.index++;state.quiz.answer=null;if(state.quiz.index>=c.lessons.length)state.quiz.done=true;main.innerHTML=quiz(c);window.scrollTo(0,0)}
     if(act==='restart'&&c){initQuiz(c);main.innerHTML=quiz(c)}
+  });
+  var katexCSS=document.querySelector('link[href*="katex.min.css"]');
+  if(katexCSS)katexCSS.addEventListener('load',function(){
+    if(current().r.type==='lesson')typesetFormulas();
+  });
+  window.addEventListener('load',function(){
+    if(current().r.type==='lesson')typesetFormulas();
   });
   window.addEventListener('hashchange',render);
   render();

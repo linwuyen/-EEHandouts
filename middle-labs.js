@@ -4,22 +4,39 @@
   function esc(s){return String(s).replace(/[&<>"']/g,function(ch){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]})}
   function k(id,name,min,max,step,value,unit){return {id:id,name:name,min:min,max:max,step:step,value:value,unit:unit}}
   function f(x,n){return Number.isFinite(x)?x.toFixed(n===undefined?2:n):'—'}
+  // Ideal non-synchronous Buck: in DCM the inductor current clamps at zero
+  // and the three-interval steady-state solution replaces Vout = D * Vin.
+  // Model: fixed Vin, L, fs, duty and constant output current. No losses or ESR.
+  function buckModel(v){
+    var vin=Number(v.vin),d=Number(v.duty)/100,L=Number(v.l)*1e-6,fs=Number(v.freq)*1000,io=Number(v.io);
+    var vccm=vin*d,rippleCcm=vin*d*(1-d)/(L*fs),boundary=rippleCcm/2;
+    var eps=1e-8*Math.max(1,boundary);
+    var mode=io>boundary+eps?'CCM':io<boundary-eps?'DCM':'BCM';
+    var vout=mode==='DCM'?vin/(1+2*L*fs*io/(vin*d*d)):vccm;
+    var ripple=(vin-vout)*d/(L*fs);
+    var valley=mode==='CCM'?Math.max(0,io-ripple/2):0;
+    var peak=mode==='CCM'?io+ripple/2:ripple;
+    var freewheel=mode==='DCM'?d*(vin/vout-1):1-d;
+    var zero=Math.max(0,1-d-freewheel);
+    return {mode:mode,vout:vout,ripple:ripple,boundary:boundary,valley:valley,peak:peak,
+      on:d,freewheel:freewheel,zero:zero};
+  }
   var defs={
     'mid-buck':{
       name:'Buck Duty、電感漣波與 BCM',hint:'理想 CCM；可同時觀察頻率、負載與漣波的關係',
       knobs:[k('vin','輸入電壓',12,100,4,24,' V'),k('duty','Duty',10,90,5,50,'%'),k('freq','切換頻率',25,250,25,100,' kHz'),k('l','電感',20,300,20,100,' μH'),k('io','輸出負載',.1,8,.1,2,' A')],
-      note:'理想 Buck：忽略死區、ESR、壓降與暫態。當 IL,min≤0 時 CCM 轉壓比不再是可直接採用的 DCM 結論。',
-      compute:function(v){var d=v.duty/100,vo=v.vin*d,di=(v.vin-vo)*d/(v.l*1e-6*v.freq*1000),min=v.io-di/2;
-        return {values:[['理想 CCM Vout',f(vo,2)+' V'],['電感漣波 p-p',f(di,2)+' A'],['推估電感谷值',f(min,2)+' A'],['BCM 臨界 Io',f(di/2,2)+' A']],warning:min<=0?'目前平均負載太小，CCM 谷值≤0；此理想 CCM Vout 只是參考，真實 DCM 需另解負載。':''}
+      note:'理想非同步 Buck，固定輸入電壓、Duty、L、fs 與定電流負載；CCM/BCM/DCM 分段模型。忽略壓降、ESR、死區與動態暫態；不是同步整流允許負電流的模型。',
+      compute:function(v){var m=buckModel(v);
+        return {model:m,values:[['理想 '+m.mode+' Vout',f(m.vout,2)+' V'],['電感漣波 p-p',f(m.ripple,2)+' A'],['理想模型 IL 谷值',f(m.valley,2)+' A'],['BCM 臨界 Io',f(m.boundary,2)+' A']],
+          warning:m.mode==='DCM'?'DCM：已採用三區間伏秒與平均負載模型；電感電流歸零後不會繼續為負。輸出電壓不可再套 Vout=D·Vin。':m.mode==='BCM'?'BCM：電感電流谷值剛好到零，為 CCM/DCM 的邊界。':''}
       }
     },
     'mid-modes':{
       name:'CCM / BCM / DCM 電流模式分界',hint:'固定 Duty 下推算理想 Buck 的 BCM 負載門檻',
       knobs:[k('vin','輸入電壓',12,60,4,24,' V'),k('duty','Duty',15,85,5,50,'%'),k('l','電感',20,300,20,100,' μH'),k('freq','切換頻率',25,250,25,100,' kHz'),k('io','負載電流',.05,3,.05,.3,' A')],
-      note:'模式判斷依理想 Buck / 非同步零電流續流模型。DCM 時不能把 CCM 的 Vo = D·Vin 當作已確立輸出。',
-      compute:function(v){var d=v.duty/100,di=v.vin*d*(1-d)/(v.l*1e-6*v.freq*1000),bound=di/2,margin=v.io-bound;
-        var state=Math.abs(margin)<.025?'BCM 臨界':margin>0?'CCM 連續':'DCM 不連續';
-        return {values:[['BCM 邊界 Io',f(bound,3)+' A'],['理想 CCM ΔIL',f(di,3)+' A'],['電感谷值估計',f(margin,3)+' A'],['推估模式',state]],warning:margin<-.025?'DCM：上方電感漣波公式以 CCM 的理想輸出計算，僅用於估算邊界；不可直接視作實際 DCM 波形。':''}
+      note:'理想非同步 Buck，在固定 Duty 與定電流負載下計算 CCM/BCM/DCM 的分段穩態；谷值不可能為負。BCM 判斷使用浮點精度容差，不用固定 0.025 A 人為容差。',
+      compute:function(v){var m=buckModel(v);
+        return {model:m,values:[['BCM 邊界 Io',f(m.boundary,3)+' A'],['此模式 ΔIL',f(m.ripple,3)+' A'],['模型 IL 谷值',f(m.valley,3)+' A'],['推估模式',m.mode]],warning:m.mode==='DCM'?'DCM：輸出電壓應使用三段模型，電流先歸零並持續一段零電流時間；圖形依計算的 ON/OFF 時間繪製。':m.mode==='BCM'?'BCM：電流谷值剛好為零，零電流持續時間為 0。':''}
       }
     },
     'mid-boost':{
@@ -35,7 +52,7 @@
       knobs:[k('vin','左側 DC Bus',12,60,4,48,' V'),k('vout','右側 DC Bus',12,60,4,24,' V'),k('power','左→右功率',-500,500,50,300,' W')],
       note:'僅示範端點功率與等效電流：假設 η=100%，未推導橋臂 PWM / 電感電流；實機必須檢查方向切換、預充與保護。',
       compute:function(v){var forward=v.power>=0,src=forward?v.vin:v.vout,dst=forward?v.vout:v.vin,mode=src>dst?'Buck 降壓':src<dst?'Boost 升壓':'同壓區';
-        return {values:[['功率方向',v.power===0?'無淨傳能':forward?'左側 → 右側':'右側 → 左側'],['此方向模式',mode],['左側電流大小',f(Math.abs(v.power)/v.vin,2)+' A'],['右側電流大小',f(Math.abs(v.power)/v.vout,2)+' A']],warning:v.power===0?'功率為零時無法從電流推導轉換模式；實際仍可能有循環電流。':''}
+        return {values:[['功率方向',v.power===0?'無淨傳能':forward?'左側 → 右側':'右側 → 左側'],['此方向模式',v.power===0?'無淨傳能':mode],['左側電流大小',f(Math.abs(v.power)/v.vin,2)+' A'],['右側電流大小',f(Math.abs(v.power)/v.vout,2)+' A']],warning:v.power===0?'功率為零時無法從電流推導轉換模式；實際仍可能有循環電流。':''}
       }
     },
     'mid-bridge':{
@@ -63,7 +80,28 @@
       }
     }
   };
+  // Scale the waveform to calculated current levels for the two Buck labs;
+  // the remaining diagrams are explicitly schematic and not amplitude-to-scale.
+  function buckWave(v,m){
+    var X=function(d){return 25+330*d},Y=function(i){return 158-119*Math.max(0,i)/Math.max(.00001,m.peak)};
+    var dischargeEnd=m.on+m.freewheel;
+    var pts=[[0,m.valley],[m.on,m.peak],[dischargeEnd,m.mode==='CCM'?m.valley:0],[1,m.valley]];
+    var polyline=pts.map(function(p){return f(X(p[0]),2)+','+f(Y(p[1]),2)}).join(' ');
+    return '<svg viewBox="0 0 380 218" role="img" aria-label="理想非同步 Buck '+esc(m.mode)+' 一週期電感電流，依計算結果繪製" xmlns="http://www.w3.org/2000/svg">'+
+       '<line x1="25" y1="158" x2="355" y2="158" stroke="currentColor" opacity=".32"/>'+
+       '<line x1="'+f(X(m.on),2)+'" y1="27" x2="'+f(X(m.on),2)+'" y2="158" stroke="#8494a7" stroke-dasharray="4 5"/>'+
+       (m.mode==='DCM'?'<line x1="'+f(X(dischargeEnd),2)+'" y1="27" x2="'+f(X(dischargeEnd),2)+'" y2="158" stroke="#8494a7" stroke-dasharray="4 5"/>':'')+
+       '<polyline points="'+polyline+'" fill="none" stroke="#26a58d" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>'+
+       '<text x="25" y="16" fill="currentColor" font-size="12" font-weight="600">'+esc(m.mode)+' · 電感電流 iL (A)</text>'+
+       '<text x="25" y="174" fill="currentColor" font-size="10">0 A</text>'+
+       '<text x="355" y="33" text-anchor="end" fill="currentColor" font-size="11">Ipk '+f(m.peak,2)+' A</text>'+
+       '<text x="25" y="198" fill="currentColor" font-size="11">ON: '+f(100*m.on,1)+'%</text>'+
+       '<text x="145" y="198" fill="currentColor" font-size="11">續流: '+f(100*m.freewheel,1)+'%</text>'+
+       '<text x="275" y="198" fill="currentColor" font-size="11">零電流: '+f(100*m.zero,1)+'%</text>'+
+       '<text x="25" y="214" fill="currentColor" opacity=".7" font-size="10">理想定電流負載穩態；橫軸一個 PWM 週期，電流值相對比例</text></svg>';
+  }
   function graph(id,v,metrics){
+    if((id==='mid-buck'||id==='mid-modes')&&metrics&&metrics.model)return buckWave(v,metrics.model);
     var d=Number(v.duty||50)/100,points;
     if(id==='mid-bridge') {
       var amp=Math.max(-1,Math.min(1,(v.da-v.db)/100));
