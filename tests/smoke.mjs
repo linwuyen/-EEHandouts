@@ -190,33 +190,6 @@ await run('磁路與 ADC 超出物理模型時拒絕數值',async()=>{
   await setRange(page,'offset',1.5);
   assertCheck('ADC 合法範圍恢復 Code',(await page.locator('#lab-outputs').innerText()).includes('3003 / 4095'));
 });
-await run('磁路與 ADC 超出物理模型時拒絕數值',async()=>{
-  await navigate(page,'#chapter/magnetics');
-  await setRange(page,'gap',0);
-  await setRange(page,'turns',150);
-  await setRange(page,'current',3);
-  assertCheck('磁路顯示範圍警告',await page.locator('#lab-validation').isVisible());
-  assertCheck('不再輸出無效電感估值',(await page.locator('#lab-outputs').innerText()).includes('— 模型未驗證'));
-  assertCheck('不再輸出 11.31 T 當有效 B',(await page.locator('#lab-outputs').innerText()).includes('— 超出教學門檻'));
-  assertCheck('超界工作點無標記',(await page.locator('#lab-chart').innerText()).includes('工作點超出模型範圍'));
-  await setRange(page,'gap',.3);
-  await setRange(page,'turns',50);
-  await setRange(page,'current',1);
-  assertCheck('正常模型可復原',!(await page.locator('#lab-validation').isVisible()));
-  assertCheck('正常模型仍算得 0.180 T',(await page.locator('#lab-outputs').innerText()).includes('0.180 T'));
-  await navigate(page,'#chapter/analog');
-  await setRange(page,'amps',-25);
-  await setRange(page,'gain',16);
-  await setRange(page,'offset',1.2);
-  const out=await page.locator('#lab-outputs').innerText();
-  assertCheck('ADC -0.8 V 超界有警告',await page.locator('#lab-validation').isVisible());
-  assertCheck('ADC 超界不提供 Code',out.includes('— 無有效轉換碼'));
-  assertCheck('ADC 超界不當作軟體保護',out.includes('不代表已限壓'));
-  await setRange(page,'amps',10);
-  await setRange(page,'gain',14);
-  await setRange(page,'offset',1.5);
-  assertCheck('ADC 合法範圍恢復 Code',(await page.locator('#lab-outputs').innerText()).includes('3003 / 4095'));
-});
 await run('整流器：滑桿對齊、適用範圍與恢復',async()=>{
   await navigate(page,'#chapter/rect1');
   assertCheck('預設電容 470 μF',await page.locator('[data-lab-input="cap"]').inputValue()==='470');

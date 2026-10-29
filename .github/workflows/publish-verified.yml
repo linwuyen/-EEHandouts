@@ -1,12 +1,7 @@
 name: Publish EEHandouts only after verified CI
 
-# This workflow is the verified-only deployment path. It becomes active after
-# Settings > Pages > Source is set to "GitHub Actions" and the repository Actions
-# variable EEHANDOUTS_ACTIONS_PAGES is set to "true".
-#
-# WARNING: while GitHub Pages Source is "Deploy from a branch", GitHub's
-# separate automatic branch deployment still bypasses CI. The Pages Source
-# setting cannot be changed by the available chat GitHub connector.
+# Source = GitHub Actions and repository variable EEHANDOUTS_ACTIONS_PAGES=true.
+# Deploy only a verified SHA that is STILL the current main HEAD.
 on:
   workflow_run:
     workflows: ["Verify EEHandouts"]
@@ -22,8 +17,8 @@ concurrency:
 
 jobs:
   deploy:
-    if: ${{ github.event.workflow_run.conclusion == 'success' && vars.EEHANDOUTS_ACTIONS_PAGES == 'true' }}
-    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository && vars.EEHANDOUTS_ACTIONS_PAGES == 'true' }}
+    runs-on: ubuntu-24.04
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -32,17 +27,35 @@ jobs:
       pages: write
       id-token: write
     steps:
-      - name: Checkout the exact commit that passed the browser regression
-        uses: actions/checkout@v4
+      - name: Checkout the exact SHA that passed browser regression
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
           persist-credentials: false
+      - name: Skip a stale CI result before packaging
+        id: freshness
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERIFIED_SHA: ${{ github.event.workflow_run.head_sha }}
+        shell: bash
+        run: bash scripts/check-verified-head.sh
       - name: Configure GitHub Pages
-        uses: actions/configure-pages@v5
+        if: steps.freshness.outputs.current == 'true'
+        uses: actions/configure-pages@v6
       - name: Package static website
-        uses: actions/upload-pages-artifact@v4
+        if: steps.freshness.outputs.current == 'true'
+        uses: actions/upload-pages-artifact@v5
         with:
           path: '.'
-      - name: Deploy only validated SHA
+      - name: Recheck latest main SHA immediately before deploy
+        id: final_freshness
+        if: steps.freshness.outputs.current == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERIFIED_SHA: ${{ github.event.workflow_run.head_sha }}
+        shell: bash
+        run: bash scripts/check-verified-head.sh
+      - name: Deploy only the newest verified SHA
         id: deployment
-        uses: actions/deploy-pages@v4
+        if: steps.final_freshness.outputs.current == 'true'
+        uses: actions/deploy-pages@v5

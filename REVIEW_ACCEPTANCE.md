@@ -10,18 +10,14 @@
 4. **使用性**：桌機、320px／390px 手機、768px 平板；側欄、搜尋鍵盤焦點、深淺模式、學習完成紀錄及測驗。KaTeX JS 或 CSS 任一無法載入時仍必須顯示可讀的原始文字公式。
 5. **部署**：測試須通過，發布須使用**被驗證過的 exact SHA**；新 PR 不可任意覆寫別人的分支修改。
 
-## 發布狀態及必要設定
+## CI 與部署安全條件
 
-`.github/workflows/verify.yml` 會執行 Chromium 自動驗收。目前 GitHub Pages 仍可能使用「Deploy from a branch」，**其原生自動部署不會等這份測試完成**。
-
-本專案新增 `.github/workflows/publish-verified.yml`，它會在上冊／中冊測試工作流程成功後，取該測試的 **exact HEAD** 做 Pages 發布。必須先一次性進行以下管理設定，這套 gate 才真正生效：
-
-1. 在 GitHub **Settings → Pages → Build and deployment → Source** 選 **GitHub Actions**。
-2. 在 **Settings → Secrets and variables → Actions → Variables** 新增 **`EEHANDOUTS_ACTIONS_PAGES` = `true`**。
-3. 在 **Settings → Rules → Rulesets**（或 Branch protection）對 `main` 要求 Pull Request、通過狀態檢查 `browser-regression`，並禁止 force push。若規則因方案或政策限制不能設定，要明確告知而非聲稱已強制啟用。
-4. 設定後在 main 執行一次 **Verify EEHandouts**，確認「Publish EEHandouts only after verified CI」由成功的測試紀錄觸發，且 Pages 顯示部署相同 SHA。
-
-**沒有完成 GitHub Pages Source 設定前，Verified Pages workflow 只處於待啟用狀態。** 不要將「GitHub Pages 原生部署成功」當成被 CI Gate 保護的證據。
+1. **Verify EEHandouts** 應使用 Node.js 22 跑測試、Actions Node.js 24 Runtime（checkout/setup-node/upload-artifact v7）、`ubuntu-24.04`，並以已提交的 `package-lock.json` 執行 `npm ci`。這避免浮動 Ubuntu 與 npm 轉依賴影響可重現性。
+2. `npm test` 先執行 `tests/release-guard.mjs`，檢查 release guard 的「最新 HEAD、過時 SHA、GitHub API 失敗」三種情況及工作流程結構，再跑上冊、中冊、Buck DCM 工程模型、KaTeX 公式 Regression。
+3. **Publish EEHandouts only after verified CI** 只能回應 GitHub 自己 repository 中 `main` 的成功 Verify；上傳及部署均必須使用該次 `workflow_run.head_sha`。
+4. 部署前要查詢最新 `main` HEAD **兩次**：打包前與部署前。若 SHA 不符，該次部署略過；GitHub API 查詢失敗則 fail-closed。請勿讓舊的 CI 重新覆蓋新版。這可降低回退風險，但最後一次檢查與 GitHub Pages 實際發布間，仍不是原子交易。
+5. 在 GitHub **Settings → Pages** 使用 `Source = GitHub Actions`，並設定 **Repository Actions Variable** `EEHANDOUTS_ACTIONS_PAGES=true`。必須從 Actions 確認真正的 `deploy` 步驟 success，不能把 `skipped` 當成部署。
+6. 在 **Settings → Rules → Rulesets**（或 Branch Protection）另行要求 `main` 由 PR 合併、`browser-regression` 必須成功，並限制 force-push。這是 GitHub 管理設定，目前無法由現有的 Github Chat connector 代改；沒有確認之前不能宣稱分支已被強制保護。
 
 ## 模型限制
 

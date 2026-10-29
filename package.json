@@ -1,0 +1,16 @@
+{
+  "name": "eehandouts-regression",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Pinned browser regression dependencies for EEHandouts (static HTML site)",
+  "scripts": {
+    "test:ci": "node tests/release-guard.mjs",
+    "test:browser": "node tests/smoke.mjs && node tests/middle-smoke.mjs && node tests/middle-engineering.mjs && node tests/math-smoke.mjs",
+    "test": "npm run test:ci && npm run test:browser"
+  },
+  "devDependencies": {
+    "pdf-lib": "1.17.1",
+    "playwright": "1.56.1"
+  }
+}
