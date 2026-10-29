@@ -47,8 +47,27 @@
 ## 使用方式
 直接開啟 `index.html`，或在本資料夾啟動任何靜態網站伺服器。
 
-### GitHub Pages
-Repository → **Settings** → **Pages** → **Build and deployment** → **Deploy from a branch** → **main / (root)** → **Save**。部署狀態可在 **Actions** 觀察，並依 Pages 設定顯示的網址開啟。
+### GitHub Pages（驗證後發布）
+
+正式網站：<https://linwuyen.github.io/-EEHandouts/>。
+
+在 **Settings → Pages → Build and deployment → Source** 選擇 **GitHub Actions**，Repository Variable `EEHANDOUTS_ACTIONS_PAGES=true` 啟用後，`.github/workflows/publish-verified.yml` 只會發布**通過 Verify EEHandouts 的 main SHA**。
+
+發布前會再次向 GitHub 查詢最新 `main` HEAD；若測試 SHA 已過時便略過發布，並在打包前、部署前各核對一次，降低舊版覆蓋新版的風險。部署與 CI 分開執行；已通過 CI 不代表 CI 能阻止直接 push 到 `main`。仍應設定 Rulesets 要求 PR 與必要狀態檢查。
+
+### 本機與 CI 驗證
+
+測試依賴由 `package.json` 與 **`package-lock.json`** 固定。使用 Node.js 22（網站本身不需 npm）：
+
+```bash
+npm ci --ignore-scripts
+npx playwright install --with-deps chromium
+python3 -m http.server 4173
+# 另開終端機：
+npm test
+```
+
+`npm test` 先檢查部署防回退守門程式（current/stale/API-error）、Action Runtime／lockfile／重複測試，再跑上冊、中冊、KaTeX 公式的 Chromium Regression。CI 固定 `ubuntu-24.04`，GitHub Actions 使用 Node.js 24 Runtime 的新版 Action。
 
 ### 原講義 PDF 對照
 
@@ -83,7 +102,7 @@ Repository → **Settings** → **Pages** → **Build and deployment** → **Dep
 
 ## 驗證
 
-在 Node 22 開發環境安裝 Playwright 1.56.1 與 Chromium，啟動本機靜態伺服器後執行 `node tests/smoke.mjs`（上冊）、`node tests/middle-smoke.mjs`（中冊）與 `node tests/math-smoke.mjs`（數學排版、手機與備援）。GitHub Actions 提供自動化跑法與測試截圖。測試使用 `pdf-lib` 產生 106 頁、錯誤內容 107 頁及正確內容 107 頁 PDF，驗證頁數／身分拒絕、真實頁面渲染、切頁像素差異與本機清除。測試驗證網站行為，不代表工程模型可直接用於硬體設計。
+在 Node 22 下執行 `npm ci`、啟動靜態伺服器後執行 `npm test`。內含 `tests/release-guard.mjs`、`tests/smoke.mjs`（上冊）、`tests/middle-smoke.mjs`（中冊）、`tests/math-smoke.mjs`（數學排版、手機與備援）。GitHub Actions 提供自動化跑法與測試截圖。測試使用 `pdf-lib` 產生 106 頁、錯誤內容 107 頁及正確內容 107 頁 PDF，驗證頁數／身分拒絕、真實頁面渲染、切頁像素差異與本機清除。測試驗證網站行為，不代表工程模型可直接用於硬體設計。
 
 本專案由使用者提供的講義與前述學習討論整理而成。
 ## 內容權利提示
