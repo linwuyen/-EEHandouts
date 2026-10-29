@@ -39,7 +39,7 @@ set -euo pipefail
 if [[ "$1" != "api" || "$2" != "repos/linwuyen/-EEHandouts/git/ref/heads/main" ]]; then
   echo "Unexpected mock gh call" >&2; exit 14
 fi
-if [[ "${MOCK_GH_FAIL:-0}" == "1" ]]; then exit 42; fi
+if [[ "\${MOCK_GH_FAIL:-0}" == "1" ]]; then exit 42; fi
 printf '%s\\n' "$MOCK_REMOTE_SHA"
 `);
   chmodSync(gh,0o755);
