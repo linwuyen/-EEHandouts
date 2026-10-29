@@ -19,6 +19,39 @@
   function $ (sel,root){return (root||document).querySelector(sel)}
   function escapeHTML(s){return String(s==null?'':s).replace(/[&<>"']/g,function(k){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[k]})}
   function e(s){return escapeHTML(s)}
+
+  // Math notation comes from authored TeX, not fragile regex conversions of prose.
+  // Original source text stays available for search and if the external renderer is unavailable.
+  function formulaMarkup(lesson){
+    var items=window.EE_MATH && window.EE_MATH[lesson.id];
+    if(!Array.isArray(items)||items.length===0){
+      return '<div class="formula-text formula-plain">'+e(lesson.formula)+'</div>';
+    }
+    return '<div class="equation-list" data-lesson-math="'+e(lesson.id)+'">'+
+      items.map(function(item){
+        return '<div class="equation-row"><div class="equation-label">'+e(item.label)+'</div>'+
+          '<div class="equation-math" data-tex="'+e(item.tex)+'"></div></div>';
+      }).join('')+
+      '<div class="equation-original"><span>無法載入數學排版，顯示文字版本：</span><div>'+e(lesson.formula)+'</div></div></div>';
+  }
+  function typesetFormulas(){
+    if(!window.katex)return;
+    main.querySelectorAll('.equation-list').forEach(function(list){
+      try{
+        list.querySelectorAll('[data-tex]').forEach(function(el){
+          window.katex.render(el.dataset.tex,el,{
+            displayMode:true,throwOnError:true,trust:false,strict:'warn'
+          });
+        });
+        list.classList.add('math-ready');
+      }catch(err){
+        // Preserve the readable original text rather than showing raw TeX or a broken expression.
+        list.dataset.mathError='true';
+        console.warn('Math typesetting failed for '+list.dataset.lessonMath,err);
+      }
+    });
+  }
+
   function chapterPath(c){return '#chapter/'+c.id}
   function lessonPath(c,l){return '#lesson/'+c.id+'/'+l.id}
   function pct(a,b){return b?Math.round(100*a/b):0}
@@ -74,7 +107,7 @@
     var idx=flat.findIndex(function(x){return x.lesson.id===l.id}),prev=flat[idx-1],next=flat[idx+1];
     return '<div class="lesson-layout" style="--c:'+c.accent+'"><a class="back-link" href="'+chapterPath(c)+'">← 返回 '+e(c.short)+'</a><header class="lesson-header"><div class="eyebrow">CH '+c.number+' · '+e(c.short)+'</div><h1>'+e(l.title)+'</h1><p class="lesson-lead">'+e(l.lead)+'</p><div class="lesson-meta">'+pill('講義 P.'+l.pages)+pill('白話導讀')+'</div></header>'+
       '<article class="reading-block"><h2>先理解物理現象</h2>'+l.explain.map(function(p){return '<p>'+e(p)+'</p>'}).join('')+'</article>'+
-      '<article class="reading-block"><h2>核心公式與條件</h2><div class="formula-panel"><div class="formula-icon">ƒ</div><div><strong>KEY RELATION</strong><div class="formula-text">'+e(l.formula)+'</div></div></div><h3>帶入數字看看</h3><div class="example">'+e(l.example)+'</div></article>'+
+      '<article class="reading-block"><h2>核心公式與條件</h2><div class="formula-panel"><div class="formula-icon">ƒ</div><div><strong>KEY RELATION</strong>'+formulaMarkup(l)+'</div></div><h3>帶入數字看看</h3><div class="example">'+e(l.example)+'</div></article>'+
       '<article class="reading-block"><h2>工程現場要注意</h2><div class="point-list">'+l.points.map(function(p){return '<div class="point-item"><span class="point-dot"></span><span>'+e(p)+'</span></div>'}).join('')+'</div><div class="warning-note"><strong>!</strong><div><strong>常見誤解</strong><div>'+e(l.trap)+'</div></div></div></article>'+
       '<section class="reading-block"><h2>30 秒觀念確認</h2><div id="quick-check">'+quick(l)+'</div></section>'+
       '<div class="lesson-bottom"><button type="button" class="btn '+(completed.has(l.id)?'btn-muted':'btn-primary')+'" data-action="complete">'+(completed.has(l.id)?'✓ 已標記完成':'✓ 標記這節已完成')+'</button><div class="lesson-pager">'+(prev?buttonLink(lessonPath(prev.chapter,prev.lesson),'← 上一節'):'')+(next?buttonLink(lessonPath(next.chapter,next.lesson),'下一節 →',true):buttonLink('#home','返回總覽 →',true))+'</div></div></div>';
@@ -155,6 +188,7 @@
     else if(r.type==='slide'){main.innerHTML=sourcePage(pg);if(window.EE_SOURCE_PDF)window.EE_SOURCE_PDF.mount($('#source-pdf-holder'),pg)}
     else if(r.type==='quiz')main.innerHTML=quiz(c);
     document.title=(r.type==='home'?'總覽':isSource?'第 '+pg+' 頁原講義':l?l.title:allSlides?pageCount+' 頁講義索引':c.title)+'｜EE Handouts';
+    if(r.type==='lesson')typesetFormulas();
     closeMenu();
     window.scrollTo(0,0);
   }
