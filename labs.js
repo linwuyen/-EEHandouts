@@ -15,7 +15,27 @@
   function svg(segments,caption){return '<svg viewBox="0 0 366 218" role="img" aria-label="'+esc(caption)+'"><line x1="22" y1="105" x2="343" y2="105" stroke="currentColor" stroke-opacity=".2"/><line x1="22" y1="15" x2="22" y2="192" stroke="currentColor" stroke-opacity=".2"/>'+segments+'<text x="22" y="209" fill="currentColor" opacity=".65" font-size="11">'+esc(caption)+'</text></svg>'}
   function graph(id,v){
     if(id==='pf'){var a=v.theta*Math.PI/180,d=v.thd/100;return svg(path(function(x){return Math.sin(2*Math.PI*x)},55,'',180)+path(function(x){return (Math.sin(2*Math.PI*x-a)+d*Math.sin(6*Math.PI*x))/(1+d*.5)},48,'#e39b37',180),'藍：電壓　橘：失真電流（比例示意）').replace(/stroke="" /g,'stroke="#1686C8" ')}
-    if(id==='magnetic'){var gain=Math.min(4,v.turns/(50*(1+v.gap*3)));return svg(path(function(x){return Math.tanh(4*x*gain)},65,180).replace('stroke="180"','stroke="#9c80ea"')+'<circle cx="'+(22+320*v.current/3).toFixed(1)+'" cy="'+(105-65*Math.tanh(4*(v.current/3)*gain)).toFixed(1)+'" r="6" fill="#e39b37"/>','示意 B-H 趨勢（非磁材實測）')}
+    if(id==='magnetic'){
+      // Keep the material permeability fixed, exactly as in the numeric reluctance model.
+      // This is a magnetic-circuit B(I) plot, not a material B-H saturation curve.
+      var mu0=4*Math.PI*1e-7,area=1e-4;
+      var reluctance=.1/(mu0*2000*area)+(v.gap/1000)/(mu0*area);
+      var bPerAmp=v.turns/(reluctance*area);
+      var maxB=Math.max(.35,Math.ceil(bPerAmp*3*10)/10);
+      var currentB=bPerAmp*v.current;
+      var X=function(i){return 44+295*i/3},Y=function(b){return 180-150*b/maxB};
+      var curve='<path d="M'+X(0).toFixed(1)+' '+Y(0).toFixed(1)+' L'+X(3).toFixed(1)+' '+Y(bPerAmp*3).toFixed(1)+'" fill="none" stroke="#9c80ea" stroke-width="3.5"/>';
+      var guide='<line x1="'+X(v.current).toFixed(1)+'" y1="180" x2="'+X(v.current).toFixed(1)+'" y2="'+Y(currentB).toFixed(1)+'" stroke="#e39b37" stroke-dasharray="5 4" stroke-width="1.5"/>';
+      return '<svg viewBox="0 0 366 218" role="img" aria-label="線性磁路中，磁通密度 B 隨線圈電流 I 的關係圖，未模擬材料磁飽和">'+
+        '<line x1="44" y1="180" x2="347" y2="180" stroke="currentColor" stroke-opacity=".4"/>'+
+        '<line x1="44" y1="21" x2="44" y2="180" stroke="currentColor" stroke-opacity=".4"/>'+
+        '<text x="7" y="23" fill="currentColor" font-size="11">B (T)</text>'+
+        '<text x="43" y="195" fill="currentColor" font-size="11">0</text>'+
+        '<text x="323" y="195" fill="currentColor" font-size="11">3 A</text>'+
+        '<text x="6" y="35" fill="currentColor" font-size="11">'+maxB.toFixed(2)+'</text>'+
+        curve+guide+'<circle cx="'+X(v.current).toFixed(1)+'" cy="'+Y(currentB).toFixed(1)+'" r="6" fill="#e39b37" stroke="white" stroke-width="1.5"/>'+
+        '<text x="44" y="213" fill="currentColor" opacity=".75" font-size="11">B(I)＝NI／(ℜA)；橘點為目前工作點，未包含飽和</text></svg>';
+    }
     if(id==='pwm'){var d=v.duty/100,cycles=v.freq/10,avg=105-58*d;return svg(path(function(x){return ((x*cycles)%1)<d?1:0},58,'#29b7a6',1200)+'<line x1="22" y1="'+avg.toFixed(1)+'" x2="342" y2="'+avg.toFixed(1)+'" stroke="#e39b37" stroke-dasharray="5 4" stroke-width="2.5"/>','固定觀察窗 100 μs：'+cycles+' 個 PWM 週期（綠）｜橘色為平均值')}
     if(id==='loss'){var a=v.amps*v.amps*v.rds/1000,b=v.esum*v.fs/1000,t=a+b;return '<svg viewBox="0 0 366 218" role="img" aria-label="損耗比例"><text x="22" y="48" font-size="14" fill="currentColor">導通與切換損耗</text><rect x="22" y="65" width="'+(320*a/t).toFixed(2)+'" height="52" rx="5" fill="#1686C8"/><rect x="'+(22+320*a/t).toFixed(2)+'" y="65" width="'+(320*b/t).toFixed(2)+'" height="52" rx="5" fill="#e39b37"/><circle cx="29" cy="155" r="5" fill="#1686C8"/><text x="42" y="160" fill="currentColor" font-size="12">導通 '+a.toFixed(2)+' W</text><circle cx="29" cy="186" r="5" fill="#e39b37"/><text x="42" y="191" fill="currentColor" font-size="12">切換 '+b.toFixed(2)+' W</text></svg>'}
     if(id==='rectify'){var peak=v.acv*Math.sqrt(2),C=v.cap*1e-6,delta=v.load/(100*C),valid=delta/peak<=.20,source=path(function(x){return Math.abs(Math.sin(2*Math.PI*x))},64,'#1686C8',360);if(!valid)return svg(source+'<text x="40" y="177" font-size="14" fill="#c5812a">漣波過大：不呈現失效模型波形</text>','藍：整流後正弦波；橘色波形已停用');var N=360,dt=0.02/N,vCap=peak,trace='';for(var k=0;k<5*N;k++){var phase=(k%N)/N,src=peak*Math.abs(Math.sin(2*Math.PI*phase));vCap=Math.max(src,vCap-v.load/C*dt);if(k>=4*N){var xx=22+320*((k-4*N)/N),yy=105-64*(vCap/peak);trace+=(k===4*N?'M':' L')+xx.toFixed(1)+' '+yy.toFixed(1)}}return svg(source+'<path d="'+trace+'" fill="none" stroke="#e39b37" stroke-width="2.8"/>','藍：整流輸入；橘：理想電容充放電（100 ms 窗內取最後 20 ms）')}

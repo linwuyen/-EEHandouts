@@ -1,12 +1,21 @@
-/* Local-first original slide PDF viewer. The selected PDF never leaves the user's browser. */
-(function(){
+/* Browser-local source PDF viewer.
+   Uses Mozilla PDF.js 4.10.38 for actual page parsing/rendering.
+   The selected PDF stays in browser storage; no PDF file bytes are uploaded.
+*/
+(function () {
   'use strict';
   var CFG=window.EE_SOURCE_CONFIG||{};
-  var DB_NAME='eehandouts-source-pdf',STORE='source',KEY=CFG.key||'upper-volume-r2';
+  var DB_NAME='eehandouts-source-pdf', STORE='source', KEY=CFG.key||'upper-volume-r2';
   var pageCount=Number(CFG.pageCount)||107;
-  var label=CFG.label||'電力電子初級班講義（上）R2';
-  var blob=null,blobUrl=null,filename='',loading=null,currentPage=1,mountTarget=null;
-  function e(s){return String(s).replace(/[&<>"']/g,function(k){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[k]})}
+  var sourceLabel=CFG.label||'電力電子初級班講義（上）R2';
+  var middle=pageCount===52;
+  var referencePage=middle?37:24;
+  var CDN='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/';
+  var pdfLibraryPromise=null, documentProxy=null, selectedBlob=null, selectedName='';
+  var currentPage=1, mountTarget=null, cacheAttempted=false, loadVersion=0, renderVersion=0, loadedFromCache=false;
+
+  function e(s){return String(s||'').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+  function normalizeText(t){return String(t||'').normalize('NFKC').replace(/\s+/g,'').toLowerCase()}
   function db(){
     return new Promise(function(resolve,reject){
       if(!('indexedDB' in window)){reject(new Error('此瀏覽器不支援 IndexedDB'));return}
@@ -16,76 +25,141 @@
       req.onsuccess=function(){resolve(req.result)};
     });
   }
-  async function readCached(){
+  async function localStore(action,value){
     var database=await db();
     return new Promise(function(resolve,reject){
-      var t=database.transaction(STORE,'readonly'),r=t.objectStore(STORE).get(KEY);
-      r.onsuccess=function(){resolve(r.result||null)};
-      r.onerror=function(){reject(r.error)};
-      t.oncomplete=function(){database.close()};
+      var tx=database.transaction(STORE,action==='get'?'readonly':'readwrite'),object=tx.objectStore(STORE);
+      var req=action==='get'?object.get(KEY):action==='put'?object.put(value,KEY):object.delete(KEY);
+      req.onsuccess=function(){resolve(req.result||null)};
+      req.onerror=function(){reject(req.error||new Error('本機儲存失敗'))};
+      tx.oncomplete=function(){database.close()};
+      tx.onerror=function(){database.close()};
     });
   }
-  async function writeCached(value){
-    var database=await db();
-    return new Promise(function(resolve,reject){
-      var t=database.transaction(STORE,'readwrite');
-      t.objectStore(STORE).put(value,KEY);
-      t.oncomplete=function(){database.close();resolve()};
-      t.onerror=function(){reject(t.error)};
-    });
+  function pdfLibrary(){
+    if(!pdfLibraryPromise){
+      pdfLibraryPromise=import(CDN+'pdf.min.mjs').then(function(lib){
+        lib.GlobalWorkerOptions.workerSrc=CDN+'pdf.worker.min.mjs';
+        return lib;
+      }).catch(function(err){
+        pdfLibraryPromise=null;
+        throw new Error('PDF 解析元件無法載入（需要連上 cdnjs）：'+err.message);
+      });
+    }
+    return pdfLibraryPromise;
   }
-  async function clearCached(){
-    var database=await db();
-    return new Promise(function(resolve,reject){
-      var t=database.transaction(STORE,'readwrite');
-      t.objectStore(STORE).delete(KEY);
-      t.oncomplete=function(){database.close();resolve()};
-      t.onerror=function(){reject(t.error)};
-    });
-  }
-  function setBlob(file,name){
-    if(blobUrl)URL.revokeObjectURL(blobUrl);
-    blob=file;filename=name||'原始講義.pdf';
-    blobUrl=URL.createObjectURL(file);
+  async function verifyPdf(file){
+    if(!(file instanceof Blob) || file.size<100 || file.size>50*1024*1024){
+      throw new Error('請選擇 100 bytes–50 MB 的 PDF 檔案');
+    }
+    if(await file.slice(0,5).text()!=='%PDF-')throw new Error('選取的檔案不是 PDF');
+    var lib=await pdfLibrary(),task=lib.getDocument({data:new Uint8Array(await file.arrayBuffer()),isEvalSupported:false});
+    var pdf=await task.promise;
+    try{
+      if(pdf.numPages!==pageCount)throw new Error('頁數不符：目前 '+pdf.numPages+' 頁，'+sourceLabel+' 必須是 '+pageCount+' 頁');
+      var first=await pdf.getPage(1),reference=await pdf.getPage(referencePage);
+      var firstText=normalizeText((await first.getTextContent()).items.map(function(x){return x.str||''}).join(''));
+      var referenceText=normalizeText((await reference.getTextContent()).items.map(function(x){return x.str||''}).join(''));
+      // The reference PDF is a PPTX export with searchable Chinese headings.
+      // Do not silently accept an arbitrary document that happens to have 107 pages.
+      var coverOK=middle?(/dc.?dc|converter/i.test(firstText)):(/電力電子|powerelectronics/i.test(firstText));
+      var referenceOK=middle?(/flyback|converter/i.test(referenceText)):(/變壓器|transformer/i.test(referenceText));
+      if(!coverOK || !referenceOK){
+        throw new Error(middle?'頁數正確，但中冊標題識別不符：需要封面的 DC-DC Converters 與第 37 頁 Flyback。請確認 PDF 不是掃描版或其他講義。':'頁數正確，但內容識別不符：需要首頁「電力電子學」與第 24 頁「變壓器」相關標題。掃描版或不同講義請先轉成可搜尋文字的本課程 PDF。');
+      }
+      return pdf;
+    }catch(err){await pdf.destroy();throw err}
   }
   function html(){
-    var yes=!!blob;
-    return '<div class="source-pdf-panel">'+
-      '<div class="source-pdf-top"><div><h3>原始投影片 PDF 對照</h3><p>選取講義 PDF 後，可以在本站直接看第 '+currentPage+' 頁的原始電路圖與公式。檔案只存放在你的瀏覽器，不會上傳。</p></div>'+
-      '<label class="btn btn-primary source-pdf-picker" for="source-pdf-file">'+(yes?'更換 PDF':'載入原始講義 PDF')+'</label><input type="file" id="source-pdf-file" class="sr-only" accept=".pdf,application/pdf"></div>'+
-      '<div id="source-pdf-feedback" class="source-pdf-feedback" aria-live="polite">'+(yes?'已載入：'+e(filename)+'（這台裝置）':'尚未載入 PDF；先使用下方的「原講義抽取文字」閱讀。')+'</div>'+
-      (yes?'<div class="source-pdf-frame-wrap"><iframe title="原講義第 '+currentPage+' 頁" id="source-pdf-frame" src="'+e(blobUrl+'#page='+currentPage+'&zoom=page-width')+'" loading="lazy" referrerpolicy="no-referrer"></iframe></div><div class="source-pdf-actions"><a class="btn" href="'+e(blobUrl)+'" target="_blank" rel="noopener">獨立開啟 PDF</a><button type="button" class="btn btn-muted" id="source-pdf-remove">清除這台裝置儲存的 PDF</button></div>':
-      '<div class="source-pdf-placeholder"><div class="source-pdf-symbol">▧</div><strong>尚無原始圖文</strong><p>載入《'+e(label)+'》的 '+pageCount+' 頁 PDF，即可逐頁查看原始投影片。</p></div>')+
-      '</div>';
+    var yes=!!documentProxy;
+    return '<section class="source-pdf-panel">'+
+      '<div class="source-pdf-top"><div><h3>原始投影片 PDF 對照</h3><p>先驗證 '+pageCount+' 頁和內容，再直接顯示第 '+currentPage+' 頁的原始圖文。PDF 只留在瀏覽器本機。</p></div>'+
+      '<label class="btn btn-primary source-pdf-picker" for="source-pdf-file">'+(yes?'更換 PDF':'載入原始講義 PDF')+'</label><input id="source-pdf-file" type="file" class="sr-only" accept="application/pdf,.pdf"></div>'+
+      '<div id="source-pdf-feedback" class="source-pdf-feedback" role="status" aria-live="polite">'+
+      (yes?'已核對 '+pageCount+' 頁及首頁／第 '+referencePage+' 頁標題：'+e(selectedName):'尚未驗證原始 PDF，請先載入講義檔案。')+'</div>'+
+      (yes?
+        '<div class="source-pdf-canvas-wrap"><canvas id="source-pdf-canvas" role="img" aria-label="原始講義第 '+currentPage+' 頁 PDF 圖文"></canvas></div>'+
+        '<div class="source-pdf-actions"><button class="btn btn-muted" type="button" id="source-pdf-remove">清除這台裝置的 PDF</button></div>':
+        '<div class="source-pdf-placeholder"><div class="source-pdf-symbol">▧</div><strong>等待載入已驗證的 '+pageCount+' 頁講義</strong><p>本檢視器會檢查實際頁數及部分講義標題，確認後才能顯示 PDF 原圖。</p></div>')+
+      '</section>';
   }
-  function update(){if(mountTarget&&mountTarget.isConnected)mountTarget.innerHTML=html()}
-  function mount(el,page){
-    mountTarget=el;currentPage=Math.max(1,Math.min(pageCount,Number(page)||1));if(!el)return;
-    el.innerHTML=html();
-    if(!blob&&loading===null){
-      loading=readCached().then(function(data){if(data&&data.file instanceof Blob)setBlob(data.file,data.name);update()}).catch(function(){/* browsing without persistent storage remains supported */}).finally(function(){loading=false});
+  function feedback(message,isError){
+    if(!mountTarget||!mountTarget.isConnected)return;
+    var node=mountTarget.querySelector('#source-pdf-feedback');
+    if(node){node.textContent=message;node.classList.toggle('error',!!isError)}
+  }
+  async function renderCurrent(){
+    var seq=++renderVersion,root=mountTarget,doc=documentProxy,pg=currentPage;
+    if(!root||!root.isConnected||!doc)return;
+    var canvas=root.querySelector('#source-pdf-canvas');
+    if(!canvas)return;
+    feedback('正在呈現原講義第 '+pg+'／'+pageCount+' 頁…',false);
+    try{
+      var page=await doc.getPage(pg);
+      if(seq!==renderVersion || root!==mountTarget || doc!==documentProxy)return;
+      var width=Math.max(260,Math.min(920,root.clientWidth-36));
+      var basis=page.getViewport({scale:1}),scale=width/basis.width;
+      var pixelRatio=Math.min(2,window.devicePixelRatio||1);
+      var viewport=page.getViewport({scale:scale*pixelRatio});
+      canvas.width=Math.round(viewport.width);
+      canvas.height=Math.round(viewport.height);
+      canvas.style.width=(viewport.width/pixelRatio)+'px';
+      canvas.style.height=(viewport.height/pixelRatio)+'px';
+      var ctx=canvas.getContext('2d',{alpha:false});
+      await page.render({canvasContext:ctx,viewport:viewport}).promise;
+      if(seq===renderVersion && root===mountTarget && doc===documentProxy){
+        feedback('已驗證講義：第 '+pg+'／'+pageCount+' 頁 · '+selectedName+(loadedFromCache?'（從本機儲存恢復）':''),false);
+        root.dispatchEvent(new CustomEvent('eehandouts-pdf-page-rendered',{bubbles:true,detail:{page:pg,total:pageCount}}));
+      }
+    }catch(err){
+      if(seq===renderVersion)feedback('PDF 第 '+pg+' 頁呈現失敗：'+err.message,true);
     }
   }
-  document.addEventListener('change',async function(ev){
-    if(!ev.target||ev.target.id!=='source-pdf-file')return;
-    var file=ev.target.files&&ev.target.files[0];if(!file)return;
-    if(file.size>50*1024*1024||file.size<100){alert('請選擇 50 MB 以下的有效 PDF。');return}
+  async function adopt(file,name,fromCache){
+    var seq=++loadVersion;
+    feedback('檢查 PDF 格式、'+pageCount+' 頁及講義內容中…',false);
+    var newDocument;
     try{
-      var magic=await file.slice(0,5).text();
-      if(magic!=='%PDF-'){alert('選取的檔案不是有效的 PDF，請先把 PPTX 匯出成 PDF。');return}
-      setBlob(file,file.name);update();
-      try{await writeCached({file:file,name:file.name})}catch(err){
-        var tip=document.getElementById('source-pdf-feedback');
-        if(tip)tip.textContent='已載入 PDF，但無法永久儲存；重新開啟網站後可能需要再選一次。';
+      newDocument=await verifyPdf(file);
+      if(seq!==loadVersion){await newDocument.destroy();return}
+      var old=documentProxy;
+      documentProxy=newDocument;selectedBlob=file;selectedName=name||'原始講義.pdf';loadedFromCache=!!fromCache;
+      if(old){renderVersion++;await old.destroy()}
+      if(mountTarget&&mountTarget.isConnected){mountTarget.innerHTML=html();await renderCurrent()}
+      if(!fromCache){
+        try{await localStore('put',{file:file,name:selectedName})}
+        catch(err){feedback('已顯示原講義，但無法永久儲存：'+err.message,true)}
       }
-    }catch(err){alert('載入 PDF 失敗：'+err.message)}
+    }catch(err){if(seq===loadVersion)feedback('檔案未接受：'+err.message,true)}
+  }
+  function mount(el,page){
+    currentPage=Math.min(pageCount,Math.max(1,Math.floor(Number(page)||1)));
+    mountTarget=el;renderVersion++;
+    if(!el)return;
+    el.innerHTML=html();
+    if(documentProxy){renderCurrent();return}
+    if(!cacheAttempted){
+      cacheAttempted=true;
+      // If user imports a new file while cache is being restored, that choice wins.
+      var seq=loadVersion;
+      localStore('get').then(function(data){
+        if(data&&data.file instanceof Blob && seq===loadVersion)adopt(data.file,data.name,true);
+      }).catch(function(){/* continue without persistence; manual upload remains available */});
+    }
+  }
+  document.addEventListener('change',function(ev){
+    if(ev.target && ev.target.id==='source-pdf-file'){
+      var file=ev.target.files&&ev.target.files[0];
+      if(file)adopt(file,file.name,false);
+    }
   });
   document.addEventListener('click',async function(ev){
-    if(!ev.target||ev.target.id!=='source-pdf-remove')return;
-    if(blobUrl)URL.revokeObjectURL(blobUrl);
-    blob=null;blobUrl=null;filename='';update();
-    try{await clearCached()}catch(err){}
+    if(!ev.target || ev.target.id!=='source-pdf-remove')return;
+    ++loadVersion;++renderVersion;
+    var old=documentProxy;documentProxy=null;selectedBlob=null;selectedName='';loadedFromCache=false;
+    if(mountTarget&&mountTarget.isConnected)mountTarget.innerHTML=html();
+    if(old)await old.destroy();
+    try{await localStore('delete')}catch(err){feedback('PDF 已從目前畫面清除，但本機儲存未能刪除：'+err.message,true)}
   });
-  window.addEventListener('beforeunload',function(){if(blobUrl)URL.revokeObjectURL(blobUrl)});
   window.EE_SOURCE_PDF={mount:mount};
 })();
