@@ -9,6 +9,8 @@
   <link rel="stylesheet" href="./styles.css">
   <link rel="icon" type="image/svg+xml" href="./favicon.svg">
   <script defer src="./data.js"></script>
+  <script defer src="./slide-text.js"></script>
+  <script defer src="./source-viewer.js"></script>
   <script defer src="./labs.js"></script>
   <script defer src="./app.js"></script>
 </head>
@@ -25,6 +27,7 @@
       <nav class="side-nav" id="side-nav">
         <a href="#home" class="side-home" data-nav="home"><span class="nav-emblem">⌂</span>總覽 <span class="nav-chevron">›</span></a>
         <div id="chapter-nav"></div>
+        <a href="#slides/all" class="side-home side-index" data-nav="all"><span class="nav-emblem">▤</span>完整 107 頁講義 <span class="nav-chevron">›</span></a>
       </nav>
       <div class="side-bottom">
         <div class="side-progress"><div class="side-progress-head"><span>你的學習進度</span><strong id="side-percent">0%</strong></div><div class="progress-track"><div id="side-progress-fill" class="progress-fill"></div></div><small id="side-progress-count">0 / 38 節完成</small></div>
@@ -38,6 +41,7 @@
           <div id="breadcrumb" class="breadcrumb">學習總覽</div>
         </div>
         <div class="top-actions">
+          <a class="btn btn-muted global-index-trigger" href="#slides/all">107 頁原講義</a>
           <button class="search-trigger" id="search-trigger" type="button"><span class="search-glyph">⌕</span><span>搜尋主題、公式、頁碼</span><kbd>Ctrl K</kbd></button>
           <button id="theme-toggle" class="icon-button theme-toggle" type="button" title="切換深色模式" aria-label="切換深色模式">◐</button>
         </div>
