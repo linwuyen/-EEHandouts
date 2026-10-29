@@ -37,7 +37,9 @@ jobs:
           cat /tmp/eehandouts-server.log
           exit 1
       - name: Browser and engineering regression
-        run: node tests/smoke.mjs
+        run: |
+          node tests/smoke.mjs
+          node tests/middle-smoke.mjs
       - name: Upload browser screenshots
         if: always()
         uses: actions/upload-artifact@v4
