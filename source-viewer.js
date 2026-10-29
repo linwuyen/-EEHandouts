@@ -1,7 +1,10 @@
 /* Local-first original slide PDF viewer. The selected PDF never leaves the user's browser. */
 (function(){
   'use strict';
-  var DB_NAME='eehandouts-source-pdf',STORE='source',KEY='upper-volume-r2';
+  var CFG=window.EE_SOURCE_CONFIG||{};
+  var DB_NAME='eehandouts-source-pdf',STORE='source',KEY=CFG.key||'upper-volume-r2';
+  var pageCount=Number(CFG.pageCount)||107;
+  var label=CFG.label||'電力電子初級班講義（上）R2';
   var blob=null,blobUrl=null,filename='',loading=null,currentPage=1,mountTarget=null;
   function e(s){return String(s).replace(/[&<>"']/g,function(k){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[k]})}
   function db(){
@@ -52,12 +55,12 @@
       '<label class="btn btn-primary source-pdf-picker" for="source-pdf-file">'+(yes?'更換 PDF':'載入原始講義 PDF')+'</label><input type="file" id="source-pdf-file" class="sr-only" accept=".pdf,application/pdf"></div>'+
       '<div id="source-pdf-feedback" class="source-pdf-feedback" aria-live="polite">'+(yes?'已載入：'+e(filename)+'（這台裝置）':'尚未載入 PDF；先使用下方的「原講義抽取文字」閱讀。')+'</div>'+
       (yes?'<div class="source-pdf-frame-wrap"><iframe title="原講義第 '+currentPage+' 頁" id="source-pdf-frame" src="'+e(blobUrl+'#page='+currentPage+'&zoom=page-width')+'" loading="lazy" referrerpolicy="no-referrer"></iframe></div><div class="source-pdf-actions"><a class="btn" href="'+e(blobUrl)+'" target="_blank" rel="noopener">獨立開啟 PDF</a><button type="button" class="btn btn-muted" id="source-pdf-remove">清除這台裝置儲存的 PDF</button></div>':
-      '<div class="source-pdf-placeholder"><div class="source-pdf-symbol">▧</div><strong>尚無原始圖文</strong><p>載入《電力電子初級班講義（上）R2》的 107 頁 PDF，即可逐頁查看原始投影片。</p></div>')+
+      '<div class="source-pdf-placeholder"><div class="source-pdf-symbol">▧</div><strong>尚無原始圖文</strong><p>載入《'+e(label)+'》的 '+pageCount+' 頁 PDF，即可逐頁查看原始投影片。</p></div>')+
       '</div>';
   }
   function update(){if(mountTarget&&mountTarget.isConnected)mountTarget.innerHTML=html()}
   function mount(el,page){
-    mountTarget=el;currentPage=Math.max(1,Math.min(107,Number(page)||1));if(!el)return;
+    mountTarget=el;currentPage=Math.max(1,Math.min(pageCount,Number(page)||1));if(!el)return;
     el.innerHTML=html();
     if(!blob&&loading===null){
       loading=readCached().then(function(data){if(data&&data.file instanceof Blob)setBlob(data.file,data.name);update()}).catch(function(){/* browsing without persistent storage remains supported */}).finally(function(){loading=false});

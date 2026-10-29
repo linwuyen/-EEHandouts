@@ -1,6 +1,8 @@
 (function () {
   'use strict';
   var D=window.EE_DATA;
+  var pageCount=Number(D&&D.pageCount)||107;
+  var progressKey=D&&D.progressKey||'ee.done';
   var sourceText=window.EE_SOURCE_TEXT||{};
   var main=document.getElementById('main-content');
   if(!D||!D.chapters||!window.EE_LABS){main.textContent='課程資料未能載入。請重新整理頁面。';return}
@@ -8,7 +10,7 @@
   D.chapters.forEach(function(c){byId[c.id]=c;c.lessons.forEach(function(l){flat.push({chapter:c,lesson:l})})});
   var done=[];
   var theme='light';
-  try{done=JSON.parse(localStorage.getItem('ee.done')||'[]');theme=localStorage.getItem('ee.theme')||'light'}catch(e){done=[]}
+  try{done=JSON.parse(localStorage.getItem(progressKey)||'[]');theme=localStorage.getItem('ee.theme')||'light'}catch(e){done=[]}
   if(!Array.isArray(done))done=[];
   var completed=new Set(done.filter(function(id){return flat.some(function(x){return x.lesson.id===id})}));
   var state={quiz:null,quickAnswer:{},searchItems:[],searchIndex:0,lastFocus:null};
@@ -39,7 +41,7 @@
     if(l)html+='<span class="crumb-sep">/</span><strong>'+e(l.title)+'</strong>';
     if(c&&r.type==='slides')html+='<span class="crumb-sep">/</span><strong>講義索引</strong>';
     if(c&&r.type==='quiz')html+='<span class="crumb-sep">/</span><strong>小測驗</strong>';
-    if(r.type==='slides'&&r.id==='all')html+='<span class="crumb-sep">/</span><strong>全 107 頁索引</strong>';
+    if(r.type==='slides'&&r.id==='all')html+='<span class="crumb-sep">/</span><strong>全 '+pageCount+' 頁索引</strong>';
     if(r.type==='slide')html+='<span class="crumb-sep">/</span><a href="#slides/all">全講義索引</a><span class="crumb-sep">/</span><strong>第 '+Number(r.id)+' 頁</strong>';
     $('#breadcrumb').innerHTML=html;
   }
@@ -49,8 +51,8 @@
       var n=chapterDone(c),p=pct(n,c.lessons.length);
       return '<a class="subject-card" href="'+chapterPath(c)+'" style="--c:'+c.accent+'"><div class="card-top"><span class="subject-icon">'+icons[c.icon]+'</span><span class="card-index">CH '+c.number+'</span></div><h3>'+e(c.title)+'</h3><p>'+e(c.subtitle)+'</p><div class="card-bottom"><span>P.'+c.range[0]+'–'+c.range[1]+'　·　'+c.lessons.length+' 節　·　完成 '+n+'</span><span class="card-arrow">↗</span></div><div class="mini-track"><span style="width:'+p+'%"></span></div></a>';
     }).join('');
-    return '<section class="hero"><div class="hero-decoration"></div><div class="hero-copy"><div class="hero-kicker">POWER ELECTRONICS · LEARNING HUB</div><h1>把電力電子，<br>學成真正能用的知識。</h1><p>從物理、磁性元件、功率開關，到 PFC、整流與 MCU 量測。想看哪一章就看哪一章。</p><a class="hero-cta" href="'+lessonPath(next.chapter,next.lesson)+'">接著學習 →</a><div class="hero-stats"><div class="hero-stat"><strong>07</strong><span>大主題</span></div><div class="hero-stat"><strong>'+flat.length+'</strong><span>觀念小節</span></div><div class="hero-stat"><strong>107</strong><span>講義頁碼</span></div><div class="hero-stat"><strong>'+pct(completed.size,flat.length)+'%</strong><span>完成進度</span></div></div></div></section>'+
-      '<div class="section-title"><h2>選一個你想學的主題</h2><a class="text-link" href="#slides/all">或瀏覽原講義 107 頁 →</a></div><div class="subject-grid">'+cards+'</div>'+
+    return '<section class="hero"><div class="hero-decoration"></div><div class="hero-copy"><div class="hero-kicker">POWER ELECTRONICS · LEARNING HUB</div><h1>把電力電子，<br>學成真正能用的知識。</h1><p>'+e(D.heroDescription||'從物理、磁性元件、功率開關，到 PFC、整流與 MCU 量測。想看哪一章就看哪一章。')+'</p><a class="hero-cta" href="'+lessonPath(next.chapter,next.lesson)+'">接著學習 →</a><div class="hero-stats"><div class="hero-stat"><strong>07</strong><span>大主題</span></div><div class="hero-stat"><strong>'+flat.length+'</strong><span>觀念小節</span></div><div class="hero-stat"><strong>'+pageCount+'</strong><span>講義頁碼</span></div><div class="hero-stat"><strong>'+pct(completed.size,flat.length)+'%</strong><span>完成進度</span></div></div></div></section>'+
+      '<div class="section-title"><h2>選一個你想學的主題</h2><a class="text-link" href="#slides/all">或瀏覽原講義 '+pageCount+' 頁 →</a></div><div class="subject-grid">'+cards+'</div>'+
       '<div class="secondary-panels"><div class="panel continue-panel"><span class="continue-orb">↗</span><div><h3>接著學：'+e(next.chapter.short)+'</h3><p>'+e(next.lesson.title)+'</p><a class="text-link" href="'+lessonPath(next.chapter,next.lesson)+'">開啟這一節 →</a></div></div><div class="panel tip-panel"><h3>閱讀方式</h3><p>先看物理現象，再看公式與工程條件。每章有實驗與小測驗，學習記錄保存在這台裝置的瀏覽器。</p></div></div>';
   }
   function chapter(c){
@@ -83,7 +85,7 @@
     while((match=pattern.exec(spec||''))!==null){
       if(match[3]){pages.add(Number(match[3]));continue}
       var start=Number(match[1]),end=Number(match[2]);
-      for(var p=start;p<=Math.min(end,107);p++)pages.add(p);
+      for(var p=start;p<=Math.min(end,pageCount);p++)pages.add(p);
     }
     return pages;
   }
@@ -102,12 +104,12 @@
     return cards;
   }
   function slides(c){
-    var all=!c,start=all?1:c.range[0],end=all?107:c.range[1],cards=slideCards(start,end),title=all?'完整原講義 107 頁索引':c.title+' · 頁碼索引';
-    return '<div style="--c:'+(c?c.accent:'#4899EF')+'"><a class="back-link" href="'+(c?chapterPath(c):'#home')+'">← 返回'+(c?' '+e(c.title):'總覽')+'</a><header class="page-header"><div class="eyebrow">ORIGINAL LECTURE INDEX</div><h1>'+e(title)+'</h1><p>共 '+cards.length+' 頁。點擊任一頁即可查看原講義抽取文字，並可在本機載入原始 PDF，對照圖片與電路圖。</p></header><div class="content-note">原講義共 107 頁：第 1–2 頁為封面／課表，第 3–106 頁為教材，第 107 頁為結尾。文字來自 PPTX 擷取，公式圖與電路圖請以原始 PDF 視覺內容為準。</div><div class="slides-toolbar"><strong>'+cards.length+' 頁完整標題索引</strong>'+(c?buttonLink('#quiz/'+c.id,'章末測驗 →'):buttonLink('#home','返回主題首頁'))+'</div><div class="slide-grid">'+cards.join('')+'</div></div>';
+    var all=!c,start=all?1:c.range[0],end=all?pageCount:c.range[1],cards=slideCards(start,end),title=all?'完整原講義 '+pageCount+' 頁索引':c.title+' · 頁碼索引';
+    return '<div style="--c:'+(c?c.accent:'#4899EF')+'"><a class="back-link" href="'+(c?chapterPath(c):'#home')+'">← 返回'+(c?' '+e(c.title):'總覽')+'</a><header class="page-header"><div class="eyebrow">ORIGINAL LECTURE INDEX</div><h1>'+e(title)+'</h1><p>共 '+cards.length+' 頁。點擊任一頁即可查看原講義抽取文字，並可在本機載入原始 PDF，對照圖片與電路圖。</p></header><div class="content-note">'+e(D.indexNote||'原講義共 107 頁：第 1–2 頁為封面／課表，第 3–106 頁為教材，第 107 頁為結尾。文字來自 PPTX 擷取，公式圖與電路圖請以原始 PDF 視覺內容為準。')+'</div><div class="slides-toolbar"><strong>'+cards.length+' 頁完整標題索引</strong>'+(c?buttonLink('#quiz/'+c.id,'章末測驗 →'):buttonLink('#home','返回主題首頁'))+'</div><div class="slide-grid">'+cards.join('')+'</div></div>';
   }
   function sourcePage(p){
     var c=chapterForPage(p),matches=related(c,p),links=matches.map(function(l){return buttonLink(lessonPath(c,l),'學習：'+l.title)}).join(''),text=sourceText[p]||'沒有取得這頁的文字；請以原始 PDF 為準。';
-    return '<div class="lesson-layout" style="--c:'+(c?c.accent:'#4899EF')+'"><a class="back-link" href="#slides/all">← 返回完整講義索引</a><header class="lesson-header"><div class="eyebrow">ORIGINAL SLIDE / '+p+' OF 107</div><h1>第 '+p+' 頁｜'+e(D.slideTitles[p])+'</h1><p class="lesson-lead">'+(c?'對應主題：'+e(c.title):'封面、課程資訊或結語')+'</p><div class="chapter-actions">'+links+'</div></header><div id="source-pdf-holder"></div><section class="reading-block"><h2>原講義抽取文字</h2><p class="muted">這是從你上傳的 PPTX 逐頁抽取的文字，並非人工改寫。部分公式／圖形在 PPTX 中是圖片，文字可能不完整；請以原始 PDF 對照為準。</p><pre class="slide-transcript">'+e(text)+'</pre></section><div class="lesson-bottom"><div class="lesson-pager">'+(p>1?buttonLink('#slide/'+(p-1),'← 上一頁'):'')+(p<107?buttonLink('#slide/'+(p+1),'下一頁 →',true):'')+'</div>'+buttonLink('#slides/all','107 頁完整索引')+'</div></div>';
+    return '<div class="lesson-layout" style="--c:'+(c?c.accent:'#4899EF')+'"><a class="back-link" href="#slides/all">← 返回完整講義索引</a><header class="lesson-header"><div class="eyebrow">ORIGINAL SLIDE / '+p+' OF '+pageCount+'</div><h1>第 '+p+' 頁｜'+e(D.slideTitles[p])+'</h1><p class="lesson-lead">'+(c?'對應主題：'+e(c.title):'封面、課程資訊或結語')+'</p><div class="chapter-actions">'+links+'</div></header><div id="source-pdf-holder"></div><section class="reading-block"><h2>原講義抽取文字</h2><p class="muted">這是從你上傳的 PPTX 逐頁抽取的文字，並非人工改寫。部分公式／圖形在 PPTX 中是圖片，文字可能不完整；請以原始 PDF 對照為準。</p><pre class="slide-transcript">'+e(text)+'</pre></section><div class="lesson-bottom"><div class="lesson-pager">'+(p>1?buttonLink('#slide/'+(p-1),'← 上一頁'):'')+(p<pageCount?buttonLink('#slide/'+(p+1),'下一頁 →',true):'')+'</div>'+buttonLink('#slides/all',pageCount+' 頁完整索引')+'</div></div>';
   }
   function initQuiz(c){state.quiz={chapter:c.id,index:0,score:0,answer:null,done:false}}
   function quiz(c){
@@ -121,7 +123,7 @@
   function closeMenu(){document.body.classList.remove('menu-open');$('#sidebar-scrim').hidden=true;$('#menu-toggle').setAttribute('aria-expanded','false')}
   function render(){
     var data=current(),r=data.r,c=data.c,l=data.l,pg=Number(r.id);
-    var isSource=r.type==='slide'&&/^\d+$/.test(r.id)&&pg>=1&&pg<=107;
+    var isSource=r.type==='slide'&&/^\d+$/.test(r.id)&&pg>=1&&pg<=pageCount;
     var allSlides=r.type==='slides'&&r.id==='all';
     if(!['home','chapter','lesson','slides','quiz','slide'].includes(r.type)||(r.type!=='home'&&!c&&!allSlides&&!isSource)||(r.type==='lesson'&&!l)){
       location.hash='#home';return;
@@ -133,7 +135,7 @@
     else if(r.type==='slides')main.innerHTML=slides(c);
     else if(r.type==='slide'){main.innerHTML=sourcePage(pg);if(window.EE_SOURCE_PDF)window.EE_SOURCE_PDF.mount($('#source-pdf-holder'),pg)}
     else if(r.type==='quiz')main.innerHTML=quiz(c);
-    document.title=(r.type==='home'?'總覽':isSource?'第 '+pg+' 頁原講義':l?l.title:allSlides?'107 頁講義索引':c.title)+'｜EE Handouts';
+    document.title=(r.type==='home'?'總覽':isSource?'第 '+pg+' 頁原講義':l?l.title:allSlides?pageCount+' 頁講義索引':c.title)+'｜EE Handouts';
     closeMenu();
     window.scrollTo(0,0);
   }
@@ -144,7 +146,7 @@
       items.push({type:'chapter',title:c.title,subtitle:'主題 · P.'+c.range[0]+'–'+c.range[1],url:chapterPath(c),text:c.title+' '+c.short+' '+c.subtitle});
       c.lessons.forEach(function(l){items.push({type:'lesson',title:l.title,subtitle:c.short+' · P.'+l.pages,url:lessonPath(c,l),text:l.title+' '+l.lead+' '+l.explain.join(' ')+' '+l.formula})});
     });
-    for(var p=1;p<=107;p++){
+    for(var p=1;p<=pageCount;p++){
       var c=chapterForPage(p),raw=(sourceText[p]||'').slice(0,600);
       items.push({type:'slide',title:'P.'+p+' '+D.slideTitles[p],subtitle:(c?c.short:'原講義資訊頁')+' · 原講義第 '+p+' 頁',url:'#slide/'+p,text:'P.'+p+' 第'+p+'頁 '+D.slideTitles[p]+' '+raw});
     }
@@ -176,7 +178,7 @@
     var d=current(),c=d.c,l=d.l,act=b.dataset.action;
     if(act==='complete'&&l){
       if(completed.has(l.id))completed.delete(l.id);else completed.add(l.id);
-      try{localStorage.setItem('ee.done',JSON.stringify(Array.from(completed)))}catch(err){}
+      try{localStorage.setItem(progressKey,JSON.stringify(Array.from(completed)))}catch(err){}
       updateSidebar(d.r);b.textContent=completed.has(l.id)?'✓ 已標記完成':'✓ 標記這節已完成';
       b.classList.toggle('btn-primary',!completed.has(l.id));b.classList.toggle('btn-muted',completed.has(l.id));
     }
