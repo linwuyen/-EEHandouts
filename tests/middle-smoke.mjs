@@ -86,7 +86,7 @@ async function awaitMiddlePdf(pg){
   await page.waitForFunction(n=>{
     const c=document.getElementById('source-pdf-canvas');
     const status=document.getElementById('source-pdf-feedback');
-    return c&&c.width>150&&c.height>150&&status?.textContent?.includes('第 '+n+'／52 頁');
+    return c&&c.width>150&&c.height>150&&status?.textContent?.startsWith('已驗證講義：第 '+n+'／52 頁');
   },pg,{timeout:30000});
 }
 await run('52-page PDF identity, render, navigation and separate local cache',async()=>{
