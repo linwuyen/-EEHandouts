@@ -9,6 +9,7 @@ const publish=readFileSync('.github/workflows/publish-verified.yml','utf8');
 const smoke=readFileSync('tests/smoke.mjs','utf8');
 const pkg=JSON.parse(readFileSync('package.json','utf8'));
 const lock=JSON.parse(readFileSync('package-lock.json','utf8'));
+assert.ok(pkg.scripts['test:browser'].includes('tests/middle-engineering.mjs'), 'Keep the newer middle-volume DCM engineering regression in the suite');
 
 const count=(hay,needle)=>hay.split(needle).length-1;
 assert.equal(count(smoke,"await run('磁路與 ADC 超出物理模型時拒絕數值'"),1,'Duplicated regression block');
