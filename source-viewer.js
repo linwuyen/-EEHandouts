@@ -70,7 +70,7 @@
         var cover=normalizeText((await first.getTextContent()).items.map(function(x){return x.str||''}).join(''));
         var ref=normalizeText((await reference.getTextContent()).items.map(function(x){return x.str||''}).join(''));
         if(!/dc.?dc|converter/i.test(cover)||!/flyback|converter/i.test(ref)){
-          throw new Error('中冊來源識別不符：須含 DC-DC 封面與第 37 頁 Flyback。');
+          throw new Error('中冊標題識別不符：須含 DC-DC 封面與第 37 頁 Flyback。');
         }
       }else{
         // Exact known 107-page upper-volume export; independently re-exported PDFs require nine anchors.
