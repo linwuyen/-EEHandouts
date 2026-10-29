@@ -41,3 +41,11 @@ html[data-theme="dark"]{color-scheme:dark;--bg:#0b1220;--paper:#121e30;--paper-2
 .lab-validation:not([hidden]){display:block;font-size:12px;line-height:1.8;color:var(--warn);background:color-mix(in srgb,#e4a345 10%,var(--paper));border:1px solid color-mix(in srgb,#d9a149 30%,var(--line));padding:12px 14px;border-radius:10px;margin-top:14px}
 .lab-validation[hidden]{display:none}
 @media(max-width:720px){.global-index-trigger{display:none}.source-pdf-top{display:block;padding:17px}.source-pdf-picker{margin-top:15px;display:inline-flex}.source-pdf-feedback{padding:10px 17px}.source-pdf-frame-wrap{padding:8px}.source-pdf-frame-wrap iframe{height:60vh;min-height:330px}}
+
+
+/* The original PDF is rendered using PDF.js into a true page canvas.
+   Unlike iframe #page=... links this works on mobile and provides page-level verification. */
+.source-pdf-canvas-wrap{padding:16px;background:var(--paper-2);display:flex;justify-content:center;align-items:flex-start;min-height:160px;overflow:auto}
+.source-pdf-canvas-wrap canvas{display:block;max-width:100%;height:auto;background:#fff;border:1px solid var(--line);border-radius:6px;box-shadow:0 10px 26px rgba(0,0,0,.12)}
+.source-pdf-feedback.error{color:var(--warn);background:color-mix(in srgb,#e9ab43 12%,var(--paper))}
+@media(max-width:720px){.source-pdf-canvas-wrap{padding:8px;min-height:110px}}
