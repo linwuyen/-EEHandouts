@@ -15,7 +15,8 @@
 - 首頁主題卡片、側欄章節切換、課節導航與全文關鍵字搜尋
 - 每個課節有白話解說、重要公式、例題、常見誤解與自我測驗
 - 每個主題提供一個可調參數的工程小實驗
-- 講義頁碼索引（方便回查原始投影片；本站不是原 PPTX 的完整複製）
+- **全部 107 頁**可搜尋的標題與原講義文字索引（含封面、課程安排與結語）
+- 每頁皆可在瀏覽器**載入本機原講義 PDF**，對照原始電路圖、波形與公式；PDF 儲存於本機 IndexedDB，不上傳伺服器
 - 閱讀完成標記、學習進度保存於瀏覽器本機、深色／淺色模式
 - 手機及桌面版自適應；純 HTML/CSS/JavaScript，不需 npm 或伺服器後端
 
@@ -23,10 +24,19 @@
 直接開啟 `index.html`，或在本資料夾啟動任何靜態網站伺服器。
 
 ### GitHub Pages
-Repository → **Settings** → **Pages** → **Build and deployment** → **Deploy from a branch** → **main / (root)** → **Save**。啟用完成後，GitHub Pages 網址依 GitHub 當時顯示的實際網址為準。
+Repository → **Settings** → **Pages** → **Build and deployment** → **Deploy from a branch** → **main / (root)** → **Save**。部署狀態可在 **Actions** 觀察，並依 Pages 設定顯示的網址開啟。
+
+### 原講義 PDF 對照
+
+1. 將你持有的《電力電子初級班講義（上）R2.pptx》以 PowerPoint 或 LibreOffice 匯出成 **107 頁 PDF**。
+2. 網站選 **完整 107 頁講義** → 任一頁 → **載入原始講義 PDF**。
+3. 之後切換第 24、25 頁時，內嵌檢視器會嘗試跳到 PDF 對應頁。PDF 在瀏覽器本機儲存，清除網站資料就會移除。
+
+網站不附帶原 PPTX/PDF 二進位檔，避免未經確認公開轉載講義；你在網站載入的檔案不會傳送到 GitHub。若瀏覽器禁止 IndexedDB，重新整理後可能需重新選取。
 
 ## 範圍與限制
-- 本站提供主題重整、教學補充與頁碼索引；原始 PPTX 中的照片、示波器圖、表格及公式圖片不會自動完整重現。
+- 本站提供主題重整、教學補充、完整頁碼及文字擷取。原始 PPTX 中以圖片形式存在的公式、波形及示波器截圖**不會被文字擷取取代**，請在原講義 PDF 檢視器核對；此 PDF 須使用者自行載入。
+- 整流器的 ΔV≈I/(2fC) 為小漣波模型；本站設 ΔV/Vpeak≤20% 為教學近似的顯示門檻（不是設計標準），超界便停止給出 DC 平均值與該模型的電容波形。
 - 小實驗使用理想或簡化模型，已標示適用條件；不得取代 datasheet、TRM、實機驗證或安全設計。
 - 使用者的閱讀記錄僅保存在瀏覽器的 localStorage，不會送往伺服器。
 
@@ -34,7 +44,16 @@ Repository → **Settings** → **Pages** → **Build and deployment** → **Dep
 - `index.html`：語意化網站結構
 - `styles.css`：響應式視覺設計
 - `data.js`：七章課程與講義頁碼資料
-- `app.js`：導航、搜尋、測驗與互動實驗
+- `app.js`：導航、搜尋、測驗及學習進度
+- `labs.js`：七個互動實驗與數學模型
+- `slide-text.js`：從使用者提供的 107 頁 PPTX 擷取的原文
+- `source-viewer.js`：純本機 PDF 檢視器（IndexedDB，無伺服器上傳）
+- `tests/smoke.mjs`：Playwright 真實瀏覽器測試
+- `.github/workflows/verify.yml`：每次推送執行桌機／手機及數學邊界回歸測試
 - `.nojekyll`：GitHub Pages 靜態資產處理
+
+## 驗證
+
+在 Node 22 開發環境安裝 Playwright 1.56.1 與 Chromium，啟動本機靜態伺服器後執行 `node tests/smoke.mjs`。GitHub Actions 提供自動化跑法與測試截圖。測試驗證網站行為，不代表工程模型可直接用於硬體設計。
 
 本專案由使用者提供的講義與前述學習討論整理而成。
