@@ -4,7 +4,12 @@
 */
 (function () {
   'use strict';
-  var DB_NAME='eehandouts-source-pdf', STORE='source', KEY='upper-volume-r2';
+  var CFG=window.EE_SOURCE_CONFIG||{};
+  var DB_NAME='eehandouts-source-pdf', STORE='source', KEY=CFG.key||'upper-volume-r2';
+  var pageCount=Number(CFG.pageCount)||107;
+  var sourceLabel=CFG.label||'電力電子初級班講義（上）R2';
+  var middle=pageCount===52;
+  var referencePage=middle?37:24;
   var CDN='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/';
   var pdfLibraryPromise=null, documentProxy=null, selectedBlob=null, selectedName='';
   var currentPage=1, mountTarget=null, cacheAttempted=false, loadVersion=0, renderVersion=0, loadedFromCache=false;
@@ -51,16 +56,16 @@
     var lib=await pdfLibrary(),task=lib.getDocument({data:new Uint8Array(await file.arrayBuffer()),isEvalSupported:false});
     var pdf=await task.promise;
     try{
-      if(pdf.numPages!==107)throw new Error('頁數不符：目前 '+pdf.numPages+' 頁，這份上冊必須是 107 頁');
-      var first=await pdf.getPage(1),reference=await pdf.getPage(24);
+      if(pdf.numPages!==pageCount)throw new Error('頁數不符：目前 '+pdf.numPages+' 頁，'+sourceLabel+' 必須是 '+pageCount+' 頁');
+      var first=await pdf.getPage(1),reference=await pdf.getPage(referencePage);
       var firstText=normalizeText((await first.getTextContent()).items.map(function(x){return x.str||''}).join(''));
       var referenceText=normalizeText((await reference.getTextContent()).items.map(function(x){return x.str||''}).join(''));
       // The reference PDF is a PPTX export with searchable Chinese headings.
       // Do not silently accept an arbitrary document that happens to have 107 pages.
-      var coverOK=/電力電子|powerelectronics/i.test(firstText);
-      var page24OK=/變壓器|transformer/i.test(referenceText);
-      if(!coverOK || !page24OK){
-        throw new Error('頁數正確，但內容識別不符：需要首頁「電力電子學」與第 24 頁「變壓器」相關標題。掃描版或不同講義請先轉成可搜尋文字的本課程 PDF。');
+      var coverOK=middle?(/dc.?dc|converter/i.test(firstText)):(/電力電子|powerelectronics/i.test(firstText));
+      var referenceOK=middle?(/flyback|converter/i.test(referenceText)):(/變壓器|transformer/i.test(referenceText));
+      if(!coverOK || !referenceOK){
+        throw new Error(middle?'頁數正確，但中冊標題識別不符：需要封面的 DC-DC Converters 與第 37 頁 Flyback。請確認 PDF 不是掃描版或其他講義。':'頁數正確，但內容識別不符：需要首頁「電力電子學」與第 24 頁「變壓器」相關標題。掃描版或不同講義請先轉成可搜尋文字的本課程 PDF。');
       }
       return pdf;
     }catch(err){await pdf.destroy();throw err}
@@ -68,14 +73,14 @@
   function html(){
     var yes=!!documentProxy;
     return '<section class="source-pdf-panel">'+
-      '<div class="source-pdf-top"><div><h3>原始投影片 PDF 對照</h3><p>先驗證 107 頁和內容，再直接顯示第 '+currentPage+' 頁的原始圖文。PDF 只留在瀏覽器本機。</p></div>'+
+      '<div class="source-pdf-top"><div><h3>原始投影片 PDF 對照</h3><p>先驗證 '+pageCount+' 頁和內容，再直接顯示第 '+currentPage+' 頁的原始圖文。PDF 只留在瀏覽器本機。</p></div>'+
       '<label class="btn btn-primary source-pdf-picker" for="source-pdf-file">'+(yes?'更換 PDF':'載入原始講義 PDF')+'</label><input id="source-pdf-file" type="file" class="sr-only" accept="application/pdf,.pdf"></div>'+
       '<div id="source-pdf-feedback" class="source-pdf-feedback" role="status" aria-live="polite">'+
-      (yes?'已核對 107 頁及首頁／第 24 頁標題：'+e(selectedName):'尚未驗證原始 PDF，請先載入講義檔案。')+'</div>'+
+      (yes?'已核對 '+pageCount+' 頁及首頁／第 '+referencePage+' 頁標題：'+e(selectedName):'尚未驗證原始 PDF，請先載入講義檔案。')+'</div>'+
       (yes?
         '<div class="source-pdf-canvas-wrap"><canvas id="source-pdf-canvas" role="img" aria-label="原始講義第 '+currentPage+' 頁 PDF 圖文"></canvas></div>'+
         '<div class="source-pdf-actions"><button class="btn btn-muted" type="button" id="source-pdf-remove">清除這台裝置的 PDF</button></div>':
-        '<div class="source-pdf-placeholder"><div class="source-pdf-symbol">▧</div><strong>等待載入已驗證的 107 頁講義</strong><p>本檢視器會檢查實際頁數及部分講義標題，確認後才能顯示 PDF 原圖。</p></div>')+
+        '<div class="source-pdf-placeholder"><div class="source-pdf-symbol">▧</div><strong>等待載入已驗證的 '+pageCount+' 頁講義</strong><p>本檢視器會檢查實際頁數及部分講義標題，確認後才能顯示 PDF 原圖。</p></div>')+
       '</section>';
   }
   function feedback(message,isError){
@@ -88,7 +93,7 @@
     if(!root||!root.isConnected||!doc)return;
     var canvas=root.querySelector('#source-pdf-canvas');
     if(!canvas)return;
-    feedback('正在呈現原講義第 '+pg+'／107 頁…',false);
+    feedback('正在呈現原講義第 '+pg+'／'+pageCount+' 頁…',false);
     try{
       var page=await doc.getPage(pg);
       if(seq!==renderVersion || root!==mountTarget || doc!==documentProxy)return;
@@ -103,8 +108,8 @@
       var ctx=canvas.getContext('2d',{alpha:false});
       await page.render({canvasContext:ctx,viewport:viewport}).promise;
       if(seq===renderVersion && root===mountTarget && doc===documentProxy){
-        feedback('已驗證講義：第 '+pg+'／107 頁 · '+selectedName+(loadedFromCache?'（從本機儲存恢復）':''),false);
-        root.dispatchEvent(new CustomEvent('eehandouts-pdf-page-rendered',{bubbles:true,detail:{page:pg,total:107}}));
+        feedback('已驗證講義：第 '+pg+'／'+pageCount+' 頁 · '+selectedName+(loadedFromCache?'（從本機儲存恢復）':''),false);
+        root.dispatchEvent(new CustomEvent('eehandouts-pdf-page-rendered',{bubbles:true,detail:{page:pg,total:pageCount}}));
       }
     }catch(err){
       if(seq===renderVersion)feedback('PDF 第 '+pg+' 頁呈現失敗：'+err.message,true);
@@ -112,7 +117,7 @@
   }
   async function adopt(file,name,fromCache){
     var seq=++loadVersion;
-    feedback('檢查 PDF 格式、107 頁及講義內容中…',false);
+    feedback('檢查 PDF 格式、'+pageCount+' 頁及講義內容中…',false);
     var newDocument;
     try{
       newDocument=await verifyPdf(file);
@@ -128,7 +133,7 @@
     }catch(err){if(seq===loadVersion)feedback('檔案未接受：'+err.message,true)}
   }
   function mount(el,page){
-    currentPage=Math.min(107,Math.max(1,Math.floor(Number(page)||1)));
+    currentPage=Math.min(pageCount,Math.max(1,Math.floor(Number(page)||1)));
     mountTarget=el;renderVersion++;
     if(!el)return;
     el.innerHTML=html();
