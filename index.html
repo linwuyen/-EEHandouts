@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="zh-Hant" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f7fb">
+  <meta name="description" content="EE Handouts 電力電子學習網站：7 大主題、38 節白話講義、107 頁索引、互動工程計算與小測驗。">
+  <title>EE Handouts｜電力電子主題學習</title>
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+  <script defer src="./data.js"></script>
+  <script defer src="./app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">跳到主要內容</a>
+  <div id="sidebar-scrim" class="sidebar-scrim" hidden></div>
+  <div class="app-shell">
+    <aside id="sidebar" class="sidebar" aria-label="主題導覽">
+      <a class="brand" href="#home" aria-label="EE Handouts 首頁">
+        <span class="brand-mark">EE<span class="brand-dot"></span></span>
+        <span class="brand-copy"><strong>EE Handouts</strong><small>POWER ELECTRONICS</small></span>
+      </a>
+      <div class="sidebar-label">學習空間 <span>COURSE</span></div>
+      <nav class="side-nav" id="side-nav">
+        <a href="#home" class="side-home" data-nav="home"><span class="nav-emblem">⌂</span>總覽 <span class="nav-chevron">›</span></a>
+        <div id="chapter-nav"></div>
+      </nav>
+      <div class="side-bottom">
+        <div class="side-progress"><div class="side-progress-head"><span>你的學習進度</span><strong id="side-percent">0%</strong></div><div class="progress-track"><div id="side-progress-fill" class="progress-fill"></div></div><small id="side-progress-count">0 / 38 節完成</small></div>
+        <div class="side-meta">依 107 頁講義主題重整<br>教學用途 · 繁體中文</div>
+      </div>
+    </aside>
+    <div class="workspace">
+      <header class="topbar">
+        <div class="top-left">
+          <button id="menu-toggle" class="icon-button mobile-menu" aria-label="開啟章節目錄" aria-expanded="false">☰</button>
+          <div id="breadcrumb" class="breadcrumb">學習總覽</div>
+        </div>
+        <div class="top-actions">
+          <button class="search-trigger" id="search-trigger" type="button"><span class="search-glyph">⌕</span><span>搜尋主題、公式、頁碼</span><kbd>Ctrl K</kbd></button>
+          <button id="theme-toggle" class="icon-button theme-toggle" type="button" title="切換深色模式" aria-label="切換深色模式">◐</button>
+        </div>
+      </header>
+      <main id="main-content" class="page" tabindex="-1" aria-live="polite">
+        <section class="loading-card" aria-label="正在載入課程">
+          <span class="loading-ornament">∿</span>
+          <h1>EE Handouts</h1><p>讀取七大主題中…</p>
+        </section>
+      </main>
+      <footer class="footer">EE HANDOUTS <span>／</span> 從物理現象理解控制與電力轉換 <span>·</span> 2026</footer>
+    </div>
+  </div>
+  <div id="search-overlay" class="search-overlay" hidden>
+    <div id="search-backdrop" class="search-backdrop"></div>
+    <section class="search-panel" role="dialog" aria-modal="true" aria-labelledby="search-title">
+      <div class="search-input-wrap"><span>⌕</span><label class="sr-only" id="search-title" for="search-input">搜尋課程</label><input id="search-input" type="search" placeholder="搜尋：PF、磁飽和、PWM、ADC、頁碼 25…" autocomplete="off"><button id="search-close" type="button" aria-label="關閉搜尋">Esc</button></div>
+      <div id="search-results" class="search-results"></div>
+      <div class="search-hint">↑ ↓ 選擇結果　Enter 開啟　Esc 關閉</div>
+    </section>
+  </div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <noscript><p class="noscript-message">本網站需要啟用 JavaScript 才能使用章節導覽和互動練習。</p></noscript>
+</body>
+</html>
