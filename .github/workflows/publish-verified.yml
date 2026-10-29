@@ -38,15 +38,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           VERIFIED_SHA: ${{ github.event.workflow_run.head_sha }}
         shell: bash
-        run: |
-          set -euo pipefail
-          latest="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')"
-          if [[ "$latest" == "$VERIFIED_SHA" ]]; then
-            echo "current=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "::notice::Skipping stale CI result $VERIFIED_SHA; main is now $latest"
-            echo "current=false" >> "$GITHUB_OUTPUT"
-          fi
+        run: bash scripts/check-verified-head.sh
       - name: Configure GitHub Pages
         if: steps.freshness.outputs.current == 'true'
         uses: actions/configure-pages@v6
@@ -62,15 +54,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           VERIFIED_SHA: ${{ github.event.workflow_run.head_sha }}
         shell: bash
-        run: |
-          set -euo pipefail
-          latest="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')"
-          if [[ "$latest" == "$VERIFIED_SHA" ]]; then
-            echo "current=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "::notice::Skipping deploy: newer main SHA $latest supersedes validated $VERIFIED_SHA"
-            echo "current=false" >> "$GITHUB_OUTPUT"
-          fi
+        run: bash scripts/check-verified-head.sh
       - name: Deploy only the newest verified SHA
         id: deployment
         if: steps.final_freshness.outputs.current == 'true'
