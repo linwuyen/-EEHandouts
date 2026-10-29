@@ -132,7 +132,7 @@ assert.ok(numeric(boostDcm,'Vout')>40,'DCM should not present the CCM Vout');
 await page.goto(BASE+'/middle.html#chapter/mid-boost');
 await page.locator('[data-middle-chart] svg polyline').waitFor();
 const boostTrace=await page.locator('[data-middle-chart] svg polyline').getAttribute('points');
-assert.equal(boostTrace.trim().split(/\\s+/).length,4,'Boost current waveform must contain calculated ON/rectify/zero segments');
+assert.equal(boostTrace.trim().split(/\s+/).length,4,'Boost current waveform must contain calculated ON/rectify/zero segments');
 pass('Boost CCM/BCM/DCM transfer, DCM volt-second, average output current and waveform');
 
 const twoWay={vin:48,vout:24,power:300};
@@ -147,7 +147,7 @@ const noFlow=await calc('mid-buckboost',{...twoWay,power:0});
 assert.equal(noFlow.values[1][1],'無淨傳能');
 await page.goto(BASE+'/middle.html#chapter/mid-buckboost');
 await page.locator('[data-lab-input="power"]').evaluate(el=>{el.value='0';el.dispatchEvent(new Event('input',{bubbles:true}));});
-assert.equal((await page.locator('[data-middle-chart] svg polyline').getAttribute('points')).trim().split(/\\s+/).length,2,'zero-power chart is neutral');
+assert.equal((await page.locator('[data-middle-chart] svg polyline').getAttribute('points')).trim().split(/\s+/).length,2,'zero-power chart is neutral');
 
 pass('Four-switch Buck-Boost direction reversal and zero-power state');
 
