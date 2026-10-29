@@ -4,6 +4,10 @@ window.EE_DATA = {
   "source": "電力電子初級班講義（中）／52 頁",
   "pageCount": 52,
   "progressKey": "ee.middle.done",
+  "pageTextTitle": "原講義頁面摘要",
+  "pageTextLink": "看頁面摘要與 PDF 對照",
+  "pageTextIntro": "點擊任一頁查看依照原投影片整理的繁體中文摘要，並可載入你自己的本機 PDF 核對原始電路圖與公式。",
+  "pageTextNote": "這是依據你提供的中冊 PPTX 重新整理的摘要，不是逐字稿。圖形、原始公式與波形請使用下方的本機 PDF 對照；本站不公開原始投影片檔案。",
   "heroDescription": "中冊聚焦 DC-DC：從 Buck、Boost、導通模式，到雙向電源、H-Bridge、Flyback、Forward 和磁芯設計。依主題自由跳讀，對照原講義頁碼。",
   "indexNote": "中冊共 52 頁：P.1 是封面，P.2–51 為 DC-DC 教材，P.52 是結語。本站用主題重整與自行撰寫的導讀取代逐頁翻投影片；圖像、完整公式及波形請載入本機原講義 PDF 對照。理想公式需先核對 CCM/DCM 與 PWM Duty 定義。",
   "chapters": [
