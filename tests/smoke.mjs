@@ -137,7 +137,7 @@ await run('磁路圖與線性磁阻公式一致',async()=>{
   const chart=page.locator('#lab-chart');
   assertCheck('不是假造的 B-H 曲線',await chart.innerText().then(x=>x.includes('B(I)')));
   assertCheck('圖明確標註門檻不是材料飽和點',await chart.innerText().then(x=>x.includes('非材料飽和點')));
-  await setRange(page,'current',2);
+  await setRange(page,'current',0.5);
   const initialB=await page.locator('#lab-outputs').innerText();
   await setRange(page,'turns',100);
   const laterB=await page.locator('#lab-outputs').innerText();
