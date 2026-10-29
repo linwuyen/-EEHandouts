@@ -5,15 +5,15 @@
 ## 固定範圍
 
 1. **導覽與內容**：上冊七章、38 個小節、107 頁索引；搜尋標題、前言、公式、例題、工程注意、常見誤解、測驗及完整擷取文字；錯誤 URL 不使頁面停止運作。
-2. **工程計算**：PF、理想 Buck PWM、磁路、MOSFET 損耗、單相整流、三相及 ADC。每個實驗分別測預設、有效範圍與超界輸入；超出物理模型適用範圍不得顯示可誤認為有效的估值。
-3. **PDF**：檔案格式、大小、107 頁、既定來源 PDF SHA-256 或九個跨頁文字錨點；拒絕 106 頁及錯誤來源；實際繪製的頁面需隨頁碼不同；更換／清除／重新整理／異步交錯時不得讓舊 PDF 復活。
-4. **使用性**：桌機、320px／390px 手機、768px 平板；側欄、搜尋鍵盤焦點、深淺模式、學習完成紀錄及測驗。
+2. **工程計算**：PF、理想 Buck PWM、磁路、MOSFET 損耗、單相整流、三相及 ADC。每個實驗分別測預設、有效範圍與超界輸入；超出物理模型適用範圍不得顯示可誤認為有效的估值。中冊 Buck / CCM / DCM 必須用獨立伏秒與電荷平衡公式驗證 Vout、IL peak/valley、續流與零電流時間；非同步 Buck DCM 谷值不得為負。其餘六個中冊模型須有跨功率方向、四象限和磁通極值的數值 fixture。
+3. **PDF**：檔案格式、大小、107 頁、既定來源 PDF SHA-256 或九個跨頁文字錨點；拒絕 106 頁及錯誤來源；實際繪製的頁面需隨頁碼不同；更換／清除／重新整理／異步交錯時不得讓舊 PDF 復活。中冊 52 頁必須通過九個跨章節辨識錨點；僅第 1、37 頁出現泛用 Converter 或其中一章錯誤的 PDF 必須拒絕。
+4. **使用性**：桌機、320px／390px 手機、768px 平板；側欄、搜尋鍵盤焦點、深淺模式、學習完成紀錄及測驗。KaTeX JS 或 CSS 任一無法載入時仍必須顯示可讀的原始文字公式。
 5. **部署**：測試須通過，發布須使用**被驗證過的 exact SHA**；新 PR 不可任意覆寫別人的分支修改。
 
 ## CI 與部署安全條件
 
 1. **Verify EEHandouts** 應使用 Node.js 22 跑測試、Actions Node.js 24 Runtime（checkout/setup-node/upload-artifact v7）、`ubuntu-24.04`，並以已提交的 `package-lock.json` 執行 `npm ci`。這避免浮動 Ubuntu 與 npm 轉依賴影響可重現性。
-2. `npm test` 先執行 `tests/release-guard.mjs`，檢查 release guard 的「最新 HEAD、過時 SHA、GitHub API 失敗」三種情況及工作流程結構，再跑上冊、中冊、KaTeX 公式 Regression。
+2. `npm test` 先執行 `tests/release-guard.mjs`，檢查 release guard 的「最新 HEAD、過時 SHA、GitHub API 失敗」三種情況及工作流程結構，再跑上冊、中冊、Buck DCM 工程模型、KaTeX 公式 Regression。
 3. **Publish EEHandouts only after verified CI** 只能回應 GitHub 自己 repository 中 `main` 的成功 Verify；上傳及部署均必須使用該次 `workflow_run.head_sha`。
 4. 部署前要查詢最新 `main` HEAD **兩次**：打包前與部署前。若 SHA 不符，該次部署略過；GitHub API 查詢失敗則 fail-closed。請勿讓舊的 CI 重新覆蓋新版。這可降低回退風險，但最後一次檢查與 GitHub Pages 實際發布間，仍不是原子交易。
 5. 在 GitHub **Settings → Pages** 使用 `Source = GitHub Actions`，並設定 **Repository Actions Variable** `EEHANDOUTS_ACTIONS_PAGES=true`。必須從 Actions 確認真正的 `deploy` 步驟 success，不能把 `skipped` 當成部署。
