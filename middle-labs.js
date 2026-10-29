@@ -27,7 +27,7 @@
       knobs:[k('vin','輸入電壓',12,100,4,24,' V'),k('duty','Duty',10,90,5,50,'%'),k('freq','切換頻率',25,250,25,100,' kHz'),k('l','電感',20,300,20,100,' μH'),k('io','輸出負載',.1,8,.1,2,' A')],
       note:'理想非同步 Buck，固定輸入電壓、Duty、L、fs 與定電流負載；CCM/BCM/DCM 分段模型。忽略壓降、ESR、死區與動態暫態；不是同步整流允許負電流的模型。',
       compute:function(v){var m=buckModel(v);
-        return {model:m,values:[['理想 '+m.mode+' Vout',f(m.vout,2)+' V'],['電感漣波 p-p',f(m.ripple,2)+' A'],['實際模型 IL 谷值',f(m.valley,2)+' A'],['BCM 臨界 Io',f(m.boundary,2)+' A']],
+        return {model:m,values:[['理想 '+m.mode+' Vout',f(m.vout,2)+' V'],['電感漣波 p-p',f(m.ripple,2)+' A'],['理想模型 IL 谷值',f(m.valley,2)+' A'],['BCM 臨界 Io',f(m.boundary,2)+' A']],
           warning:m.mode==='DCM'?'DCM：已採用三區間伏秒與平均負載模型；電感電流歸零後不會繼續為負。輸出電壓不可再套 Vout=D·Vin。':m.mode==='BCM'?'BCM：電感電流谷值剛好到零，為 CCM/DCM 的邊界。':''}
       }
     },
