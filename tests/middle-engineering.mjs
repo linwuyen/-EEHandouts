@@ -112,7 +112,28 @@ near('Boost peak inductor current',numeric(b,'峰值'),5.2,.01);
 near('Boost output capacitor ripple',numeric(b,'電容漣波'),.04545,.005);
 const bInvalid=await calc('mid-boost',{vin:12,duty:70,freq:50,l:40,io:.5});
 assert.ok(bInvalid.warning.includes('DCM'));
-pass('Boost CCM calculations and DCM boundary warning');
+assert.equal(bInvalid.model.mode,'DCM');
+const boostDcmCase={vin:12,duty:70,freq:50,l:40,io:.5};
+const boostDcm=await calc('mid-boost',boostDcmCase);
+near('Boost DCM output from independent energy equation',boostDcm.model.vout,47.28,1e-7);
+near('Boost DCM inductor peak',boostDcm.model.peak,4.2,1e-7);
+near('Boost DCM valley is zero',boostDcm.model.valley,0);
+near('Boost DCM time fractions',boostDcm.model.on+boostDcm.model.freewheel+boostDcm.model.zero,1,1e-9);
+assert.ok(boostDcm.model.zero>0);
+near('Boost DCM diode energy / average current',
+  boostDcm.model.peak*boostDcm.model.freewheel/2,boostDcmCase.io,1e-8);
+near('Boost DCM volt-second balance',
+  boostDcmCase.vin*boostDcm.model.on+(boostDcmCase.vin-boostDcm.model.vout)*boostDcm.model.freewheel,0,1e-8);
+const boostBoundary={vin:12,duty:70,freq:50,l:40,io:4.2*.3/2};
+assert.equal((await calc('mid-boost',boostBoundary)).model.mode,'BCM');
+const boostAbove={...boostBoundary,io:boostBoundary.io+.05};
+assert.equal((await calc('mid-boost',boostAbove)).model.mode,'CCM');
+assert.ok(numeric(boostDcm,'Vout')>40,'DCM should not present the CCM Vout');
+await page.goto(BASE+'/middle.html#chapter/mid-boost');
+await page.locator('[data-middle-chart] svg polyline').waitFor();
+const boostTrace=await page.locator('[data-middle-chart] svg polyline').getAttribute('points');
+assert.equal(boostTrace.trim().split(/\s+/).length,4,'Boost current waveform must contain calculated ON/rectify/zero segments');
+pass('Boost CCM/BCM/DCM transfer, DCM volt-second, average output current and waveform');
 
 const twoWay={vin:48,vout:24,power:300};
 const forward=await calc('mid-buckboost',twoWay);
@@ -124,6 +145,10 @@ assert.equal(reverse.values[1][1],'Boost 升壓');
 assert.ok(reverse.values[0][1].includes('右側'));
 const noFlow=await calc('mid-buckboost',{...twoWay,power:0});
 assert.equal(noFlow.values[1][1],'無淨傳能');
+await page.goto(BASE+'/middle.html#chapter/mid-buckboost');
+await page.locator('[data-lab-input="power"]').evaluate(el=>{el.value='0';el.dispatchEvent(new Event('input',{bubbles:true}));});
+assert.equal((await page.locator('[data-middle-chart] svg polyline').getAttribute('points')).trim().split(/\s+/).length,2,'zero-power chart is neutral');
+
 pass('Four-switch Buck-Boost direction reversal and zero-power state');
 
 const bridge={vbus:100,da:75,db:25,current:2};
@@ -138,6 +163,17 @@ for(const [da,db,current,q,back] of [
   assert.ok(v.values[2][1].includes(q+' 象限'));
   assert.equal(v.values[3][1],back?'負載回送':'負載吸收');
 }
+const bipolar=await calc('mid-bridge',{...bridge,mode:'bipolar'});
+near('bipolar complementary duty mean VAB',numeric(bipolar,'VAB'),50,.01);
+const uni=await calc('mid-bridge',{...bridge,mode:'unipolar'});
+near('unipolar synchronized carrier mean VAB',numeric(uni,'VAB'),50,.01);
+await page.goto(BASE+'/middle.html#chapter/mid-bridge');
+await page.locator('[data-bridge-mode]').waitFor();
+assert.equal(await page.locator('[data-bridge-mode]').inputValue(),'unipolar');
+assert.equal(await page.locator('[data-middle-chart] svg path').count(),3);
+await page.locator('[data-bridge-mode]').selectOption('bipolar');
+assert.equal(await page.locator('[data-bridge-mode]').inputValue(),'bipolar');
+assert.ok((await page.locator('[data-middle-chart] svg').getAttribute('aria-label')).includes('PWM'));
 pass('H-Bridge voltage difference, power sign, and four quadrant classification');
 
 const flyback=await calc('mid-flyback',{vin:96,duty:40,ratio:2,lm:200,freq:100});

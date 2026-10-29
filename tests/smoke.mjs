@@ -190,6 +190,22 @@ await run('磁路與 ADC 超出物理模型時拒絕數值',async()=>{
   await setRange(page,'offset',1.5);
   assertCheck('ADC 合法範圍恢復 Code',(await page.locator('#lab-outputs').innerText()).includes('3003 / 4095'));
 });
+await run('ADC 全曲線只繪有效電壓區間、不虛構硬體限幅',async()=>{
+  await navigate(page,'#chapter/analog');
+  await setRange(page,'amps',10);
+  await setRange(page,'gain',14);
+  await setRange(page,'offset',1.5);
+  const chart=page.locator('#lab-chart svg');
+  const curve=await chart.locator('path[stroke="#32b497"]').getAttribute('d');
+  assertCheck('有效電壓區間曲線存在',curve&&curve.startsWith('M'));
+  const points=[...curve.matchAll(/[ML]([0-9.]+) ([0-9.]+)/g)].map(m=>[Number(m[1]),Number(m[2])]);
+  assertCheck('有效區間從 x>左邊界開始',points[0][0]>22);
+  assertCheck('有效區間在 x<右邊界結束',points.at(-1)[0]<342);
+  assertCheck('沒有平頂限幅假象',points.every((p,i)=>i===0||p[1]<points[i-1][1]));
+  assertCheck('超界區域有獨立著色',await chart.locator('rect').count()===2);
+  await setRange(page,'amps',25);
+  assertCheck('超界值不繪有效轉換曲線',await page.locator('#lab-chart').innerText().then(t=>t.includes('超界')));
+});
 await run('整流器：滑桿對齊、適用範圍與恢復',async()=>{
   await navigate(page,'#chapter/rect1');
   assertCheck('預設電容 470 μF',await page.locator('[data-lab-input="cap"]').inputValue()==='470');

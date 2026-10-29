@@ -39,7 +39,26 @@
     if(id==='loss'){var a=v.amps*v.amps*v.rds/1000,b=v.esum*v.fs/1000,t=a+b;return '<svg viewBox="0 0 366 218" role="img" aria-label="損耗比例"><text x="22" y="48" font-size="14" fill="currentColor">導通與切換損耗</text><rect x="22" y="65" width="'+(320*a/t).toFixed(2)+'" height="52" rx="5" fill="#1686C8"/><rect x="'+(22+320*a/t).toFixed(2)+'" y="65" width="'+(320*b/t).toFixed(2)+'" height="52" rx="5" fill="#e39b37"/><circle cx="29" cy="155" r="5" fill="#1686C8"/><text x="42" y="160" fill="currentColor" font-size="12">導通 '+a.toFixed(2)+' W</text><circle cx="29" cy="186" r="5" fill="#e39b37"/><text x="42" y="191" fill="currentColor" font-size="12">切換 '+b.toFixed(2)+' W</text></svg>'}
     if(id==='rectify'){var peak=v.acv*Math.sqrt(2),C=v.cap*1e-6,delta=v.load/(100*C),valid=delta/peak<=.20,source=path(function(x){return Math.abs(Math.sin(2*Math.PI*x))},64,'#1686C8',360);if(!valid)return svg(source+'<text x="40" y="177" font-size="14" fill="#c5812a">漣波過大：不呈現失效模型波形</text>','藍：整流後正弦波；橘色波形已停用');var N=360,dt=0.02/N,vCap=peak,trace='';for(var k=0;k<5*N;k++){var phase=(k%N)/N,src=peak*Math.abs(Math.sin(2*Math.PI*phase));vCap=Math.max(src,vCap-v.load/C*dt);if(k>=4*N){var xx=22+320*((k-4*N)/N),yy=105-64*(vCap/peak);trace+=(k===4*N?'M':' L')+xx.toFixed(1)+' '+yy.toFixed(1)}}return svg(source+'<path d="'+trace+'" fill="none" stroke="#e39b37" stroke-width="2.8"/>','藍：整流輸入；橘：理想電容充放電（100 ms 窗內取最後 20 ms）')}
     if(id==='three'){var s=path(function(x){return Math.sin(2*Math.PI*x)},55,'#1686C8',180)+path(function(x){return Math.sin(2*Math.PI*x-2*Math.PI/3)},55,'#e39b37',180)+path(function(x){return Math.sin(2*Math.PI*x+2*Math.PI/3)},55,'#32b497',180);s+='<line x1="'+(22+320*v.phase/360).toFixed(1)+'" y1="17" x2="'+(22+320*v.phase/360).toFixed(1)+'" y2="190" stroke="currentColor" stroke-opacity=".5" stroke-dasharray="4 5"/>';return svg(s,'藍 A　橘 B　綠 C；虛線為目前角度')}
-    if(id==='adc'){var raw=v.offset+.005*v.gain*v.amps,valid=raw>=0&&raw<=3;if(!valid)return svg('<text x="35" y="105" fill="#c5812a" font-size="14">ADC 輸入超界：不提供有效轉換波形</text>','超過 0–3 V 工作範圍，不可推定實際 ADC 轉換碼');var fn=function(x){var vout=v.offset+(x*50-25)*.005*v.gain;return (Math.max(0,Math.min(3,vout))-1.5)/1.5};var pos=(v.amps+25)/50;var trace=path(fn,66,'#32b497',180)+'<circle cx="'+(22+320*pos).toFixed(1)+'" cy="'+(105-66*fn(pos)).toFixed(1)+'" r="6" fill="#e39b37"/>';return svg(trace,'示意 0–3 V 內的理論 ADC 轉換；超界會停用輸出')}
+    if(id==='adc'){
+      var raw=v.offset+.005*v.gain*v.amps,valid=raw>=0&&raw<=3;
+      if(!valid)return svg('<text x="27" y="105" fill="#c5812a" font-size="13">ADC 輸入超界：不呈現無效轉換碼</text>',
+        '超過 0–3 V 工作範圍，不可推定實際 ADC 轉換碼');
+      // Plot only the domain where the theoretical ADC input is 0..3 V.
+      // Outside that interval the analogue signal is undefined for conversion;
+      // do not clamp it to 0/3 V and imply hardware voltage limiting.
+      var slope=.005*v.gain,low=Math.max(-25,-v.offset/slope),high=Math.min(25,(3-v.offset)/slope);
+      var begin=(low+25)/50,end=(high+25)/50,trace='';
+      for(var j=0;j<=200;j++){
+        var x=begin+(end-begin)*j/200,y=105-66*((v.offset+(50*x-25)*slope)-1.5)/1.5;
+        trace+=(j?' L':'M')+(22+320*x).toFixed(2)+' '+y.toFixed(2);
+      }
+      var pos=(v.amps+25)/50,yNow=105-66*(raw-1.5)/1.5;
+      return svg('<rect x="22" y="25" width="'+(320*begin).toFixed(2)+'" height="150" fill="#c5812a" fill-opacity=".10"/>'+
+        '<rect x="'+(22+320*end).toFixed(2)+'" y="25" width="'+(320*(1-end)).toFixed(2)+'" height="150" fill="#c5812a" fill-opacity=".10"/>'+
+        '<path d="'+trace+'" stroke="#32b497" fill="none" stroke-width="2.8"/>'+
+        '<circle cx="'+(22+320*pos).toFixed(1)+'" cy="'+yNow.toFixed(1)+'" r="6" fill="#e39b37"/>',
+        '僅繪 0–3 V 理論有效區間；淡色兩側代表超界，不代表硬體限幅');
+    }
     return '';
   }
   function mount(id,el){
