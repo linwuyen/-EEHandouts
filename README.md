@@ -35,6 +35,9 @@
 ## 功能
 - 首頁主題卡片、側欄章節切換、課節導航與全文關鍵字搜尋
 - 每個課節有白話解說、重要公式、例題、常見誤解與自我測驗
+- 全部可數學排版的重點公式使用 **KaTeX 0.19.1**（固定版號與 SRI 完整性校驗），上冊／中冊共 71 節、119 條公式；每條獨立標示適用場景，分數與上下標依數學格式排版。另有一節純文字選型觀念維持原文。
+- KaTeX CSS/JS 由 jsDelivr 載入；若 CDN 被封鎖或暫時不可用，保留原本的文字公式作為可閱讀備援，不影響章節導覽與測驗。
+- 長公式在手機僅於公式區域水平捲動，不造成整頁橫向溢位。
 - 每個主題提供一個可調參數的工程小實驗
 - **全部 107 頁**可搜尋的標題與原講義文字索引（含封面、課程安排與結語）
 - 每頁皆可在瀏覽器**載入本機原講義 PDF**。使用 PDF.js 解析，先驗證 **107 頁**與首頁／第 24 頁的講義標題，再將真正的 PDF 頁面渲染為 Canvas；PDF 位元組儲存於本機 IndexedDB，不會上傳到伺服器
@@ -69,7 +72,8 @@ Repository → **Settings** → **Pages** → **Build and deployment** → **Dep
 - `index.html`：語意化網站結構
 - `styles.css`：響應式視覺設計
 - `data.js`：七章課程與講義頁碼資料
-- `app.js`：導航、搜尋、測驗及學習進度
+- `app.js`：導航、搜尋、測驗、學習進度和 KaTeX 公式插入
+- `formula-math.js`：上冊／中冊經人工編寫並分段呈現的數學式資料
 - `labs.js`：七個互動實驗與數學模型
 - `slide-text.js`：從使用者提供的 107 頁 PPTX 擷取的原文
 - `source-viewer.js`：PDF.js（動態 CDN 程式）解析及身分／頁數驗證、Canvas 繪製、IndexedDB 本機保存；不向網站後端上傳 PDF
@@ -79,7 +83,7 @@ Repository → **Settings** → **Pages** → **Build and deployment** → **Dep
 
 ## 驗證
 
-在 Node 22 開發環境安裝 Playwright 1.56.1 與 Chromium，啟動本機靜態伺服器後執行 `node tests/smoke.mjs`（上冊）與 `node tests/middle-smoke.mjs`（中冊）。GitHub Actions 提供自動化跑法與測試截圖。測試使用 `pdf-lib` 產生 106 頁、錯誤內容 107 頁及正確內容 107 頁 PDF，驗證頁數／身分拒絕、真實頁面渲染、切頁像素差異與本機清除。測試驗證網站行為，不代表工程模型可直接用於硬體設計。
+在 Node 22 開發環境安裝 Playwright 1.56.1 與 Chromium，啟動本機靜態伺服器後執行 `node tests/smoke.mjs`（上冊）、`node tests/middle-smoke.mjs`（中冊）與 `node tests/math-smoke.mjs`（數學排版、手機與備援）。GitHub Actions 提供自動化跑法與測試截圖。測試使用 `pdf-lib` 產生 106 頁、錯誤內容 107 頁及正確內容 107 頁 PDF，驗證頁數／身分拒絕、真實頁面渲染、切頁像素差異與本機清除。測試驗證網站行為，不代表工程模型可直接用於硬體設計。
 
 本專案由使用者提供的講義與前述學習討論整理而成。
 ## 內容權利提示
