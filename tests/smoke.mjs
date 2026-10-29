@@ -116,6 +116,7 @@ await run('搜尋、深色模式',async()=>{
   await page.locator('#search-input').fill('107');
   assertCheck('搜尋包含第107頁',await page.locator('.search-result[href="#slide/107"]').count()>=1);
   await page.locator('.search-result[href="#slide/107"]').click();
+  await page.waitForFunction(()=>document.querySelector('#main-content h1')?.textContent?.includes('第 107 頁'));
   assertCheck('搜尋開啟原講義第107頁',await page.locator('h1').first().innerText().then(t=>t.includes('第 107 頁')));
   await page.locator('#theme-toggle').click();
   assertCheck('深色模式生效',await page.locator('html').getAttribute('data-theme')==='dark');
@@ -130,6 +131,7 @@ await run('手機 390px：目錄與水平溢位',async()=>{
   await mobile.locator('#menu-toggle').click();
   assertCheck('手機目錄展開',await mobile.evaluate(()=>document.body.classList.contains('menu-open')));
   await mobile.locator('#chapter-nav a[href="#chapter/rect1"]').click();
+  await mobile.waitForFunction(()=>location.hash==='#chapter/rect1' && document.querySelector('#main-content h1')?.textContent?.includes('單相整流'));
   assertCheck('手機切章成功',await mobile.locator('#main-content h1').first().innerText().then(t=>t.includes('單相整流')));
   assertCheck('章節頁無水平溢位',await mobile.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+2));
   await mobile.screenshot({path:outDir+'/chapter-mobile.png',fullPage:true});
