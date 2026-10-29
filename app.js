@@ -21,7 +21,7 @@
   function lessonPath(c,l){return '#lesson/'+c.id+'/'+l.id}
   function pct(a,b){return b?Math.round(100*a/b):0}
   function chapterDone(c){return c.lessons.filter(function(l){return completed.has(l.id)}).length}
-  function route(){var s=decodeURIComponent(location.hash.slice(1)).replace(/^\/+/,'').split('/');return {type:s[0]||'home',id:s[1]||'',sub:s[2]||''}}
+  function route(){var fragment=location.hash.slice(1),decoded;try{decoded=decodeURIComponent(fragment)}catch(err){decoded='home'}var parts=decoded.replace(/^\/+/, '').split('/');return {type:parts[0]||'home',id:parts[1]||'',sub:parts[2]||''}}
   function current(){var r=route(),c=byId[r.id],l=c&&c.lessons.find(function(x){return x.id===r.sub});return {r:r,c:c,l:l}}
   function pill(s){return '<span class="pill">'+e(s)+'</span>'}
   function buttonLink(url,label,active){return '<a class="btn '+(active?'btn-primary':'btn-muted')+'" href="'+e(url)+'">'+e(label)+'</a>'}
@@ -161,10 +161,10 @@
     var s=q.trim().toLowerCase().replace(/^頁碼\s*/,'').replace(/^第\s*(\d+)\s*頁$/,'$1'),items=[];
     D.chapters.forEach(function(c){
       items.push({type:'chapter',title:c.title,subtitle:'主題 · P.'+c.range[0]+'–'+c.range[1],url:chapterPath(c),text:c.title+' '+c.short+' '+c.subtitle});
-      c.lessons.forEach(function(l){items.push({type:'lesson',title:l.title,subtitle:c.short+' · P.'+l.pages,url:lessonPath(c,l),text:l.title+' '+l.lead+' '+l.explain.join(' ')+' '+l.formula})});
+      c.lessons.forEach(function(l){var full=[l.title,l.lead,l.formula,l.example,l.trap].concat(l.explain||[],l.points||[],[l.quiz?.q||'',(l.quiz?.choices||[]).join(' '),l.quiz?.reason||'']).join(' ');items.push({type:'lesson',title:l.title,subtitle:c.short+' · P.'+l.pages,url:lessonPath(c,l),text:full})});
     });
     for(var p=1;p<=107;p++){
-      var c=chapterForPage(p),raw=(sourceText[p]||'').slice(0,600);
+      var c=chapterForPage(p),raw=(sourceText[p]||'');
       items.push({type:'slide',title:'P.'+p+' '+D.slideTitles[p],subtitle:(c?c.short:'原講義資訊頁')+' · 原講義第 '+p+' 頁',url:'#slide/'+p,text:'P.'+p+' 第'+p+'頁 '+D.slideTitles[p]+' '+raw});
     }
     if(!s)return items.filter(function(x){return x.type==='chapter'});
@@ -177,6 +177,14 @@
   function refreshSearch(){state.searchItems=searchItems(searchInput.value);state.searchIndex=0;drawSearch()}
   function openSearch(){state.lastFocus=document.activeElement;searchOverlay.hidden=false;searchInput.value='';refreshSearch();searchInput.focus()}
   function closeSearch(){searchOverlay.hidden=true;if(state.lastFocus&&state.lastFocus.focus)state.lastFocus.focus()}
+  function trapSearchTab(ev){
+    if(searchOverlay.hidden||ev.key!=='Tab')return;
+    var nodes=Array.from(searchOverlay.querySelectorAll('input:not([disabled]),button:not([disabled]),a[href]')).filter(function(n){return n.getClientRects().length>0});
+    if(!nodes.length)return;
+    var first=nodes[0],last=nodes[nodes.length-1];
+    if(ev.shiftKey&&(document.activeElement===first||!searchOverlay.contains(document.activeElement))){ev.preventDefault();last.focus()}
+    else if(!ev.shiftKey&&(document.activeElement===last||!searchOverlay.contains(document.activeElement))){ev.preventDefault();first.focus()}
+  }
   $('#search-trigger').addEventListener('click',openSearch);
   $('#search-close').addEventListener('click',closeSearch);
   $('#search-backdrop').addEventListener('click',closeSearch);
@@ -189,7 +197,7 @@
   $('#menu-toggle').addEventListener('click',function(){var opened=document.body.classList.toggle('menu-open');$('#sidebar-scrim').hidden=!opened;$('#menu-toggle').setAttribute('aria-expanded',String(opened))});
   $('#sidebar-scrim').addEventListener('click',closeMenu);
   $('#theme-toggle').addEventListener('click',function(){theme=theme==='light'?'dark':'light';document.documentElement.dataset.theme=theme;try{localStorage.setItem('ee.theme',theme)}catch(ev){}});
-  document.addEventListener('keydown',function(ev){if((ev.ctrlKey||ev.metaKey)&&ev.key.toLowerCase()==='k'){ev.preventDefault();openSearch()}else if(ev.key==='Escape'){if(!searchOverlay.hidden)closeSearch();else closeMenu()}});
+  document.addEventListener('keydown',function(ev){trapSearchTab(ev);if((ev.ctrlKey||ev.metaKey)&&ev.key.toLowerCase()==='k'){ev.preventDefault();openSearch()}else if(ev.key==='Escape'){if(!searchOverlay.hidden)closeSearch();else closeMenu()}});
   main.addEventListener('click',function(ev){
     var b=ev.target.closest('button[data-action]');if(!b)return;
     var d=current(),c=d.c,l=d.l,act=b.dataset.action;
