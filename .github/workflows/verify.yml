@@ -14,19 +14,31 @@ permissions:
 
 jobs:
   browser-regression:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: '22'
-      - name: Install browser test runtime
+      - name: Install pinned browser test dependencies
         run: |
-          npm install --no-save playwright@1.56.1 pdf-lib@1.17.1
+          # Initial migration: produce a real npm lockfile on the GitHub runner.
+          # Once package-lock.json is committed, this branch switches to npm ci only.
+          if [ ! -f package-lock.json ]; then
+            npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+          fi
+          npm ci --ignore-scripts --no-audit --no-fund
           npx playwright install --with-deps chromium
+      - name: Export generated lockfile for repository commit
+        uses: actions/upload-artifact@v7
+        with:
+          name: eehandouts-dependency-lock
+          path: package-lock.json
+          if-no-files-found: error
+          retention-days: 3
       - name: Run static site locally
         run: |
           python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/eehandouts-server.log 2>&1 &
@@ -37,13 +49,10 @@ jobs:
           cat /tmp/eehandouts-server.log
           exit 1
       - name: Browser and engineering regression
-        run: |
-          node tests/smoke.mjs
-          node tests/middle-smoke.mjs
-          node tests/math-smoke.mjs
+        run: npm run test:browser
       - name: Upload browser screenshots
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: eehandouts-review-screenshots
           path: tests/screenshots/
