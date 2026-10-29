@@ -68,7 +68,7 @@ async function waitSourceReady(page,p){
     const c=document.querySelector('#source-pdf-canvas');
     const status=document.querySelector('#source-pdf-feedback');
     return c && c.width>150 && c.height>150 &&
-      status && status.textContent.includes('第 '+pg+'／107 頁');
+      status && status.textContent.startsWith('已驗證講義：第 '+pg+'／107 頁');
   },p,{timeout:30000});
 }
 await run('實際 PDF 頁數與內容驗證，以及 canvas 逐頁呈現',async()=>{
