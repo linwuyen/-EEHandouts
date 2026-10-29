@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import { chromium } from 'playwright';
+import { PDFDocument, StandardFonts } from 'pdf-lib';
 const BASE=process.env.PLAYWRIGHT_BASE_URL||'http://127.0.0.1:4173';
 await fs.mkdir('tests/screenshots',{recursive:true});
 const browser=await chromium.launch({headless:true});
@@ -68,6 +69,54 @@ await run('52 slide summaries, local PDF viewer placeholder, boundary pages',asy
   await visit('middle.html#slide/52','.slide-transcript');
   assert.equal(await page.locator('.lesson-pager a[href="#slide/53"]').count(),0);
   await page.screenshot({path:'tests/screenshots/middle-slide-desktop.png',fullPage:true});
+});
+async function makeMiddlePdf(count,valid){
+  const doc=await PDFDocument.create(),font=await doc.embedFont(StandardFonts.Helvetica);
+  for(let p=1;p<=count;p++){
+    const pg=doc.addPage([720,540]);
+    const title=p===1?(valid?'DC-DC Converters':'Unrelated Course'):
+      p===37?(valid?'Flyback Converter':'Unrelated Example'):
+      'Middle Lecture Page '+p;
+    pg.drawText(title,{x:55,y:440,size:23,font});
+    pg.drawText('Page '+p,{x:55,y:365,size:15,font});
+  }
+  return Buffer.from(await doc.save());
+}
+async function awaitMiddlePdf(pg){
+  await page.waitForFunction(n=>{
+    const c=document.getElementById('source-pdf-canvas');
+    const status=document.getElementById('source-pdf-feedback');
+    return c&&c.width>150&&c.height>150&&status?.textContent?.includes('第 '+n+'／52 頁');
+  },pg,{timeout:30000});
+}
+await run('52-page PDF identity, render, navigation and separate local cache',async()=>{
+  await visit('middle.html#slide/37','#source-pdf-file');
+  const badCount=await makeMiddlePdf(51,true);
+  await page.locator('#source-pdf-file').setInputFiles({name:'middle-51.pdf',mimeType:'application/pdf',buffer:badCount});
+  await page.waitForFunction(()=>document.querySelector('#source-pdf-feedback')?.textContent?.includes('頁數不符'),null,{timeout:30000});
+  assert.equal(await page.locator('#source-pdf-canvas').count(),0);
+  const badIdentity=await makeMiddlePdf(52,false);
+  await page.locator('#source-pdf-file').setInputFiles({name:'other-52.pdf',mimeType:'application/pdf',buffer:badIdentity});
+  await page.waitForFunction(()=>document.querySelector('#source-pdf-feedback')?.textContent?.includes('中冊標題識別不符'),null,{timeout:30000});
+  assert.equal(await page.locator('#source-pdf-canvas').count(),0);
+  const valid=await makeMiddlePdf(52,true);
+  await page.locator('#source-pdf-file').setInputFiles({name:'middle-valid.pdf',mimeType:'application/pdf',buffer:valid});
+  await awaitMiddlePdf(37);
+  const image37=await page.locator('#source-pdf-canvas').evaluate(el=>el.toDataURL());
+  assert.ok(image37.length>1000);
+  await visit('middle.html#slide/38','#source-pdf-canvas');
+  await awaitMiddlePdf(38);
+  const image38=await page.locator('#source-pdf-canvas').evaluate(el=>el.toDataURL());
+  assert.notEqual(image37,image38);
+  await page.reload();
+  await awaitMiddlePdf(38);
+  assert.ok((await page.locator('#source-pdf-feedback').innerText()).includes('已驗證講義'));
+  await visit('index.html#slide/24','#source-pdf-file');
+  assert.equal(await page.locator('#source-pdf-canvas').count(),0,'Upper viewer must not show the middle PDF');
+  await visit('middle.html#slide/38','#source-pdf-canvas');
+  await awaitMiddlePdf(38);
+  await page.locator('#source-pdf-remove').click();
+  assert.equal(await page.locator('.source-pdf-placeholder').count(),1);
 });
 await run('search, chapter quiz, upper-volume switch',async()=>{
   await visit('middle.html#home','.subject-card');
