@@ -90,9 +90,25 @@ assert.equal(await offline.locator('.equation-original').isVisible(),true,'Text 
 assert.equal(await offline.locator('.equation-list.math-ready').count(),0,'KaTeX should not claim ready when blocked');
 assert.ok((await offline.locator('.equation-original').innerText()).includes('Buck'),'Fallback lost original formula');
 await missing.close();
+
+// Failure mode previously missed: KaTeX JS loads successfully, but CSS fails.
+// The generated HTML/MathML must not replace the readable text fallback.
+const cssOffline=await browser.newContext({viewport:{width:390,height:844}});
+await cssOffline.route(/katex\.min\.css/,route=>route.abort());
+const noStyle=await cssOffline.newPage();
+noStyle.on('pageerror',err=>issues.push('css-fallback: '+err.message));
+await noStyle.goto(BASE+'/middle.html#lesson/mid-basics/mid-topologies');
+await noStyle.locator('.equation-original').waitFor();
+assert.equal(await noStyle.evaluate(()=>!!window.katex),true,'KaTeX JS must still load when CSS is blocked');
+assert.equal(await noStyle.locator('.equation-original').isVisible(),true,'Original readable formula must remain when CSS fails');
+assert.equal(await noStyle.locator('.equation-list.math-ready').count(),0,'Do not claim math-ready without CSS');
+assert.ok((await noStyle.locator('.equation-original').innerText()).includes('Boost'));
+assert.ok(await noStyle.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+2),
+  'CSS fallback should not cause horizontal document overflow');
+await cssOffline.close();
 await browser.close();
 assert.deepEqual(issues,[],'Uncaught JavaScript exceptions');
 assert.equal(inspected,72,'Every lesson must have a tested formula block');
 assert.equal(typed,71,'All math-bearing lessons should be typeset');
 assert.equal(plain,1,'The switch-selection note stays prose, not fake mathematics');
-console.log('RESULT math regression:',JSON.stringify({inspected,typed,plain,issues:issues.length,desktop:true,mobile:true,fallback:true}));
+console.log('RESULT math regression:',JSON.stringify({inspected,typed,plain,issues:issues.length,desktop:true,mobile:true,fallback:true,cssFallback:true}));
