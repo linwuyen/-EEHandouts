@@ -21,9 +21,31 @@
     return {mode:mode,vout:vout,ripple:ripple,boundary:boundary,valley:valley,peak:peak,
       on:d,freewheel:freewheel,zero:zero};
   }
+  // Ideal Boost: the inductor current is continuous in CCM, and consists
+  // of charge, discharge, zero-current intervals in BCM/DCM.
+  // Assumptions: constant output current, fixed Duty, Vin, L, fs, 220uF output C,
+  // no ESR, switch/diode losses, or closed-loop transient effects.
+  function boostModel(v){
+    var vin=Number(v.vin),d=Number(v.duty)/100,L=Number(v.l)*1e-6,fs=Number(v.freq)*1000,io=Number(v.io),C=220e-6;
+    var deltaIL=vin*d/(L*fs),boundary=vin*d*(1-d)/(2*L*fs);
+    var eps=1e-8*Math.max(1,boundary);
+    var mode=io>boundary+eps?'CCM':io<boundary-eps?'DCM':'BCM';
+    var vo=mode==='DCM'?vin+vin*vin*d*d/(2*L*fs*io):vin/(1-d);
+    var freewheel=mode==='DCM'?2*io/deltaIL:1-d;
+    var zero=Math.max(0,1-d-freewheel);
+    var iin=mode==='DCM'?deltaIL*(d+freewheel)/2:io/(1-d);
+    var valley=mode==='CCM'?Math.max(0,iin-deltaIL/2):0;
+    var peak=mode==='CCM'?iin+deltaIL/2:deltaIL;
+    // The capacitor current is -Io during switch ON/zero interval and iL-Io
+    // during diode conduction. The positive-current area gives ideal Vpp.
+    var ripple=valley>=io?io*d/(C*fs):
+      freewheel*Math.pow(peak-io,2)/(2*(peak-valley)*C*fs);
+    return {mode:mode,vout:vo,iin:iin,peak:peak,valley:valley,ripple:ripple,
+      boundary:boundary,on:d,freewheel:freewheel,zero:zero};
+  }
   var defs={
     'mid-buck':{
-      name:'Buck Duty、電感漣波與 BCM',hint:'理想 CCM；可同時觀察頻率、負載與漣波的關係',
+      name:'Buck Duty、電感漣波與 BCM',hint:'理想非同步 Buck：CCM、BCM、DCM 分段穩態',
       knobs:[k('vin','輸入電壓',12,100,4,24,' V'),k('duty','Duty',10,90,5,50,'%'),k('freq','切換頻率',25,250,25,100,' kHz'),k('l','電感',20,300,20,100,' μH'),k('io','輸出負載',.1,8,.1,2,' A')],
       note:'理想非同步 Buck，固定輸入電壓、Duty、L、fs 與定電流負載；CCM/BCM/DCM 分段模型。忽略壓降、ESR、死區與動態暫態；不是同步整流允許負電流的模型。',
       compute:function(v){var m=buckModel(v);
@@ -40,11 +62,14 @@
       }
     },
     'mid-boost':{
-      name:'Boost 增益、電感與輸出漣波',hint:'理想 Boost CCM，測試 Duty 增大造成的電流應力',
+      name:'Boost 增益、電感與輸出漣波',hint:'理想 Boost：CCM、BCM、DCM，含零電流區段',
       knobs:[k('vin','輸入電壓',12,72,4,48,' V'),k('duty','Duty',10,80,5,50,'%'),k('freq','切換頻率',50,250,25,100,' kHz'),k('l','電感',40,300,20,100,' μH'),k('io','輸出電流',.5,5,.5,2,' A')],
-      note:'C 固定為 220 μF，理想 CCM 並忽略所有損耗和 ESR；高 Duty 的實際效率受 RL、RDS(on)、二極體與熱限制。',
-      compute:function(v){var d=v.duty/100,vo=v.vin/(1-d),iin=v.io/(1-d),di=v.vin*d/(v.l*1e-6*v.freq*1000),dv=v.io*d/(220e-6*v.freq*1000);
-        return {values:[['理想 CCM Vout',f(vo,1)+' V'],['輸入平均電流',f(iin,2)+' A'],['電感峰值估計',f(iin+di/2,2)+' A'],['電容漣波 p-p',f(dv,2)+' V']],warning:iin<=di/2?'由電感谷值推算可能進 DCM；此 CCM 增益不能直接用。':d>.7?'Duty 高，須特別考慮損耗、峰值電流與熱；理想增益不可當作實測規格。':''}
+      note:'理想 Boost 分段穩態、定電流負載，C 固定 220 μF。DCM 含 ON、二極體續流與零電流段；漣波由輸出電容電流積分估算，不含 ESR。忽略電感銅阻、MOSFET、二極體及開關損耗；非穩壓控制器動態模擬。',
+      compute:function(v){var m=boostModel(v);
+        return {model:m,values:[['理想 '+m.mode+' Vout',f(m.vout,2)+' V'],
+          ['輸入平均電流',f(m.iin,2)+' A'],['電感峰值估計',f(m.peak,2)+' A'],
+          ['電容漣波 p-p',f(m.ripple,3)+' V']],
+          warning:m.mode==='DCM'?'DCM：已使用三區段穩態模型，電感谷值為 0，零電流時間 '+f(100*m.zero,1)+'%；不可套用 CCM 增益。實際元件應力與效率須另驗證。':m.mode==='BCM'?'BCM：電感谷值剛好降到 0，處於 CCM/DCM 邊界。':v.duty>70?'高 Duty：模型忽略元件壓降與熱損，輸出電壓不可當作實測規格。':''}
       }
     },
     'mid-buckboost':{
