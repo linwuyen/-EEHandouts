@@ -5,7 +5,9 @@
   "type": "module",
   "description": "Pinned browser regression dependencies for EEHandouts (static HTML site)",
   "scripts": {
-    "test:browser": "node tests/smoke.mjs && node tests/middle-smoke.mjs && node tests/math-smoke.mjs"
+    "test:ci": "node tests/release-guard.mjs",
+    "test:browser": "node tests/smoke.mjs && node tests/middle-smoke.mjs && node tests/math-smoke.mjs",
+    "test": "npm run test:ci && npm run test:browser"
   },
   "devDependencies": {
     "pdf-lib": "1.17.1",
