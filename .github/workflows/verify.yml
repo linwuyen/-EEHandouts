@@ -1,0 +1,48 @@
+name: Verify EEHandouts
+
+on:
+  push:
+    branches:
+      - main
+      - fix/review-findings-20261029
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  browser-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install browser test runtime
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Run static site locally
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/eehandouts-server.log 2>&1 &
+          for i in $(seq 1 20); do
+            if curl -fsS http://127.0.0.1:4173/index.html > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/eehandouts-server.log
+          exit 1
+      - name: Browser and engineering regression
+        run: node tests/smoke.mjs
+      - name: Upload browser screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eehandouts-review-screenshots
+          path: tests/screenshots/
+          if-no-files-found: ignore
+          retention-days: 7
