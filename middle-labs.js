@@ -69,8 +69,8 @@
     'mid-bridge':{
       name:'H-Bridge 四象限與平均差動電壓',hint:'兩個橋臂平均占空比決定 VAB，電流方向決定功率符號',
       knobs:[k('vbus','DC Bus',40,300,20,100,' V'),k('da','A 橋臂高電位時間',0,100,5,75,'%'),k('db','B 橋臂高電位時間',0,100,5,25,'%'),k('current','負載電流 IAB',-10,10,1,2,' A')],
-      note:'平均電壓理想式，兩橋臂獨立平均 Duty；不涵蓋實際調變同步、Dead Time、Body Diode 與再生能量吸收能力。',
-      compute:function(v){var vab=(v.da-v.db)*v.vbus/100,p=vab*v.current,quad=(vab>=0?(v.current>=0?'I':'IV'):(v.current>=0?'II':'III'));
+      note:'可切換同載波單極性或互補雙極性模式；兩橋臂使用同步前緣鋸齒載波。雙極性模式 B Duty=100%−A Duty，B 滑桿不作用。忽略 Dead Time、Body Diode 與再生能量吸收能力。',
+      compute:function(v){var db=v.mode==='bipolar'?100-v.da:v.db,vab=(v.da-db)*v.vbus/100,p=vab*v.current,quad=(vab>=0?(v.current>=0?'I':'IV'):(v.current>=0?'II':'III'));
         return {values:[['平均 VAB',f(vab,1)+' V'],['負載功率 P',f(p,1)+' W'],['電壓／電流象限',vab===0||v.current===0?'軸上':('第 '+quad+' 象限')],['能量方向',p>0?'負載吸收':p<0?'負載回送':'淨功率 0']],warning:p<0?'此條件為回送功率，須確保 DC Bus 能吸收再生能量。':''}
       }
     },
@@ -111,8 +111,45 @@
        '<text x="275" y="198" fill="currentColor" font-size="11">零電流: '+f(100*m.zero,1)+'%</text>'+
        '<text x="25" y="214" fill="currentColor" opacity=".7" font-size="10">理想定電流負載穩態；橫軸一個 PWM 週期，電流值相對比例</text></svg>';
   }
+  function boostWave(m){
+    var X=function(t){return 25+330*t},Y=function(i){return 158-112*i/Math.max(.00001,m.peak)};
+    var pts=[[0,m.valley],[m.on,m.peak],[m.on+m.freewheel,m.mode==='CCM'?m.valley:0],[1,m.valley]];
+    return '<svg viewBox="0 0 380 214" role="img" aria-label="Boost '+esc(m.mode)+' 理想一週期電感電流">'+
+      '<line x1="25" y1="158" x2="355" y2="158" stroke="currentColor" opacity=".3"/>'+
+      '<polyline points="'+pts.map(function(p){return f(X(p[0]),2)+','+f(Y(p[1]),2)}).join(' ')+'" fill="none" stroke="#26a58d" stroke-width="3"/>'+
+      '<text x="25" y="16" fill="currentColor" font-size="12">Boost '+esc(m.mode)+' · 電感 iL (A)</text>'+
+      '<text x="355" y="33" fill="currentColor" font-size="11" text-anchor="end">Ipk '+f(m.peak,2)+' A</text>'+
+      '<text x="25" y="194" fill="currentColor" font-size="11">ON '+f(100*m.on,1)+'%</text>'+
+      '<text x="142" y="194" fill="currentColor" font-size="11">整流 '+f(100*m.freewheel,1)+'%</text>'+
+      '<text x="270" y="194" fill="currentColor" font-size="11">歸零 '+f(100*m.zero,1)+'%</text>'+
+      '<text x="25" y="210" fill="currentColor" opacity=".7" font-size="10">理想穩態、依計算的電流峰谷與導通時間繪製</text></svg>';
+  }
+  function bridgeWave(v){
+    // Explicit, synchronized leading-edge PWM carrier.  B follows 1-A
+    // in bipolar mode; in unipolar mode each arm compares its own duty
+    // with the SAME rising sawtooth, yielding three differential levels.
+    var bipolar=v.mode==='bipolar',a=v.da/100,b=bipolar?1-a:v.db/100;
+    var segments='',N=100;
+    function y(level,offset){return offset-23*level}
+    for(var lane=0;lane<3;lane++){
+      var o=[48,111,169][lane],path='';
+      for(var i=0;i<=N;i++){
+        var t=i/N,va=t<a?1:0,vb=bipolar?1-va:(t<b?1:0);
+        var n=lane===0?va:lane===1?vb:va-vb;
+        var x=38+318*t;
+        path+=(i?' L':'M')+f(x,2)+' '+f(y(n,o),2);
+      }
+      segments+='<path d="'+path+'" fill="none" stroke="'+['#0891b2','#d97706','#16a34a'][lane]+'" stroke-width="2.5"/>';
+      segments+='<text x="6" y="'+o+'" font-size="12" fill="currentColor">'+['VA','VB','VAB'][lane]+'</text>';
+    }
+    return '<svg viewBox="0 0 380 224" role="img" aria-label="同步前緣載波三通道 PWM：A橋臂、B橋臂與差動電壓">'+segments+
+      '<text x="24" y="200" fill="currentColor" font-size="10">'+(bipolar?'B 橋臂與 A 互補（雙極性）':'A／B 同載波比較（單極性三電平）')+'</text>'+
+      '<text x="24" y="217" fill="currentColor" font-size="10">未計 Dead Time；僅為已明定載波條件的理想瞬時波形</text></svg>';
+  }
   function graph(id,v,metrics){
     if((id==='mid-buck'||id==='mid-modes')&&metrics&&metrics.model)return buckWave(v,metrics.model);
+    if(id==='mid-boost'&&metrics&&metrics.model)return boostWave(metrics.model);
+    if(id==='mid-bridge')return bridgeWave(v);
     var d=Number(v.duty||50)/100,points;
     if(id==='mid-buckboost') {
       if(v.power===0){points=[[0,.5],[1,.5]];}
@@ -146,9 +183,10 @@
   }
   function mount(id,el){
     var def=defs[id];if(!def||!el)return;
-    var v={};def.knobs.forEach(function(x){v[x.id]=x.value});
+    var v={};def.knobs.forEach(function(x){v[x.id]=x.value});if(id==='mid-bridge')v.mode='unipolar';
     el.innerHTML='<section class="lab"><div class="lab-top"><div><h3>'+esc(def.name)+'</h3><small>'+esc(def.hint)+'</small></div><span class="pill">INTERACTIVE</span></div>'+
       '<div class="lab-body"><div class="lab-grid"><div class="lab-chart" data-middle-chart></div><div>'+
+      (id==='mid-bridge'?'<div class="control-group"><label for="bridge-modulation">PWM 調變模式</label><select id="bridge-modulation" data-bridge-mode><option value="unipolar">同載波單極性（三電平）</option><option value="bipolar">互補雙極性（兩電平）</option></select></div>':'')+
       def.knobs.map(function(x){return '<div class="control-group"><div class="control-head"><span>'+esc(x.name)+'</span><strong data-lab-value="'+x.id+'"></strong></div><input class="control-range" type="range" data-lab-input="'+x.id+'" min="'+x.min+'" max="'+x.max+'" step="'+x.step+'" value="'+x.value+'" aria-label="'+esc(x.name)+'"></div>'}).join('')+
       '<div class="output-grid" data-middle-output></div><div class="lab-validation" data-middle-warning role="status" hidden></div></div></div></div><div class="lab-disclaimer">'+esc(def.note)+'</div></section>';
     var out=el.querySelector('[data-middle-output]'),warn=el.querySelector('[data-middle-warning]'),chart=el.querySelector('[data-middle-chart]');
@@ -162,6 +200,7 @@
     el.querySelectorAll('[data-lab-input]').forEach(function(x){
       x.addEventListener('input',function(){v[x.dataset.labInput]=Number(x.value);refresh()});
     });
+    if(id==='mid-bridge')el.querySelector('[data-bridge-mode]').addEventListener('change',function(ev){v.mode=ev.target.value;refresh()});
     refresh();
   }
   window.EE_LABS={mount:mount,definitions:defs};
