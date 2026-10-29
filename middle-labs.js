@@ -81,11 +81,19 @@
       }
     },
     'mid-bridge':{
-      name:'H-Bridge 四象限與平均差動電壓',hint:'兩個橋臂平均占空比決定 VAB，電流方向決定功率符號',
+      name:'H-Bridge 四象限與平均差動電壓',hint:'選擇橋臂 PWM 模式，觀察 VA、VB、VAB 真正的電壓階躍',
       knobs:[k('vbus','DC Bus',40,300,20,100,' V'),k('da','A 橋臂高電位時間',0,100,5,75,'%'),k('db','B 橋臂高電位時間',0,100,5,25,'%'),k('current','負載電流 IAB',-10,10,1,2,' A')],
-      note:'平均電壓理想式，兩橋臂獨立平均 Duty；不涵蓋實際調變同步、Dead Time、Body Diode 與再生能量吸收能力。',
-      compute:function(v){var vab=(v.da-v.db)*v.vbus/100,p=vab*v.current,quad=(vab>=0?(v.current>=0?'I':'IV'):(v.current>=0?'II':'III'));
-        return {values:[['平均 VAB',f(vab,1)+' V'],['負載功率 P',f(p,1)+' W'],['電壓／電流象限',vab===0||v.current===0?'軸上':('第 '+quad+' 象限')],['能量方向',p>0?'負載吸收':p<0?'負載回送':'淨功率 0']],warning:p<0?'此條件為回送功率，須確保 DC Bus 能吸收再生能量。':''}
+      note:'依同一個中心對齊三角載波，畫出理想高低側互補橋臂中點 VA、VB 與差動 VAB。獨立模式可調兩臂 Duty；Bipolar：B 永遠與 A 互補；Unipolar：以相反參考電壓同載波比較，DB=100%-DA。未加入 Dead Time、Body Diode、開關延遲或真實馬達電流。',
+      compute:function(v){
+        var modulation=v.modulation||'independent',da=Number(v.da)/100;
+        var db=(modulation==='independent'?Number(v.db):100-Number(v.da))/100;
+        var vab=(da-db)*v.vbus,p=vab*v.current;
+        var quad=(vab>=0?(v.current>=0?'I':'IV'):(v.current>=0?'II':'III'));
+        return {model:{modulation:modulation,dutyA:da,dutyB:db,vab:vab},
+          values:[['平均 VAB',f(vab,1)+' V'],['負載功率 P',f(p,1)+' W'],
+            ['電壓／電流象限',vab===0||v.current===0?'軸上':('第 '+quad+' 象限')],
+            ['能量方向',p>0?'負載吸收':p<0?'負載回送':'淨功率 0']],
+          warning:p<0?'此條件為回送功率，須確保 DC Bus 能吸收再生能量。':''}
       }
     },
     'mid-flyback':{
