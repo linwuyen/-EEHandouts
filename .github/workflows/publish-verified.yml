@@ -1,0 +1,48 @@
+name: Publish EEHandouts only after verified CI
+
+# This workflow is the verified-only deployment path. It becomes active after
+# Settings > Pages > Source is set to "GitHub Actions" and the repository Actions
+# variable EEHANDOUTS_ACTIONS_PAGES is set to "true".
+#
+# WARNING: while GitHub Pages Source is "Deploy from a branch", GitHub's
+# separate automatic branch deployment still bypasses CI. The Pages Source
+# setting cannot be changed by the available chat GitHub connector.
+on:
+  workflow_run:
+    workflows: ["Verify EEHandouts"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verified-pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' && vars.EEHANDOUTS_ACTIONS_PAGES == 'true' }}
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    steps:
+      - name: Checkout the exact commit that passed the browser regression
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+      - name: Package static website
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: '.'
+      - name: Deploy only validated SHA
+        id: deployment
+        uses: actions/deploy-pages@v4

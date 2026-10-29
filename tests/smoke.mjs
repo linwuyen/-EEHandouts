@@ -48,16 +48,18 @@ await run('完整 107 頁索引與複合頁碼',async()=>{
   await navigate(page,'#slide/42');
   assertCheck('GTO 第 42 頁有對應教材',await page.locator('a[href="#lesson/devices/legacy"]').count()>=1);
 });
-async function makeSourceFixture(count,validTitle=true){
-  const file=await PDFDocument.create();
-  const font=await file.embedFont(StandardFonts.Helvetica);
+async function makeSourceFixture(count,validTitle=true,variant='A'){
+  const file=await PDFDocument.create(),font=await file.embedFont(StandardFonts.Helvetica);
+  const anchors={1:'Power Electronics - Beginner Course',2:'THD Fourier Principles',
+    12:'Ampere Law',24:'Transformer Equivalent Circuit',27:'Power Semiconductor Device',
+    59:'Power Electronics System',97:'OP Amplifier Circuit',106:'ADC Current Sensing',
+    107:'Thank you for your attention'};
   for(let p=1;p<=count;p++){
-    const page=file.addPage([720,540]);
-    const title=p===1?(validTitle?'Power Electronics - Beginner Course':'Unrelated Handbook'):
-      p===24?(validTitle?'Transformer Equivalent Circuit':'Other Chapter'):
-      'Original Lecture Slide '+p;
-    page.drawText(title,{x:70,y:450,size:26,font});
-    page.drawText('Page '+p,{x:70,y:350,size:16,font});
+    const slide=file.addPage([720,540]);
+    let heading=anchors[p]||('Original Lecture Slide '+p);
+    if(!validTitle && p===106)heading='Unrelated Content Page';
+    slide.drawText(heading,{x:70,y:450,size:26,font});
+    slide.drawText('Page '+p+' Variant '+variant,{x:70,y:350,size:16,font});
   }
   return Buffer.from(await file.save());
 }
@@ -66,7 +68,7 @@ async function waitSourceReady(page,p){
     const c=document.querySelector('#source-pdf-canvas');
     const status=document.querySelector('#source-pdf-feedback');
     return c && c.width>150 && c.height>150 &&
-      status && status.textContent.includes('第 '+pg+'／107 頁');
+      status && status.textContent.startsWith('已驗證講義：第 '+pg+'／107 頁');
   },p,{timeout:30000});
 }
 await run('實際 PDF 頁數與內容驗證，以及 canvas 逐頁呈現',async()=>{
@@ -98,10 +100,24 @@ await run('實際 PDF 頁數與內容驗證，以及 canvas 逐頁呈現',async(
   await page.reload();
   await waitSourceReady(page,25);
   assertCheck('重整後可從 IndexedDB 恢復有效 PDF',await page.locator('#source-pdf-feedback').innerText().then(t=>t.includes('已驗證講義')));
+  // Rapid import/replace/clear must not allow an older asynchronous cache write to revive the file.
+  const alternative=await makeSourceFixture(107,true,'B');
+  await page.locator('#source-pdf-file').setInputFiles({name:'source-a.pdf',mimeType:'application/pdf',buffer:valid});
+  await page.locator('#source-pdf-file').setInputFiles({name:'source-b.pdf',mimeType:'application/pdf',buffer:alternative});
+  await page.waitForFunction(()=>document.querySelector('#source-pdf-feedback')?.textContent?.includes('source-b.pdf'),null,{timeout:30000});
   await page.locator('#source-pdf-remove').click();
+  await page.waitForTimeout(300);
   assertCheck('清除後返回未載入狀態',await page.locator('.source-pdf-placeholder').count()===1);
   await page.reload();
+  await page.waitForTimeout(500);
   assertCheck('清除後不會重新恢復 PDF',await page.locator('.source-pdf-placeholder').count()===1);
+  const cached=await page.evaluate(async()=>{
+    const db=await new Promise((ok,fail)=>{const r=indexedDB.open('eehandouts-source-pdf');r.onsuccess=()=>ok(r.result);r.onerror=()=>fail(r.error)});
+    const tx=db.transaction('source','readonly'),req=tx.objectStore('source').get('upper-volume-r2');
+    const data=await new Promise((ok,fail)=>{req.onsuccess=()=>ok(req.result);req.onerror=()=>fail(req.error)});
+    db.close();return Boolean(data);
+  });
+  assertCheck('清除後 IndexedDB 無殘留 PDF',!cached);
 });
 await run('沒有文字的投影片顯示正確提示',async()=>{
   for(const p of [23,52,84,92]){
@@ -120,8 +136,8 @@ await run('磁路圖與線性磁阻公式一致',async()=>{
   await navigate(page,'#chapter/magnetics');
   const chart=page.locator('#lab-chart');
   assertCheck('不是假造的 B-H 曲線',await chart.innerText().then(x=>x.includes('B(I)')));
-  assertCheck('圖明確標註未模擬飽和',await chart.innerText().then(x=>x.includes('未包含飽和')));
-  await setRange(page,'current',2);
+  assertCheck('圖明確標註門檻不是材料飽和點',await chart.innerText().then(x=>x.includes('非材料飽和點')));
+  await setRange(page,'current',0.5);
   const initialB=await page.locator('#lab-outputs').innerText();
   await setRange(page,'turns',100);
   const laterB=await page.locator('#lab-outputs').innerText();
@@ -143,6 +159,33 @@ await run('PCC 時域與頻域符號分開',async()=>{
   const formula=await page.locator('.formula-text').innerText();
   assertCheck('PCC 時域公式包含 Ldi/dt',formula.includes('Ls·di/dt'));
   assertCheck('PCC 頻域公式有諧波阻抗 Z',formula.includes('Z̲h'));
+});
+await run('磁路與 ADC 超出物理模型時拒絕數值',async()=>{
+  await navigate(page,'#chapter/magnetics');
+  await setRange(page,'gap',0);
+  await setRange(page,'turns',150);
+  await setRange(page,'current',3);
+  assertCheck('磁路顯示範圍警告',await page.locator('#lab-validation').isVisible());
+  assertCheck('不再輸出無效電感估值',(await page.locator('#lab-outputs').innerText()).includes('— 模型未驗證'));
+  assertCheck('不再輸出 11.31 T 當有效 B',(await page.locator('#lab-outputs').innerText()).includes('— 超出教學門檻'));
+  assertCheck('超界工作點無標記',(await page.locator('#lab-chart').innerText()).includes('工作點超出模型範圍'));
+  await setRange(page,'gap',.3);
+  await setRange(page,'turns',50);
+  await setRange(page,'current',1);
+  assertCheck('正常模型可復原',!(await page.locator('#lab-validation').isVisible()));
+  assertCheck('正常模型仍算得 0.180 T',(await page.locator('#lab-outputs').innerText()).includes('0.180 T'));
+  await navigate(page,'#chapter/analog');
+  await setRange(page,'amps',-25);
+  await setRange(page,'gain',16);
+  await setRange(page,'offset',1.2);
+  const out=await page.locator('#lab-outputs').innerText();
+  assertCheck('ADC -0.8 V 超界有警告',await page.locator('#lab-validation').isVisible());
+  assertCheck('ADC 超界不提供 Code',out.includes('— 無有效轉換碼'));
+  assertCheck('ADC 超界不當作軟體保護',out.includes('不代表已限壓'));
+  await setRange(page,'amps',10);
+  await setRange(page,'gain',14);
+  await setRange(page,'offset',1.5);
+  assertCheck('ADC 合法範圍恢復 Code',(await page.locator('#lab-outputs').innerText()).includes('3003 / 4095'));
 });
 await run('整流器：滑桿對齊、適用範圍與恢復',async()=>{
   await navigate(page,'#chapter/rect1');
@@ -187,6 +230,8 @@ await run('PF 與小測驗',async()=>{
 await run('搜尋、深色模式',async()=>{
   await navigate(page,'#home');
   await page.locator('#search-trigger').click();
+  await page.locator('#search-input').fill('ESR');
+  assertCheck('搜尋索引包含教材工程注意事項',await page.locator('.search-result[href="#lesson/rect1/capacitor"]').count()>=1);
   await page.locator('#search-input').fill('頁碼 25');
   assertCheck('搜尋提示頁碼25可找到正確頁',await page.locator('.search-result[href="#slide/25"]').count()>=1);
   await page.locator('#search-input').fill('107');
@@ -197,6 +242,21 @@ await run('搜尋、深色模式',async()=>{
   await page.locator('#theme-toggle').click();
   assertCheck('深色模式生效',await page.locator('html').getAttribute('data-theme')==='dark');
   await page.screenshot({path:outDir+'/slide-dark-desktop.png',fullPage:true});
+});
+await run('特殊網址與搜尋視窗焦點限制',async()=>{
+  await navigate(page,'#home');
+  await page.locator('#search-trigger').click();
+  await page.locator('#search-input').focus();
+  await page.keyboard.press('Shift+Tab');
+  assertCheck('Shift+Tab 不會離開搜尋對話框',await page.evaluate(()=>document.querySelector('#search-overlay').contains(document.activeElement)));
+  await page.locator('#search-close').focus();
+  await page.keyboard.press('Tab');
+  assertCheck('Tab 最後回到對話框內',await page.evaluate(()=>document.querySelector('#search-overlay').contains(document.activeElement)));
+  await page.keyboard.press('Escape');
+  assertCheck('Escape 可關閉搜尋',!(await page.locator('#search-overlay').isVisible()));
+  await page.goto(BASE+'/#%E0%A4%A');
+  await page.locator('#main-content .hero').waitFor();
+  assertCheck('錯誤 percent encoding 不使首頁崩潰',await page.locator('.subject-card').count()===7);
 });
 await run('手機 390px：目錄與水平溢位',async()=>{
   let ctx=await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:1});
@@ -216,6 +276,18 @@ await run('手機 390px：目錄與水平溢位',async()=>{
   await mobile.goto(BASE+'/#slide/24');
   assertCheck('原講義頁手機無水平溢位',await mobile.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+2));
   await ctx.close();
+});
+await run('320px 與平板布局沒有橫向溢位',async()=>{
+  for(const w of [320,768]){
+    const ctx=await browser.newContext({viewport:{width:w,height:740}});
+    const p=await ctx.newPage();
+    for(const hash of ['#home','#chapter/magnetics','#chapter/analog','#slide/24']){
+      await navigate(p,hash);
+      const status=await p.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth}));
+      assertCheck(w+'px '+hash+' 無水平溢位',status.scroll<=status.width+2);
+    }
+    await ctx.close();
+  }
 });
 await run('沒有未捕捉的 JavaScript exception',async()=>assertCheck('pageerror count',pageErrors.length===0));
 await desktop.close();await browser.close();
