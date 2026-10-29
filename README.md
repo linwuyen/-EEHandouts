@@ -19,9 +19,9 @@
 6. **隔離式電源與 Flyback**（P.33–40）：隔離回授、多組輸出、CCM/DCM
 7. **Forward、橋式與磁芯設計**（P.41–51）：Forward 去磁、半橋、全橋、Push-Pull、B-H／鐵損
 
-中冊提供 **52 頁原講義的人工摘要**，不公開原 PPTX/PDF 或原投影片圖片。要對照圖表，請先把中冊 PPTX 匯出成 52 頁 PDF，於中冊任一頁自行載入。PDF.js 會檢查 **52 頁**和封面／第 37 頁標題，成功後才在本機 Canvas 顯示。PDF 位元組僅存於瀏覽器本機 IndexedDB，與上冊資料分開。
+中冊提供 **52 頁原講義的人工摘要**，不公開原 PPTX/PDF 或原投影片圖片。要對照圖表，請先把中冊 PPTX 匯出成 52 頁 PDF，於中冊任一頁自行載入。PDF.js 會檢查 **52 頁**及第 1、2、7、10、23、33、37、41、51 頁的跨章節文字特徵，通過後才在本機 Canvas 顯示；泛用的 Converter 字樣不再足以通過。PDF 位元組僅存於瀏覽器本機 IndexedDB，與上冊資料分開。
 
-**工程限制：** 各個可調參數實驗都是理想或簡化模型，必須依 CCM/DCM、Duty、寄生與磁芯材料等假設解讀，不能代替硬體設計驗收。
+**工程限制：** 各個可調參數實驗都是理想或簡化模型，必須依 CCM/DCM、Duty、寄生與磁芯材料等假設解讀，不能代替硬體設計驗收。Buck／模式實驗以非同步 Buck、固定 Duty、定電流負載推導三段穩態 DCM；進入 DCM 後電感電流不會變負。其他實驗中的部分 SVG 仍是明確標示的示意波形，不是實測。
 
 ## 七大主題
 1. 交流電與功率（講義 P.3–11）
@@ -36,7 +36,7 @@
 - 首頁主題卡片、側欄章節切換、課節導航與全文關鍵字搜尋
 - 每個課節有白話解說、重要公式、例題、常見誤解與自我測驗
 - 全部可數學排版的重點公式使用 **KaTeX 0.19.1**（固定版號與 SRI 完整性校驗），上冊／中冊共 71 節、119 條公式；每條獨立標示適用場景，分數與上下標依數學格式排版。另有一節純文字選型觀念維持原文。
-- KaTeX CSS/JS 由 jsDelivr 載入；若 CDN 被封鎖或暫時不可用，保留原本的文字公式作為可閱讀備援，不影響章節導覽與測驗。
+- KaTeX CSS/JS 由 jsDelivr 載入；若 KaTeX JavaScript 或 CSS 任一資產無法載入，保留原本的文字公式作為可閱讀備援，不影響章節導覽與測驗。
 - 長公式在手機僅於公式區域水平捲動，不造成整頁橫向溢位。
 - 每個主題提供一個可調參數的工程小實驗
 - **全部 107 頁**可搜尋的標題與原講義文字索引（含封面、課程安排與結語）
@@ -78,12 +78,13 @@ Repository → **Settings** → **Pages** → **Build and deployment** → **Dep
 - `slide-text.js`：從使用者提供的 107 頁 PPTX 擷取的原文
 - `source-viewer.js`：PDF.js（動態 CDN 程式）解析及身分／頁數驗證、Canvas 繪製、IndexedDB 本機保存；不向網站後端上傳 PDF
 - `tests/smoke.mjs`：Playwright 真實瀏覽器測試
+- `tests/middle-engineering.mjs`：七個中冊互動模型、Buck CCM／BCM／DCM 公式與實際模型電流波形的獨立預期值測試
 - `.github/workflows/verify.yml`：每次推送執行桌機／手機及數學邊界回歸測試
 - `.nojekyll`：GitHub Pages 靜態資產處理
 
 ## 驗證
 
-在 Node 22 開發環境安裝 Playwright 1.56.1 與 Chromium，啟動本機靜態伺服器後執行 `node tests/smoke.mjs`（上冊）、`node tests/middle-smoke.mjs`（中冊）與 `node tests/math-smoke.mjs`（數學排版、手機與備援）。GitHub Actions 提供自動化跑法與測試截圖。測試使用 `pdf-lib` 產生 106 頁、錯誤內容 107 頁及正確內容 107 頁 PDF，驗證頁數／身分拒絕、真實頁面渲染、切頁像素差異與本機清除。測試驗證網站行為，不代表工程模型可直接用於硬體設計。
+在 Node 22 開發環境安裝 Playwright 1.56.1 與 Chromium，啟動本機靜態伺服器後執行 `node tests/smoke.mjs`（上冊）、`node tests/middle-smoke.mjs`（中冊）、`node tests/middle-engineering.mjs`（中冊工程模型）與 `node tests/math-smoke.mjs`（數學排版、手機與 JS／CSS 備援）。GitHub Actions 提供自動化跑法與測試截圖。測試使用 `pdf-lib` 產生 106 頁、錯誤內容 107 頁及正確內容 107 頁 PDF，驗證頁數／身分拒絕、真實頁面渲染、切頁像素差異與本機清除。測試驗證網站行為，不代表工程模型可直接用於硬體設計。
 
 本專案由使用者提供的講義與前述學習討論整理而成。
 ## 內容權利提示

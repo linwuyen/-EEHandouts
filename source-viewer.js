@@ -65,12 +65,28 @@
     try{
       if(pdf.numPages!==pageCount)throw new Error('頁數不符：目前 '+pdf.numPages+' 頁，'+sourceLabel+' 必須是 '+pageCount+' 頁');
       if(middle){
-        // Preserve the middle-volume identifier from the independently added site.
-        var first=await pdf.getPage(1),reference=await pdf.getPage(referencePage);
-        var cover=normalizeText((await first.getTextContent()).items.map(function(x){return x.str||''}).join(''));
-        var ref=normalizeText((await reference.getTextContent()).items.map(function(x){return x.str||''}).join(''));
-        if(!/dc.?dc|converter/i.test(cover)||!/flyback|converter/i.test(ref)){
-          throw new Error('中冊標題識別不符：須含 DC-DC 封面與第 37 頁 Flyback。');
+        // Nine independent chapter anchors from the original 52-page source.
+        // "Converter" alone is too generic to establish this is the user's booklet.
+        // The normalized text removes whitespace, so match the slide-specific terms.
+        var anchorsMiddle=[
+          [1,/dc.?dcconverters?/i],
+          [2,/basictopologiesofswitching.?mode|buckconverter.*boostconverter/i],
+          [7,/operationmodes|continuousconductionmode.*discontinuousconductionmode/i],
+          [10,/boostconverter/i],
+          [23,/buck.?boostconverter/i],
+          [33,/withisolation|dc.?dcconverterswithisolation/i],
+          [37,/flybackconverter/i],
+          [41,/forwardconverter/i],
+          [51,/coreloss|b.?hcurve|鐵損曲線/i]
+        ];
+        var failedMiddle=[];
+        for(var n=0;n<anchorsMiddle.length;n++){
+          var target=anchorsMiddle[n],middlePage=await pdf.getPage(target[0]);
+          var middleText=normalizeText((await middlePage.getTextContent()).items.map(function(x){return x.str||''}).join(''));
+          if(!target[1].test(middleText))failedMiddle.push(target[0]);
+        }
+        if(failedMiddle.length){
+          throw new Error('中冊標題識別不符：第 '+failedMiddle.join('、')+' 頁缺少對應章節特徵。請確認 PDF 是中冊原講義的可搜尋文字匯出檔。');
         }
       }else{
         // Exact known 107-page upper-volume export; independently re-exported PDFs require nine anchors.

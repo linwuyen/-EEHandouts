@@ -70,14 +70,26 @@ await run('52 slide summaries, local PDF viewer placeholder, boundary pages',asy
   assert.equal(await page.locator('.lesson-pager a[href="#slide/53"]').count(),0);
   await page.screenshot({path:'tests/screenshots/middle-slide-desktop.png',fullPage:true});
 });
-async function makeMiddlePdf(count,valid){
+async function makeMiddlePdf(count,kind='valid'){
   const doc=await PDFDocument.create(),font=await doc.embedFont(StandardFonts.Helvetica);
+  const anchors={
+    1:'DC-DC Converters',
+    2:'Basic Topologies of Switching-mode DC-DC Converters',
+    7:'Operation Modes',
+    10:'Boost Converter',
+    23:'Buck-Boost Converter',
+    33:'Basic Topologies of Switching-mode DC-DC Converters With Isolation',
+    37:'Flyback Converter',
+    41:'Forward Converter',
+    51:'B-H Curve Core Loss Curve'
+  };
   for(let p=1;p<=count;p++){
     const pg=doc.addPage([720,540]);
-    const title=p===1?(valid?'DC-DC Converters':'Unrelated Course'):
-      p===37?(valid?'Flyback Converter':'Unrelated Example'):
-      'Middle Lecture Page '+p;
-    pg.drawText(title,{x:55,y:440,size:23,font});
+    let title=anchors[p]||'Middle Lecture Page '+p;
+    if(kind==='unrelated')title=p===1?'Unrelated Course':p===37?'Unrelated Example':'Other lecture page '+p;
+    if(kind==='generic')title=p===1||p===37?'Generic Converter':'Other lecture page '+p;
+    if(kind==='wrong-chapter'&&p===33)title='Generic Converter';
+    pg.drawText(title,{x:55,y:440,size:20,font});
     pg.drawText('Page '+p,{x:55,y:365,size:15,font});
   }
   return Buffer.from(await doc.save());
@@ -91,15 +103,26 @@ async function awaitMiddlePdf(pg){
 }
 await run('52-page PDF identity, render, navigation and separate local cache',async()=>{
   await visit('middle.html#slide/37','#source-pdf-file');
-  const badCount=await makeMiddlePdf(51,true);
+  const badCount=await makeMiddlePdf(51,'valid');
   await page.locator('#source-pdf-file').setInputFiles({name:'middle-51.pdf',mimeType:'application/pdf',buffer:badCount});
   await page.waitForFunction(()=>document.querySelector('#source-pdf-feedback')?.textContent?.includes('頁數不符'),null,{timeout:30000});
   assert.equal(await page.locator('#source-pdf-canvas').count(),0);
-  const badIdentity=await makeMiddlePdf(52,false);
+  const badIdentity=await makeMiddlePdf(52,'unrelated');
   await page.locator('#source-pdf-file').setInputFiles({name:'other-52.pdf',mimeType:'application/pdf',buffer:badIdentity});
   await page.waitForFunction(()=>document.querySelector('#source-pdf-feedback')?.textContent?.includes('中冊標題識別不符'),null,{timeout:30000});
   assert.equal(await page.locator('#source-pdf-canvas').count(),0);
-  const valid=await makeMiddlePdf(52,true);
+  // This 52-page file would pass the old two-keyword check (Converter on pages
+  // 1 and 37) but must now fail the cross-chapter source identification.
+  const generic=await makeMiddlePdf(52,'generic');
+  await page.locator('#source-pdf-file').setInputFiles({name:'generic-52.pdf',mimeType:'application/pdf',buffer:generic});
+  await page.waitForFunction(()=>document.querySelector('#source-pdf-feedback')?.textContent?.includes('中冊標題識別不符'),null,{timeout:30000});
+  assert.equal(await page.locator('#source-pdf-canvas').count(),0);
+  // One wrong chapter is enough to reject a near-matching 52-page document.
+  const badChapter=await makeMiddlePdf(52,'wrong-chapter');
+  await page.locator('#source-pdf-file').setInputFiles({name:'wrong-chapter-52.pdf',mimeType:'application/pdf',buffer:badChapter});
+  await page.waitForFunction(()=>document.querySelector('#source-pdf-feedback')?.textContent?.includes('第 33 頁'),null,{timeout:30000});
+  assert.equal(await page.locator('#source-pdf-canvas').count(),0);
+  const valid=await makeMiddlePdf(52,'valid');
   await page.locator('#source-pdf-file').setInputFiles({name:'middle-valid.pdf',mimeType:'application/pdf',buffer:valid});
   await awaitMiddlePdf(37);
   const image37=await page.locator('#source-pdf-canvas').evaluate(el=>el.toDataURL());
