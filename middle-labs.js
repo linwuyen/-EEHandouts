@@ -23,7 +23,7 @@
   }
   var defs={
     'mid-buck':{
-      name:'Buck Duty、電感漣波與 BCM',hint:'理想 CCM；可同時觀察頻率、負載與漣波的關係',
+      name:'Buck Duty、電感漣波與 BCM',hint:'理想非同步 Buck CCM / BCM / DCM，依負載切換穩態模型',
       knobs:[k('vin','輸入電壓',12,100,4,24,' V'),k('duty','Duty',10,90,5,50,'%'),k('freq','切換頻率',25,250,25,100,' kHz'),k('l','電感',20,300,20,100,' μH'),k('io','輸出負載',.1,8,.1,2,' A')],
       note:'理想非同步 Buck，固定輸入電壓、Duty、L、fs 與定電流負載；CCM/BCM/DCM 分段模型。忽略壓降、ESR、死區與動態暫態；不是同步整流允許負電流的模型。',
       compute:function(v){var m=buckModel(v);
@@ -42,9 +42,20 @@
     'mid-boost':{
       name:'Boost 增益、電感與輸出漣波',hint:'理想 Boost CCM，測試 Duty 增大造成的電流應力',
       knobs:[k('vin','輸入電壓',12,72,4,48,' V'),k('duty','Duty',10,80,5,50,'%'),k('freq','切換頻率',50,250,25,100,' kHz'),k('l','電感',40,300,20,100,' μH'),k('io','輸出電流',.5,5,.5,2,' A')],
-      note:'C 固定為 220 μF，理想 CCM 並忽略所有損耗和 ESR；高 Duty 的實際效率受 RL、RDS(on)、二極體與熱限制。',
-      compute:function(v){var d=v.duty/100,vo=v.vin/(1-d),iin=v.io/(1-d),di=v.vin*d/(v.l*1e-6*v.freq*1000),dv=v.io*d/(220e-6*v.freq*1000);
-        return {values:[['理想 CCM Vout',f(vo,1)+' V'],['輸入平均電流',f(iin,2)+' A'],['電感峰值估計',f(iin+di/2,2)+' A'],['電容漣波 p-p',f(dv,2)+' V']],warning:iin<=di/2?'由電感谷值推算可能進 DCM；此 CCM 增益不能直接用。':d>.7?'Duty 高，須特別考慮損耗、峰值電流與熱；理想增益不可當作實測規格。':''}
+      note:'理想非同步 Boost，固定輸入、Duty、L、fs 與輸出定電流負載。分段處理 CCM/BCM/DCM；電容 220 μF 漣波只用一階近似，忽略 ESR、寄生與暫態。',
+      compute:function(v){
+        var d=v.duty/100,L=v.l*1e-6,fs=v.freq*1000,di=v.vin*d/(L*fs);
+        var vccm=v.vin/(1-d),iinCcm=v.io/(1-d),threshold=di/2;
+        var mode=iinCcm>threshold+1e-8?'CCM':iinCcm<threshold-1e-8?'DCM':'BCM';
+        var vo=mode==='DCM'?v.vin+v.vin*v.vin*d*d/(2*L*fs*v.io):vccm;
+        var off=mode==='DCM'?v.vin*d/(vo-v.vin):1-d;
+        var peak=mode==='CCM'?iinCcm+di/2:di;
+        var valley=mode==='CCM'?iinCcm-di/2:0;
+        var iin=mode==='DCM'?peak*(d+off)/2:iinCcm;
+        var zero=Math.max(0,1-d-off),dv=v.io*d/(220e-6*fs);
+        var model={mode:mode,vout:vo,peak:peak,valley:Math.max(0,valley),iin:iin,on:d,freewheel:off,zero:zero,boundary:threshold*(1-d)};
+        return {model:model,values:[['理想 '+mode+' Vout',f(vo,2)+' V'],['輸入平均電流',f(iin,2)+' A'],['電感峰值',f(peak,2)+' A'],['電容漣波近似',f(dv,2)+' V']],
+          warning:mode==='DCM'?'DCM：採用 ON／二極體導通／零電流三區間穩態模型；輸出漣波僅為忽略 ESR 的一階估算。':mode==='BCM'?'BCM：電感電流谷值為 0；處於臨界邊界。':d>.7?'高 Duty：寄生、損耗與元件電流應力未納入理想模型。':''};
       }
     },
     'mid-buckboost':{
@@ -103,12 +114,10 @@
   function graph(id,v,metrics){
     if((id==='mid-buck'||id==='mid-modes')&&metrics&&metrics.model)return buckWave(v,metrics.model);
     var d=Number(v.duty||50)/100,points;
-    if(id==='mid-bridge') {
-      var amp=Math.max(-1,Math.min(1,(v.da-v.db)/100));
-      points=[[0,.5-amp*.35],[.15,.5-amp*.35],[.15,.5+amp*.3],[.4,.5+amp*.3],[.4,.5-amp*.35],[.65,.5-amp*.35],[.65,.5+amp*.3],[.9,.5+amp*.3],[.9,.5-amp*.35],[1,.5-amp*.35]];
-    } else if(id==='mid-buckboost') {
-      var sign=v.power>=0?1:-1;
-      points=[[0,sign>0?.2:.8],[.27,sign>0?.2:.8],[.45,.5],[.55,.5],[.73,sign>0?.8:.2],[1,sign>0?.8:.2]];
+    if(id==='mid-buckboost') {
+      if(v.power===0){points=[[0,.5],[1,.5]];}
+      else {var sign=v.power>0?1:-1;
+        points=[[0,sign>0?.2:.8],[.27,sign>0?.2:.8],[.45,.5],[.55,.5],[.73,sign>0?.8:.2],[1,sign>0?.8:.2]];}
     } else if(id==='mid-modes') {
       var bound=v.vin*d*(1-d)/(v.l*1e-6*v.freq*1000)/2;
       var fraction=Math.min(1,Math.max(.1,v.io/Math.max(.001,bound)));
