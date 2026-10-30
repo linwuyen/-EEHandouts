@@ -218,7 +218,7 @@
       title:'Boost：能量、工作模式與電壓增益',knobs:[knob('io','輸出定電流負載',0.2,5,0.2,0.8,' A'),knob('duty','Duty',10,80,5,50,' %'),knob('vin','Vin',12,72,4,48,' V'),knob('l','電感',40,300,20,100,' μH'),knob('freq','開關頻率',50,250,25,100,' kHz')],
       assumption:'理想非同步 Boost、固定 Duty、定電流負載；小漣波與動態未納入，不等於實測效率或元件安全裕度。',
       compute:function(v){var d=v.duty/100,L=v.l*1e-6,fs=v.freq*1000,di=v.vin*d/(L*fs),iinC=v.io/(1-d),mode=iinC>di/2+1e-9?'CCM':iinC<di/2-1e-9?'DCM':'BCM',vo=mode==='DCM'?v.vin+v.vin*v.vin*d*d/(2*L*fs*v.io):v.vin/(1-d);
-        var peak=mode==='CCM'?iinC+di/2:di,valley=mode==='CCM'?Math.max(0,iinC-di/2):0,fw=mode==='DCM'?v.vin*d/(vo-v.vin):1-d,zero=clamp(1-d-fw,0,1),IL=function(t){return t<d?valley+(peak-valley)*t/d:t<d+fw?peak-(peak-(mode==='CCM'?valley:0))*(t-d)/fw:0;};
+        var peak=mode==='CCM'?iinC+di/2:di,valley=mode==='CCM'?Math.max(0,iinC-di/2):0,fw=mode==='DCM'?v.vin*d/(vo-v.vin):1-d,zero=clamp(1-d-fw,0,1),IL=function(t){return t<d?valley+(peak-valley)*t/d:t<d+fw?peak-(peak-(mode==='CCM'?valley:0))*(t-d)/fw:(mode==='CCM'?valley:0);};
         return result([metric('理想 Vout',vo,' V'),metric('IL Peak',peak,' A'),metric('BCM 輸出 Io',.5*di*(1-d),' A'),metric('零電流時間比例',zero*100,' %')],
           mode==='DCM'?'DCM：不可沿用 CCM 的 1/(1−D) 增益。':'ON 儲能、OFF 由輸入與電感一起向輸出送能。',{mode:mode,stage:{on:d,freewheel:fw,zero:zero,kind:'boost'},series:[trace('PWM','V',function(t){return t<d?v.vin:0;}),trace('VL','V',function(t){return t<d?v.vin:t<d+fw?v.vin-vo:0;}),trace('IL','A',IL)]});}
     },
@@ -243,7 +243,7 @@
       compute:function(v){var d=v.duty/100,L=v.lm*1e-6,fs=v.freq*1000,n=v.ratio,di=v.vin*d/(L*fs),bound=n*di*(1-d)/2,mode=v.io>bound+1e-9?'CCM':v.io<bound-1e-9?'DCM':'BCM';
         var vo=mode==='DCM'?v.vin*v.vin*d*d/(2*L*fs*v.io):v.vin*d/(n*(1-d)),fw=mode==='DCM'?v.vin*d/(n*vo):1-d,zero=clamp(1-d-fw,0,1),avg=v.io/(n*(1-d)),peak=mode==='CCM'?avg+di/2:di,valley=mode==='CCM'?Math.max(0,avg-di/2):0;
         return result([metric('理想輸出 Vout',vo,' V'),metric('理想 OFF VDS',v.vin+n*vo,' V'),metric('磁化電流 Peak',peak,' A'),metric('BCM 輸出 Io',bound,' A')],
-          mode==='DCM'?'DCM：OFF 退磁結束後第三段零電流。':'ON 時激磁、OFF 時經二次側放能。',{mode:mode,stage:{on:d,freewheel:fw,zero:zero,kind:'flyback'},series:[trace('Primary Gate','V',function(t){return t<d?v.vin:0;}),trace('磁化電流','A',function(t){return t<d?valley+(peak-valley)*t/d:t<d+fw?peak-(peak-(mode==='CCM'?valley:0))*(t-d)/fw:0;})]});}
+          mode==='DCM'?'DCM：OFF 退磁結束後第三段零電流。':'ON 時激磁、OFF 時經二次側放能。',{mode:mode,stage:{on:d,freewheel:fw,zero:zero,kind:'flyback'},series:[trace('Primary Gate','V',function(t){return t<d?v.vin:0;}),trace('磁化電流','A',function(t){return t<d?valley+(peak-valley)*t/d:t<d+fw?peak-(peak-(mode==='CCM'?valley:0))*(t-d)/fw:(mode==='CCM'?valley:0);})]});}
     },
     core:{
       title:'伏秒、匝數與磁通密度擺幅',knobs:[knob('vin','一次側 ON 電壓',40,400,20,100,' V'),knob('duty','單次 ON Duty',10,50,5,40,' %'),knob('turns','一次側匝數',10,80,5,30,' 圈'),knob('area','Ae',50,300,25,150,' mm²'),knob('freq','頻率',25,250,25,100,' kHz')],
