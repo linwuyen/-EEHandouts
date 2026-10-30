@@ -37,6 +37,10 @@ near(phase90.traces[2].values[120],-400,1e-12,'PSFB primary negative pulse');
 const tank=calculate('llc'),tankSlow=calculate('llc',{fs:60,lr:10,cr:40,lm:60,rdc:4});
 near(tank.data.f0,1/(2*Math.PI*Math.sqrt(20e-6*100e-9)),1e-6,'LLC resonance');
 assert.ok(tank.data.vo>0&&tank.data.avgIn>0);
+assert.ok(tank.data.periodicityError<=.02,'Default LLC must close all tank states over a switching period');
+assert.ok(tank.data.energyCycleError<=.02,'Default LLC period energy drift is bounded');
+assert.ok(Math.abs(tank.traces[1].values.at(-1)-tank.traces[1].values[0])<=.02*Math.max(.05,...tank.traces[1].values.map(Math.abs)),
+  'Reported periodic LLC tank current must close at t/T=1');
 assert.ok(Math.abs(tank.data.energyResidual)<Math.max(1,tank.data.avgIn*.02),'LLC energy residual');
 assert.ok(Math.abs(tankSlow.data.energyResidual)<Math.max(1,tankSlow.data.avgIn*.02),'LLC low-frequency residual');
 // Numerical stiffness counterexamples (high Rac/Lr): explicit RK4 used to overflow.
@@ -46,19 +50,35 @@ for(const v of [
   {vin:425,fs:60,lr:10,cr:160,lm:200,rdc:26,n:8}
 ]){
   const r=calculate('llc',v);
-  assert.equal(r.validity,true,'LLC stiff tank must remain numerically valid');
   assert.ok(r.traces.every(t=>t.values.every(Number.isFinite)),'LLC stiff traces must remain finite');
-  assert.ok(Math.abs(r.data.energyResidual)<Math.max(1,r.data.avgIn*.02),
-    'LLC stiff tank energy balance');
+  assert.ok(Number.isFinite(r.data.periodicityError)&&Number.isFinite(r.data.energyCycleError),
+    'LLC stiff tank must report finite state/energy closure');
+  if(r.validity){
+    assert.ok(r.data.periodicityError<=.02&&r.data.energyCycleError<=.02&&r.data.avgIn>0,
+      'LLC stiff tank may only be called steady once all closure conditions pass');
+    assert.ok(Math.abs(r.data.energyResidual)<Math.max(.1,r.data.avgIn*.02),'LLC valid energy residual');
+  }else{
+    assert.equal(r.mode,'UNSETTLED','Unsettled stiffness must never carry a valid operating-mode label');
+    assert.ok(Number.isNaN(r.metrics[2].value),'Unsettled LLC must hide estimated Vout');
+  }
 }
 assert.ok(Math.abs(tank.data.avgLoad-tank.data.fhaPower)>0.01,
   'Equivalent resistor absorbs harmonics; FHA first-harmonic DC estimate must not be mislabeled actual output power');
 assert.ok(tank.warning.includes('高次諧波'),'Must disclose FHA harmonics versus total resistor power');
+const edgeTank=calculate('llc',{fs:200,lr:60,cr:200,lm:60,rdc:32});
+assert.ok(Number.isFinite(edgeTank.data.periodicityError),'Edge tank closure metric must be finite');
+if(edgeTank.data.periodicityError>.02||edgeTank.data.energyCycleError>.02||edgeTank.data.avgIn<=0){
+  assert.equal(edgeTank.validity,false,'Power balance alone cannot make an unsettled LLC valid');
+  assert.equal(edgeTank.mode,'UNSETTLED');
+  assert.ok(Number.isNaN(edgeTank.metrics[2].value),'Out-of-domain LLC must not report valid Vout');
+}
 assert.equal(tank.traces[0].step,true);assert.ok(tank.traces[1].values.some(x=>x<0)&&tank.traces[1].values.some(x=>x>0),'LLC tank current reverses');
 const bode=calculate('loop');assert.ok(bode.data.ccm&&bode.data.crossovers.length>0);
 assert.ok(bode.data.points.every((p,i,a)=>i===0||p.f>a[i-1].f),'Bode frequency must rise');
 assert.ok(Number.isFinite(bode.data.pm),'Bode phase margin exists at default');
-assert.equal(calculate('loop',{r:24,l:20,fs:50}).validity,false,'DCM outside CCM small-signal plant');
+const invalidBode=calculate('loop',{r:24,l:20,fs:50});
+assert.equal(invalidBode.validity,false,'DCM outside CCM small-signal plant');
+assert.ok(Number.isNaN(invalidBode.metrics[0].value),'Invalid CCM plant must not show crossover as valid');
 const schedule=calculate('timing');near(schedule.data.tbprd,500,0,'TBPRD 100MHz/100kHz updown');
 near(schedule.data.T,10,1e-12,'PWM period 100kHz');
 near(schedule.data.soc,1.75,1e-12,'CMPA UP trigger');
