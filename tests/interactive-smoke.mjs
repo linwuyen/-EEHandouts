@@ -115,8 +115,8 @@ try{
     }
   }
 
-  await page.goto(BASE+'/index.html#lesson/ac-power/pqs');
-  await page.locator('#lesson-interactive [data-knob="angle"]').waitFor({timeout:10000}).catch(()=>{});
+  await page.goto(BASE+'/index.html#home');
+  await page.locator('.subject-card').first().waitFor({timeout:10000});
   // Resolve lesson hash from the actual curriculum, never assume chapter IDs.
   const pqsRoute=await page.evaluate(()=>{
     const c=window.EE_DATA.chapters.find(c=>c.lessons.some(l=>l.id==='pqs'));
