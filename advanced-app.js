@@ -58,7 +58,8 @@
     if(r.events){var t=r.data.width*cursor;var closest=r.events.reduce(function(best,e){return Math.abs(e.at-t)<Math.abs(best.at-t)?e:best;},r.events[0]);
       return '時間 '+fmt(t,3)+' µs；最近事件：'+closest.label+' ('+fmt(closest.at,3)+' µs)';}
     if(selected==='loop'){var i=Math.round(cursor*(r.data.points.length-1)),p=r.data.points[i];return '頻率 '+fmt(p.f,2)+' Hz ／ Gain '+fmt(p.db,2)+' dB ／ 相位 '+fmt(p.phase,2)+'°';}
-    return '游標：'+fmt(cursor*100,0)+'% PWM 週期（諧振槽波形為穩態最後一週期）。';
+    if(selected==='zvs')return '此圖為換流能量與時間預算；電流為 0 時換流時間不可定義，不繪成 0 ns。';
+    return '游標：'+fmt(cursor*100,0)+'% PWM 週期（LLC 未收斂時顯示最後一週期過渡波形）。';
   }
   function refresh(){
     if(job){clearTimeout(job);job=null;}

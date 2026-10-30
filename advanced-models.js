@@ -326,8 +326,8 @@
       metrics:[m('Llk 可用儲能',eL*1e6,'µJ',3),m('兩顆 Coss 所需能量',eC*1e6,'µJ',3),
         m('能量比 E_L/E_C',eC>0?eL/eC:NaN,'',3),m('粗估換流時間',Number.isFinite(tReq)?tReq*1e9:NaN,'ns',2),
         m('設定 Dead Time',dead*1e9,'ns',2),m('能量足夠？',energy?1:0,'0/1',0),m('時間足夠？',time?1:0,'0/1',0)],
-      stages:[],traces:[{key:'energy',label:'換流能量比較',unit:'µJ',values:[eL*1e6,eC*1e6],labels:['Llk','Coss'],step:false},
-        {key:'time',label:'時間預算比較',unit:'ns',values:[dead*1e9,Number.isFinite(tReq)?tReq*1e9:0],labels:['Dead Time','所需換流'],step:false}],
+      stages:[],traces:[{key:'energy',label:'換流能量比較',unit:'µJ',values:[eL*1e6,eC*1e6],labels:['Llk','Coss'],step:false}].concat(
+        Number.isFinite(tReq)?[{key:'time',label:'時間預算比較',unit:'ns',values:[dead*1e9,tReq*1e9],labels:['Dead Time','所需換流'],step:false}]:[]),
       data:{eL:eL,eC:eC,tReq:tReq,energy:energy,time:time,fs:fs}});
   }
 

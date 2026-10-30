@@ -95,4 +95,5 @@ assert.equal(calculate('nonideal',{dead:800,fs:200,duty:10}).validity,false,'Dea
 const soft=calculate('zvs'),enough=calculate('zvs',{ip:15}),none=calculate('zvs',{ip:0});
 assert.equal(soft.mode,'INSUFFICIENT');assert.equal(enough.mode,'ENERGY_AND_TIME');assert.equal(none.mode,'INSUFFICIENT');
 assert.ok(Number.isNaN(none.metrics[3].value),'zero current has no finite commutation time');
+assert.equal(none.traces.length,1,'Zero-current ZVS time must not be drawn as an immediate 0 ns commutation');
 console.log('ADVANCED ENGINEERING PASS: 7 models, PFC/LLC/PSFB power balance, Bode, PWM timing, loss and ZVS edges');
