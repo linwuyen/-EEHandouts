@@ -79,3 +79,7 @@
 
 - F28004x 時序模型必須從 SYSCLK/EPWMCLKDIV/HSPCLKDIV/CLKDIV 推導 TBCLK，不能允許 >100 MHz F28004x SYSCLK、短於 75 ns 的 S+H 或過界 TBPRD；ACQPS 必須整數量化，100MHz SYSCLK 下 ACQPS=7 表示 80ns。ADC 前端高阻抗可能需更長取樣窗。
 - 以 100kHz、SOCA CMP_UP=1.75us、shadow ZERO=10us 反例確認 `NEXT_PWM_CYCLE`，而 SOCA ZERO、shadow PERIOD=5us 應為 `SAME_PWM_CYCLE`；CPU_OVERRUN 單獨以 FINISH 是否跨下一個 SOCA 判定。沒有真實硬體 TRM/示波 evidence 時不得宣稱實機時序準確。
+
+- 上／中／進階至少各跑一個 keyboard + landmark smoke，確認 skip link 可到主要內容、可見輸入有標籤、按鈕有名稱，七個進階 SVG 圖形具標籤；這不是完整 WCAG 測試。
+- README 的 71 節 KaTeX／120 條公式必須自動與 `formula-math.js` 實際資料一致，並防止 38＋34 節及 107＋52 頁數變動未被檢查。
+- Pages artifact 的 release-sha.txt 必須使用 exact `workflow_run.head_sha`，發布完成後以公開網址查核與四個靜態資產 HTTP 200 作為額外部署證據；保留原本打包前、部署前雙重 latest-main SHA gate。頁面 JavaScript 的正式站實際互動仍需另行人工驗收。
