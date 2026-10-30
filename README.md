@@ -111,6 +111,7 @@ npm test
 - `source-viewer.js`：PDF.js（動態 CDN 程式）解析及身分／頁數驗證、Canvas 繪製、IndexedDB 本機保存；不向網站後端上傳 PDF
 - `tests/smoke.mjs`：Playwright 真實瀏覽器測試
 - `tests/interactive-smoke.mjs`：逐一操作上、下冊 72 節的預測、滑桿、時間游標、重設和手機版檢查
+- `tests/interactive-engineering.mjs`：獨立數值 fixture，驗證 CCM/DCM、Forward、Bridge、SCR、CTR、ADC 模型
 - `tests/middle-engineering.mjs`：七個中冊互動模型、Buck CCM／BCM／DCM 公式與實際模型電流波形的獨立預期值測試
 - `.github/workflows/verify.yml`：每次推送執行桌機／手機及數學邊界回歸測試
 - `.nojekyll`：GitHub Pages 靜態資產處理
