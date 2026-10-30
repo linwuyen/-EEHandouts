@@ -204,18 +204,31 @@
     el.innerHTML='<section class="lab"><div class="lab-top"><div><h3>'+esc(def.name)+'</h3><small>'+esc(def.hint)+'</small></div><span class="pill">INTERACTIVE</span></div>'+
       '<div class="lab-body"><div class="lab-grid"><div class="lab-chart" data-middle-chart></div><div>'+
       (id==='mid-bridge'?'<div class="control-group"><label for="bridge-modulation">PWM 調變模式</label><select id="bridge-modulation" data-bridge-mode><option value="unipolar">同載波單極性（三電平）</option><option value="bipolar">互補雙極性（兩電平）</option></select></div>':'')+
-      def.knobs.map(function(x){return '<div class="control-group"><div class="control-head"><span>'+esc(x.name)+'</span><strong data-lab-value="'+x.id+'"></strong></div><input class="control-range" type="range" data-lab-input="'+x.id+'" min="'+x.min+'" max="'+x.max+'" step="'+x.step+'" value="'+x.value+'" aria-label="'+esc(x.name)+'"></div>'}).join('')+
+      def.knobs.map(function(x){return '<div class="control-group"><div class="control-head"><span>'+esc(x.name)+'</span><strong data-lab-value="'+x.id+'"></strong></div><input class="control-range" type="range" data-lab-input="'+x.id+'" min="'+x.min+'" max="'+x.max+'" step="'+x.step+'" value="'+x.value+'" aria-label="'+esc(x.name)+'"'+(id==='mid-bridge'&&x.id==='db'?' aria-describedby="bridge-db-hint"':'')+'>'+(id==='mid-bridge'&&x.id==='db'?'<small id="bridge-db-hint" data-bridge-db-hint>Unipolar：B Duty 可獨立調整</small>':'')+'</div>'}).join('')+
       '<div class="output-grid" data-middle-output></div><div class="lab-validation" data-middle-warning role="status" hidden></div></div></div></div><div class="lab-disclaimer">'+esc(def.note)+'</div></section>';
     var out=el.querySelector('[data-middle-output]'),warn=el.querySelector('[data-middle-warning]'),chart=el.querySelector('[data-middle-chart]');
     function refresh(){
-      def.knobs.forEach(function(x){el.querySelector('[data-lab-value="'+x.id+'"]').textContent=v[x.id]+x.unit});
+      var bipolar=id==='mid-bridge'&&v.mode==='bipolar';
+      def.knobs.forEach(function(x){
+        var shown=bipolar&&x.id==='db'?100-v.da:v[x.id];
+        el.querySelector('[data-lab-value="'+x.id+'"]').textContent=shown+x.unit;
+      });
+      if(id==='mid-bridge'){
+        var bControl=el.querySelector('[data-lab-input="db"]');
+        bControl.disabled=bipolar;
+        // Do not overwrite v.db: switching back to Unipolar restores its
+        // previous independent value rather than inheriting Bipolar's derived B.
+        bControl.value=bipolar?100-v.da:v.db;
+        el.querySelector('[data-bridge-db-hint]').textContent=bipolar?
+          'B = 100% − A（互補推導，不可調）':'Unipolar：B Duty 可獨立調整';
+      }
       var m=def.compute(v);
       out.innerHTML=m.values.map(function(x){return '<div class="output-card"><small>'+esc(x[0])+'</small><strong>'+esc(x[1])+'</strong></div>'}).join('');
       warn.hidden=!m.warning;warn.textContent=m.warning||'';
       chart.innerHTML=graph(id,v,m);
     }
     el.querySelectorAll('[data-lab-input]').forEach(function(x){
-      x.addEventListener('input',function(){v[x.dataset.labInput]=Number(x.value);refresh()});
+      x.addEventListener('input',function(){if(x.disabled)return;v[x.dataset.labInput]=Number(x.value);refresh()});
     });
     if(id==='mid-bridge')el.querySelector('[data-bridge-mode]').addEventListener('change',function(ev){v.mode=ev.target.value;refresh()});
     refresh();
