@@ -151,7 +151,7 @@ Node.js 22 開發環境：執行 `npm ci --ignore-scripts`，再安裝 Chromium�
 第三入口 [advanced.html](./advanced.html) 提供七種參數互動模型；不改變上冊 38 節、中冊 34 節、47 個原有課節模型與讀書進度。
 
 1. **Boost PFC**：單相整流源的指定市電相位，固定 DC Bus，理想 CCM／BCM／DCM 分段 Duty、Gate/IL/VL/VSW 同步波形；由理想線電流命令導出整流瞬時輸入功率。**不是**整個 50/60Hz 週期的 PF/THD、外電壓迴路或整流橋損耗模擬。
-2. **LLC**：半橋 ±Vin/2 方波、Lr/Cr/Lm 開關週期時域 RK4 積分，使用經 FHA 近似的整流等效負載 Rac=8 n² Rdc/π²；觀察諧振電流、磁化電流、電容電壓、儲能及基波輸入阻抗相位。無法由電感性相位直接確認實機 ZVS，不計非線性二極體與 Coss。
+2. **LLC**：半橋 ±Vin/2 方波、Lr/Cr/Lm 開關週期時域隱式梯形積分，使用經 FHA 近似的整流等效負載 Rac=8 n² Rdc/π²；觀察諧振電流、磁化電流、電容電壓、儲能及基波輸入阻抗相位。Rac 線性等效負載會吸收高次諧波，所以 FHA 基波換算 DC 功率與 Rac 全頻帶耗散不一定相等；兩者已分開顯示。無法由電感性相位直接確認實機 ZVS，不計非線性二極體與 Coss。
 3. **PSFB**：雙橋臂 50% 相移、一個週期內 ±Vin/0、次級理想全波整流和輸出濾波 L CCM/BCM/DCM；只示範理想有效 Duty，未計循環電流、漏感換流 Duty Loss 或 ZVS。
 4. **Bode / 補償**：電壓模式 Buck **CCM** 小訊號 L/C/ESR 電壓植物，PI + 高頻極點、PWM ramp 和固定延遲；掃描所有 0dB 交越，顯示相位與增益裕度。多重交越警告；無完整 z-domain/ZOH、電流內迴路或大訊號穩定證據。
 5. **C2000 ePWM/ADC/ISR**：以 F28004x UP-DOWN TBCLK 量化，SOCA ZERO/PERIOD/CMPA up/down → ADC acquisition/EOC → ISR → CMP shadow load；ADC 與 CPU 延遲為使用者假設值，不是特定晶片測得時間或可直接套用的暫存器設定。

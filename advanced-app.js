@@ -9,7 +9,7 @@
   function esc(x){return String(x==null?'':x).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','"': '&quot;'}[c];});}
   function fmt(x,n){if(!Number.isFinite(x))return '—';return Number(x.toFixed(n===undefined?2:n)).toLocaleString('zh-TW',{maximumFractionDigits:n===undefined?2:n});}
   function configValue(x){return esc(fmt(x,Number.isInteger(x)?0:3));}
-  function safeId(){var slug=decodeURIComponent(location.hash.slice(1)).replace(/^\//,'');return ids.includes(slug)?slug:'pfc';}
+  function safeId(){var slug;try{slug=decodeURIComponent(location.hash.slice(1)).replace(/^\//,'');}catch(err){slug='pfc';}return ids.includes(slug)?slug:'pfc';}
   function controls(spec){
     var knobs=spec.knobs.map(function(k){return '<div class="advanced-control"><label class="advanced-control-label" for="adv-'+esc(k.key)+'"><span>'+esc(k.label)+'</span><output data-value="'+esc(k.key)+'">'+configValue(values[k.key])+' '+esc(k.unit)+'</output></label>'+ 
       '<input id="adv-'+esc(k.key)+'" type="range" data-knob="'+esc(k.key)+'" min="'+k.min+'" max="'+k.max+'" step="'+k.step+'" value="'+values[k.key]+'"></div>';}).join('');

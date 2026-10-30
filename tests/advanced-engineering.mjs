@@ -39,6 +39,21 @@ near(tank.data.f0,1/(2*Math.PI*Math.sqrt(20e-6*100e-9)),1e-6,'LLC resonance');
 assert.ok(tank.data.vo>0&&tank.data.avgIn>0);
 assert.ok(Math.abs(tank.data.energyResidual)<Math.max(1,tank.data.avgIn*.02),'LLC energy residual');
 assert.ok(Math.abs(tankSlow.data.energyResidual)<Math.max(1,tankSlow.data.avgIn*.02),'LLC low-frequency residual');
+// Numerical stiffness counterexamples (high Rac/Lr): explicit RK4 used to overflow.
+for(const v of [
+  {vin:250,fs:120,lr:10,cr:40,lm:240,rdc:18,n:10},
+  {vin:275,fs:200,lr:15,cr:80,lm:260,rdc:30,n:11},
+  {vin:425,fs:60,lr:10,cr:160,lm:200,rdc:26,n:8}
+]){
+  const r=calculate('llc',v);
+  assert.equal(r.validity,true,'LLC stiff tank must remain numerically valid');
+  assert.ok(r.traces.every(t=>t.values.every(Number.isFinite)),'LLC stiff traces must remain finite');
+  assert.ok(Math.abs(r.data.energyResidual)<Math.max(1,r.data.avgIn*.02),
+    'LLC stiff tank energy balance');
+}
+assert.ok(Math.abs(tank.data.avgLoad-tank.data.fhaPower)>0.01,
+  'Equivalent resistor absorbs harmonics; FHA first-harmonic DC estimate must not be mislabeled actual output power');
+assert.ok(tank.warning.includes('高次諧波'),'Must disclose FHA harmonics versus total resistor power');
 assert.equal(tank.traces[0].step,true);assert.ok(tank.traces[1].values.some(x=>x<0)&&tank.traces[1].values.some(x=>x>0),'LLC tank current reverses');
 const bode=calculate('loop');assert.ok(bode.data.ccm&&bode.data.crossovers.length>0);
 assert.ok(bode.data.points.every((p,i,a)=>i===0||p.f>a[i-1].f),'Bode frequency must rise');

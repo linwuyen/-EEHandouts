@@ -103,11 +103,14 @@
     var vin=v.vin,fs=v.fs*1000,n=v.n,lr=v.lr*1e-6,cr=v.cr*1e-9,lm=v.lm*1e-6,
       rac=8*n*n*v.rdc/(PI*PI),T=1/fs,N=240,settle=160;
     var y=[0,0,0],trace={drive:[],ir:[],im:[],vcr:[],vp:[],energy:[]},driveAmp=vin/2,avgIn=0,avgLoss=0;
-    function stateDerivative(q,u){var vp=rac*(q[0]-q[2]);return [(u-q[1]-vp)/lr,q[0]/cr,vp/lm];}
+    // A-stable implicit trapezoid, solved algebraically for iLr, vCr and iLm.
+    // Explicit RK4 can diverge when Rac/Lr creates a fast load-current time scale.
     function advance(q,u,dt){
-      var a=stateDerivative(q,u),b=stateDerivative(q.map(function(z,i){return z+dt*a[i]/2;}),u),
-        c=stateDerivative(q.map(function(z,i){return z+dt*b[i]/2;}),u),d=stateDerivative(q.map(function(z,i){return z+dt*c[i];}),u);
-      return q.map(function(z,i){return z+dt*(a[i]+2*b[i]+2*c[i]+d[i])/6;});
+      var h=dt/2,a=h/cr,b=h/lm,d=h/lr,p=rac*(q[0]-q[2]),
+        alpha=rac/(1+rac*b),beta=-rac*(q[2]+b*p)/(1+rac*b);
+      var ir=(q[0]+d*(2*u-2*q[1]-a*q[0]-p-beta))/(1+d*(a+alpha));
+      var nextP=alpha*ir+beta;
+      return [ir,q[1]+a*(q[0]+ir),q[2]+b*(p+nextP)];
     }
     var dt=T/N;
     for(var cyc=0;cyc<settle;cyc++){
@@ -122,7 +125,7 @@
         if(cyc===settle-1){
           var v0=rac*(y[0]-y[2]),v1=rac*(next[0]-next[2]);
           avgIn+=u*(y[0]+next[0])/(2*N);
-          avgLoss+=(v0*v0+v1*v1)/(2*rac*N);
+          avgLoss+=Math.pow((v0+v1)/2,2)/(rac*N);
         }
         y=next;
       }
@@ -136,7 +139,7 @@
       ir2+=trace.ir[i]*trace.ir[i]/N;im2+=trace.im[i]*trace.im[i]/N;
     }
     var vp1=Math.hypot(vpCos,vpSin)/Math.SQRT2;
-    var vo=PI*vp1/(2*Math.SQRT2*n);
+    var vo=PI*vp1/(2*Math.SQRT2*n),fhaPower=vo*vo/v.rdc;
     var f0=1/(2*PI*Math.sqrt(lr*cr)),wlm=2*PI*fs*lm,
       imag=2*PI*fs*lr-1/(2*PI*fs*cr)+rac*rac*wlm/(rac*rac+wlm*wlm),
       real=rac*wlm*wlm/(rac*rac+wlm*wlm),angle=Math.atan2(imag,real)*180/PI,
@@ -144,12 +147,12 @@
     var residual=avgIn-avgLoss-energyDrift;
     var validity=Math.abs(residual)<Math.max(3,0.08*Math.abs(avgIn))&&vo>0;
     return valid({mode:angle>=0?'INDUCTIVE':'CAPACITIVE',validity:validity,
-      assumptions:'半橋 ±Vin/2 方波激勵，串聯 Lr、Cr，並聯 Lm 與 FHA 等效電阻 Rac=8n²Rdc/π²；RK4 取最後一週期，忽略真實二極體換向、Coss、Dead Time、磁芯非線性。',
+      assumptions:'半橋 ±Vin/2 方波激勵，串聯 Lr、Cr，並聯 Lm 與 FHA 等效電阻 Rac=8n²Rdc/π²；隱式梯形積分取最後一週期，忽略真實二極體換向、Coss、Dead Time、磁芯非線性。',
       note:'開關頻率相對於串聯共振 f0，以及輸入阻抗相位，決定所見電感性／電容性；時間波形是 FHA 負載近似下的切換方波響應。',
-      warning:!validity?'數值週期尚未充分收斂或能量平衡不良；此工作點不可當有效預測。':'阻抗呈電感性不等於實際 ZVS；真實整流、損耗、最小頻率與開關死區仍需獨立驗證。',
+      warning:!validity?'數值週期尚未充分收斂或能量平衡不良；此工作點不可當有效預測。':'此 R_ac 線性時域模型也消耗高次諧波：FHA 基波換算功率不等於 R_ac 全頻帶耗散，不能視為實際 DC 功率／效率。阻抗呈電感性不代表已 ZVS。',
       metrics:[m('串聯共振 f0',f0/1000,'kHz'),m('fSW/f0',fs/f0,'',3),m('FHA 估計輸出 DC',vo,'V'),
         m('一次側諧振電流 RMS',Math.sqrt(ir2),'A',3),m('磁化電流 RMS',Math.sqrt(im2),'A',3),
-        m('基波輸入阻抗相位',angle,'°',2),m('平均輸入功率',avgIn,'W'),m('功率與儲能殘差',residual,'W',3)],
+        m('基波輸入阻抗相位',angle,'°',2),m('FHA 基波換算功率',fhaPower,'W'),m('Rac 含諧波等效耗散',avgLoss,'W'),m('等效回路能量殘差',residual,'W',3)],
       stages:[{id:'POSITIVE',label:'半橋正向激勵：Lr/Cr/Lm 儲放能',start:0,end:.5},
         {id:'NEGATIVE',label:'半橋反向激勵：諧振電流可能跨零與回灌',start:.5,end:1}],
       traces:[{key:'drive',label:'半橋驅動電壓',unit:'V',values:close(trace.drive),step:true},
@@ -158,7 +161,7 @@
         {key:'vcr',label:'諧振電容電壓',unit:'V',values:close(trace.vcr),step:false},
         {key:'vp',label:'一次側等效負載電壓',unit:'V',values:close(trace.vp),step:false},
         {key:'energy',label:'諧振槽總儲能',unit:'mJ',values:close(trace.energy.map(function(e){return e*1000;})),step:false}],
-      data:{fs:fs,f0:f0,rac:rac,vo:vo,avgIn:avgIn,avgLoad:avgLoss,energyDrift:energyDrift,energyResidual:residual,angle:angle,
+      data:{fs:fs,f0:f0,rac:rac,vo:vo,avgIn:avgIn,avgLoad:avgLoss,energyDrift:energyDrift,energyResidual:residual,fhaPower:fhaPower,angle:angle,
         startEnergy:trace.energy[0],endEnergy:(lr*y[0]*y[0]+cr*y[1]*y[1]+lm*y[2]*y[2])/2}});
   }
 

@@ -65,7 +65,7 @@
 - 新建 `advanced.html`，不改舊 72 個課節 IDs/47 個模型，且上／中冊均有入口。GitHub Pages 必須打包三個新資產 `advanced.html` / `advanced-models.js` / `advanced-app.js` 及 `advanced.css`。
 - Boost PFC 在給定瞬時整流相位的 **CCM/DCM** 需滿足電流面積、伏秒、週期 ON/OFF/ZERO 時間和理想功率平衡。不能用單週期波形宣稱整個市電週期 PF/THD。
 - PSFB 的主橋一次側 +Vin/0/−Vin、對稱雙脈波與次級全波整流，平均有效 Duty 和輸出 L 的 CCM/DCM 峰谷/功率平衡由獨立 fixture 驗證，ZVS/死區/漏感不在此模型內。
-- LLC 必須顯示有用的非零諧振波形，Lr/Cr 所算 f0 與獨立公式相符；最後週期的平均輸入功率與 FHA 負載耗散、儲能變化能量平衡殘差應在容差內。磁化電流、Rac、阻抗相位不可當實際 ZVS 判定。
+- LLC 使用 A-stable 隱式梯形積分，應通過高 Rac/Lr 的剛性工作點回歸，且必須顯示有用的非零諧振波形，Lr/Cr 所算 f0 與獨立公式相符；最後週期的平均輸入功率與 FHA 負載耗散、儲能變化能量平衡殘差應在容差內。磁化電流、Rac、阻抗相位不可當實際 ZVS 判定。
 - Buck Bode 的所有 0dB 交越需保留，頻域複數算式納入 L/C/ESR、補償 PI、高頻 pole、固定 delay；超出 CCM 要標 out of domain。不得以正 PM 保證實機穩定。
 - C2000 時序 TBPRD 與 CMPA 整數量化，SOCA/ADC EOC/ISR/Shadow load 具嚴格先後，超過下一個 SOCA 要視為 WCET 警告；不得將滑桿值當真實 F28004x 延遲規格。
 - Buck 非理想電壓、損耗與效率需要 P_in=P_out+P_loss 的獨立檢查；遇負電流/Dead Time 重疊禁止標有效。PSFB Coss/Llk 只檢查 ZVS 必要前提，不得標成 ZVS 已驗收。
