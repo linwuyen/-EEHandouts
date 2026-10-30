@@ -456,7 +456,7 @@
       '<path d="'+points+'" fill="none" stroke="#159c81" stroke-width="3" stroke-linejoin="round"/>'+
       '<line x1="'+xmark.toFixed(1)+'" y1="28" x2="'+xmark.toFixed(1)+'" y2="192" stroke="#d49231" stroke-width="1.5" stroke-dasharray="5 4"/>'+
       (Number.isFinite(ymark)?'<circle cx="'+xmark.toFixed(1)+'" cy="'+ymark.toFixed(1)+'" r="5" fill="#d49231"/>':'')+
-      '<text x="46" y="18" font-size="12" fill="currentColor">'+esc(spec.title)+' · 第一項輸出</text>'+
+      '<text x="46" y="18" font-size="12" fill="currentColor">'+esc(spec.title)+' · '+esc(spec.compute(v).metrics[metricIndex].label)+'</text>'+
       '<text x="46" y="210" font-size="12" fill="currentColor">'+esc(fmt(kn.min))+' '+esc(kn.unit)+'</text>'+
       '<text x="668" y="210" text-anchor="end" font-size="12" fill="currentColor">'+esc(fmt(kn.max))+' '+esc(kn.unit)+'</text>'+
       '</svg>';
