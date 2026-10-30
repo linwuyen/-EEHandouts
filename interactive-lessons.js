@@ -529,6 +529,34 @@
     'mid-coreloss':['coreLoss','固定磁通擺幅 ΔB，將頻率提高一格後，假設材料的相對鐵損如何改變？','freq']
   };
 
+  // Lesson-specific comparisons must match the investigation's requested
+  // direction and cross the relevant mode or power-flow boundary when needed.
+  // All targets are on the published knob's step grid.
+  var comparisonTargets={
+    wbg:45,
+    'mid-bidirectional':-2,
+    'mid-quadrants':-2,
+    'mid-ccm-dcm':0.1,
+    'mid-bcm':0.3,
+    'mid-buck-dcm':0.1,
+    'mid-boost-dcm':0.2,
+    'mid-buckboost-dcm':0.1,
+    'mid-flyback-dcm':0.1
+  };
+  function comparisonTarget(lessonId,knob) {
+    var specified=Object.prototype.hasOwnProperty.call(comparisonTargets,lessonId);
+    var value=specified?comparisonTargets[lessonId]:
+      (knob.value<knob.max?Math.min(knob.max,Number((knob.value+knob.step).toFixed(8))):
+        Math.max(knob.min,Number((knob.value-knob.step).toFixed(8))));
+    var grid=(value-knob.min)/knob.step;
+    if(!Number.isFinite(value)||Math.abs(value-knob.value)<1e-9||
+       value<knob.min-1e-9||value>knob.max+1e-9||
+       Math.abs(grid-Math.round(grid))>1e-7) {
+      throw Error('Invalid lesson target: '+lessonId+'/'+knob.key);
+    }
+    return value;
+  }
+
   function phaseLabel(stage,t) {
     if(!stage)return '';
     if(t>=1)t=0;
@@ -588,17 +616,23 @@
   }
   function sweepChart(spec,v,focus,mainValue,metricIndex) {
     var kn=spec.knobs.find(function(k){return k.key===focus;})||spec.knobs[0];
-    var xs=[],ys=[];
+    var samples=[],ys=[];
     for(var i=0;i<=80;i++){
       var copy=Object.assign({},v);copy[kn.key]=kn.min+(kn.max-kn.min)*i/80;
       var computed=spec.compute(copy);
       var y=computed.metrics[metricIndex].value;
-      if(Number.isFinite(y)){xs.push(i);ys.push(y);}
+      // Preserve the original x index. An invalid sample creates a visible
+      // gap: joining the adjacent valid samples would misrepresent the model.
+      samples.push(Number.isFinite(y)?y:null);
+      if(Number.isFinite(y))ys.push(y);
     }
     if(!ys.length)return '<div role="status">模型超出數值有效範圍。</div>';
-    var w=700,lo=Math.min.apply(null,ys),hi=Math.max.apply(null,ys),pad=Math.max((hi-lo)*0.12,1e-8),range=hi-lo+2*pad,points=xs.map(function(x,i){
-      return (i?'L':'M')+(50+x*7.7).toFixed(1)+' '+(184-(ys[i]-(lo-pad))/range*149).toFixed(1);
-    }).join(' ');
+    var w=700,lo=Math.min.apply(null,ys),hi=Math.max.apply(null,ys),pad=Math.max((hi-lo)*0.12,1e-8),range=hi-lo+2*pad;
+    var points=samples.map(function(y,i){
+      if(y===null)return '';
+      var cmd=i>0&&samples[i-1]!==null?'L':'M';
+      return cmd+(50+i*7.7).toFixed(1)+' '+(184-(y-(lo-pad))/range*149).toFixed(1);
+    }).filter(Boolean).join(' ');
     var xmark=50+616*(v[kn.key]-kn.min)/(kn.max-kn.min),ymark=184-(mainValue-(lo-pad))/range*149;
     return '<svg class="interactive-svg" viewBox="0 0 700 222" role="img" aria-label="'+esc(kn.label)+' 對 '+esc(spec.title)+' 模型主要輸出影響曲線">'+
       '<rect x="46" y="28" width="622" height="164" rx="6" fill="currentColor" fill-opacity=".035"/>'+
@@ -621,7 +655,7 @@
     if(!first){host.textContent='互動參數設定錯誤';return;}
     var v={};knobs.forEach(function(k){v[k.key]=k.value;});
     var metricIndex=entry[3]||0,baseline=spec.compute(v).metrics[metricIndex].value,guess=null,cursor=.25;
-    var target=first.value<first.max?Math.min(first.max,Number((first.value+first.step).toFixed(8))):Math.max(first.min,Number((first.value-first.step).toFixed(8)));
+    var target=comparisonTarget(lesson.id,first);
     var targetDirection=target>first.value?'增加':'降低';
     host.innerHTML='<div class="interactive-head"><span class="pill">ACTIVE LEARNING</span><h3>'+esc(spec.title)+'</h3>'+
       '<p>'+esc(entry[1])+'</p></div>'+
@@ -704,5 +738,5 @@
     });
     refresh();
   }
-  window.EE_INTERACTIVE={mount:mount,catalog:C,models:M};
+  window.EE_INTERACTIVE={mount:mount,catalog:C,models:M,comparisonTarget:comparisonTarget};
 })();
