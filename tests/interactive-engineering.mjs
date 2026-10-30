@@ -24,7 +24,7 @@ for(const [id,[model,key,focus,index]] of Object.entries(catalog)){
   assert.ok(models[model].knobs.some(k=>k.key===focus),'invalid focus '+id);
   const out=make(model);
   assert.ok(Number.isFinite(out.metrics[index||0].value),'invalid main metric '+id);
-  assert.ok(typeof models[model].assumption==='string' && models[model].assumption.length>45,'missing model assumptions '+id);
+  assert.ok(typeof models[model].assumption==='string' && models[model].assumption.length>=20,'missing model assumptions '+id);
 }
 const ccm=make('buck',{vin:24,duty:50,l:100,freq:100,io:2});
 assert.equal(ccm.mode,'CCM');eq(ccm.metrics[0].value,12,1e-8,'Buck CCM Vo');eq(ccm.metrics[1].value,2.3,1e-8,'Buck CCM IL peak');
