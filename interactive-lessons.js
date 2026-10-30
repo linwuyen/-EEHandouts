@@ -194,7 +194,7 @@
       assumption:'Rshunt=5 mΩ、偏壓=1.5 V、12-bit ADC、理想 0–3 V 輸入；假設 4096 等間距量化區間，Code=floor(4096×Vadc/3)，最高輸入端點限制為 4095，非指定 MCU 的 ADCRESULT 轉移曲線。超界不輸出有效 ADC code；不代表硬體腳位已受保護。',
       compute:function(v){var vad=1.5+.005*v.i*v.gain,valid=vad>=0&&vad<=3,code=valid?Math.min(4095,Math.floor(vad/3*4096)):NaN;
         return result([metric('ADC 腳電壓',vad,' V',3),metric('理想有效 Code',code,' count',0)],
-          valid?'符合模型設定的 ADC 輸入範圍。':'ADC 超出輸入範圍，不可將理論轉換碼當成有效資料。',{warning:valid?'':'輸入超出 0–3 V；需額外確認前端保護及絕對最大額定值。'});}
+          valid?'符合模型設定的 ADC 輸入範圍。':'ADC 超出輸入範圍，不可將理論轉換碼當成有效資料。',{validity:{scorable:valid,status:valid?'IN_DOMAIN':'OUT_OF_DOMAIN'},warning:valid?'':'輸入超出 0–3 V；需額外確認前端保護及絕對最大額定值。'});}
     },
     topology:{
       title:'三種基本 DC-DC 轉壓比',knobs:[knob('duty','占空比',10,80,5,40,' %'),knob('vin','輸入電壓',12,96,6,48,' V')],
