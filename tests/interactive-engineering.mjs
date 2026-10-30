@@ -18,7 +18,7 @@ function isPositive(arr){
   assert.ok(arr.every(x=>x>=-1e-9),'A nonsynchronous magnetizing/inductor current cannot reverse');
 }
 assert.equal(Object.keys(catalog).length,72);
-assert.ok(Object.keys(models).length>=40);
+assert.equal(Object.keys(models).length,47);
 for(const [id,[model,key,focus,index]] of Object.entries(catalog)){
   assert.ok(models[model],'missing model for '+id);
   assert.ok(models[model].knobs.some(k=>k.key===focus),'invalid focus '+id);
@@ -41,6 +41,7 @@ for(const [id,[modelName,,focus]] of Object.entries(catalog)){
   assert.notEqual(target,k.value,id+' target different from baseline');
 }
 const expectedTarget={
+  power:-2,blocks:80,op:7,'mid-boost-rl':70,
   wbg:45,
   'mid-bidirectional':-2,'mid-quadrants':-2,
   'mid-ccm-dcm':0.1,'mid-bcm':0.3,'mid-buck-dcm':0.1,
@@ -173,4 +174,76 @@ for(const [id,model]of [['harmonics','sixPulseHarmonics'],['bus','threeBus'],['m
                          ['mid-pushpull','pushPullBalance'],['mid-half-full','bridgeFamily'],['mid-multi-output','multiSecondary']]){
   assert.equal(catalog[id][0],model,'Lesson must bind matching physical model: '+id);
 }
-console.log('PASS independent interactive model fixtures: 72 lessons, 46 models, physical domains, three-phase, core flux, PI and switching semantics');
+
+/* Explicit lesson contracts: verify what is taught rather than just asserting
+   that a range input can be moved or some finite number was rendered. */
+const lessonSeeds={
+  half:{full:0},
+  op:{gain:5.5,vin:2},
+  'mid-boost-rl':{duty:55,rl:2,load:10}
+};
+const contracts=[
+  {id:'power',metric:'瞬時功率 p',direction:'down',before:48,after:-48},
+  {id:'blocks',metric:'輸入功率',direction:'up',before:300/.9,after:300/.8},
+  {id:'linear',metric:'Pass 元件耗散功率',direction:'up',before:14,after:16},
+  {id:'igbt',metric:'兩者損耗差',direction:'up',before:18.4,after:20.064},
+  {id:'bridge',metric:'正半週平均輸出',direction:'same',before:2*48*Math.SQRT2/Math.PI,after:2*48*Math.SQRT2/Math.PI},
+  {id:'ampere',metric:'線性模型 B',direction:'down',before:0.22175948142986776,after:0.18849555921538763},
+  {id:'mid-unipolar',metric:'VAB 零電壓比例',direction:'down',before:50,after:45},
+  {id:'op',metric:'理想裁切狀態',direction:'up',before:0,after:1},
+  {id:'mid-boost-rl',metric:'CCM 有效 Vout',direction:'down',
+    before:48*.45/(.45*.45+2/10),after:48*.30/(.30*.30+2/10)},
+  {id:'half',metric:'平均整流電壓',direction:'up',before:48*Math.SQRT2/Math.PI,after:54*Math.SQRT2/Math.PI},
+  {id:'capacitor',metric:'有效小漣波估計 ΔV',direction:'down',before:1/(100*1650e-6),after:1/(100*1760e-6)}
+];
+for(const c of contracts){
+  const [name,,focus,index=0]=catalog[c.id],m=models[name],
+    baselineInput=Object.assign(Object.fromEntries(m.knobs.map(k=>[k.key,k.value])),lessonSeeds[c.id]||{});
+  const knob=m.knobs.find(k=>k.key===focus),target=window.EE_INTERACTIVE.comparisonTarget(c.id,knob);
+  const before=m.compute(baselineInput),after=m.compute({...baselineInput,[focus]:target});
+  const metricBefore=before.metrics[index],metricAfter=after.metrics[index];
+  assert.equal(metricBefore.label,c.metric,c.id+' must grade the observed physical quantity');
+  eq(metricBefore.value,c.before,2e-5,c.id+' baseline model');
+  eq(metricAfter.value,c.after,2e-5,c.id+' target model');
+  const delta=metricAfter.value-metricBefore.value,observed=
+    delta>1e-7?'up':delta< -1e-7?'down':'same';
+  assert.equal(observed,c.direction,c.id+' physical prediction direction');
+  assert.ok(before.validity?.scorable!==false&&after.validity?.scorable!==false,
+    c.id+' graded setup must stay within defined model domain');
+}
+const cDefault=make('capRipple');
+assert.equal(cDefault.validity.scorable,true,'Initial capacitor model must be in the stated small-ripple domain');
+const cOutside=make('capRipple',{cap:220,load:3});
+assert.equal(cOutside.validity.scorable,false,'Large ripple is invalid for graded small-ripple approximation');
+assert.ok(Number.isNaN(cOutside.metrics[0].value),'Invalid model must not provide valid Vpp estimation');
+assert.ok(cOutside.warning?.includes('超出'),'Invalid ripple needs a domain warning');
+const magnetExtrap=make('magnetic',{gap:0,turns:100,amps:3});
+assert.equal(magnetExtrap.validity.scorable,false,'Unphysical linear B extrapolation must be marked invalid');
+assert.ok(magnetExtrap.metrics[1].value>5,'Keep explicitly marked extrapolation for demonstration');
+assert.ok(magnetExtrap.warning?.includes('外插'),'Never present fixed-mu extrapolation as real magnetic design');
+const linearInvalid=make('linearRegulator',{vin:8,vout:12,io:2});
+assert.equal(linearInvalid.validity.scorable,false,'Linear regulator Vin <= Vout is out of range');
+assert.ok(Number.isNaN(linearInvalid.metrics[0].value));
+const adc09=make('adc',{i:-24,gain:5});
+eq(adc09.metrics[0].value,0.9,1e-12,'ADC input for quantization');
+eq(adc09.metrics[1].value,1228,1e-12,'ADC floor 4096-bin quantizer at 0.9 V');
+eq(make('adc',{i:30,gain:10}).metrics[1].value,4095,1e-12,'ADC 3V full-scale endpoint');
+const rectHalf=make('rectifier',{vac:48,full:0});
+const rectFull=make('rectifier',{vac:48,full:1});
+eq(rectHalf.metrics[2].value,rectFull.metrics[2].value,1e-12,
+  'Rectifier positive-half cycle must not change with full-wave selection');
+eq(rectFull.metrics[3].value,2*48*Math.SQRT2/Math.PI,1e-9,
+  'Rectifier negative half is rectified for full-wave operation');
+eq(rectHalf.metrics[3].value,0,1e-12,'No negative-half output in half-wave mode');
+const zeroBridge=make('bridge',{da:75,db:25,bipolar:0});
+const moreDuty=make('bridge',{da:80,db:25,bipolar:0});
+eq(zeroBridge.metrics[4].value,50,1e-9,'Unipolar H bridge zero-state fraction');
+eq(moreDuty.metrics[4].value,45,1e-9,'Zero-state duration decreases when A duty rises');
+assert.ok(make('threeRect').note.includes('上橋二極體')&&
+  make('threeRect').note.includes('下橋二極體'),
+  'Three-phase bridge must name the current-conducting diode pair');
+assert.ok(models.multiSecondary.assumption.includes('純電阻負載')&&
+  models.multiSecondary.assumption.includes('同相'),
+  'Multi-output current arithmetic requires explicitly same-phase resistive loads');
+
+console.log('PASS independent interactive model fixtures: 72 lessons, 47 models, explicit model domains and topic-consistent prediction contracts');
