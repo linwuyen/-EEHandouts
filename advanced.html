@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="zh-Hant" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#f5f7fb">
+  <meta name="description" content="EEHandouts 進階電力電子互動實驗室：PFC、LLC、PSFB、Bode、C2000 時序、非理想損耗與 ZVS 能量預算。">
+  <title>進階電力電子實驗室｜EEHandouts</title>
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./advanced.css">
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+  <script defer src="./advanced-models.js"></script>
+  <script defer src="./advanced-app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#advanced-main">跳到互動實驗</a>
+  <header class="advanced-topbar">
+    <div class="advanced-top-inner">
+      <a class="advanced-brand" href="./index.html" aria-label="EEHandouts 上冊首頁"><span class="advanced-brand-mark">EE</span><strong>EEHandouts</strong></a>
+      <nav class="advanced-volume-nav" aria-label="分冊導航"><a href="./index.html">上冊</a><a href="./middle.html">中冊</a><a href="./advanced.html" aria-current="page">進階實驗室</a></nav>
+      <button id="advanced-theme" class="icon-button" aria-label="切換深色模式" type="button">◐</button>
+    </div>
+  </header>
+  <main id="advanced-main" class="advanced-main">
+    <section class="advanced-hero">
+      <div class="eyebrow">DIGITAL POWER ENGINEERING LAB</div>
+      <h1>從開關週期，推到控制迴路。</h1>
+      <p>七個獨立互動模型：調整參數、觀察波形與功率流、追蹤控制延遲。每個結果都標示物理假設與失效範圍，不是 SPICE 或實機驗收。</p>
+      <div class="advanced-hero-stats"><span>3 種功率級模型</span><span>Bode / Phase Margin</span><span>C2000 ePWM → ADC → ISR</span><span>損耗與 ZVS 前提</span></div>
+    </section>
+    <nav id="advanced-nav" class="advanced-lab-nav" aria-label="進階實驗模型"></nav>
+    <section id="advanced-lab" aria-live="off"></section>
+    <section class="advanced-references" aria-labelledby="references-title"><h2 id="references-title">工程資料與適用限制</h2>
+      <p>模型採用教學用理想或明確簡化條件。C2000 周邊的實際觸發源、暫存器、時序及例外必須以對應晶片 TRM、driverlib 與示波器／LA 實測交叉驗證；LLC 與 PSFB 的 ZVS、磁性件、熱設計及保護不能由本網站直接判定。</p>
+      <ul>
+        <li><a href="https://www.ti.com/document-viewer/lit/html/SLUAAO8/GUID-86F7AD2D-7DF0-45E7-B7A9-79F8DC862F14" target="_blank" rel="noopener noreferrer">TI｜Boost PFC 工作模式</a></li>
+        <li><a href="https://www.ti.com/document-viewer/lit/html/SLUP414/GUID-C4C4C20D-3B3D-4298-813F-5E3A9DA91B12" target="_blank" rel="noopener noreferrer">TI｜PSFB Switching Operations</a></li>
+        <li><a href="https://www.ti.com/lit/ug/sprui33c/sprui33c.pdf" target="_blank" rel="noopener noreferrer">TI｜F28004x Technical Reference Manual</a></li>
+      </ul>
+    </section>
+  </main>
+  <footer class="advanced-footer">EEHANDOUTS · 進階學習模型 · 不適用於實機額定值與安全驗證</footer>
+  <noscript><p class="noscript-message">進階互動實驗需要 JavaScript。</p></noscript>
+</body>
+</html>
