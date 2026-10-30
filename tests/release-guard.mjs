@@ -24,6 +24,8 @@ for(const action of ['actions/checkout@v7','actions/configure-pages@v6','actions
 assert.ok(verify.includes('npm ci --ignore-scripts'),'CI must install from committed lockfile');
 assert.ok(!verify.includes('npm install --package-lock-only'),'CI must not regenerate lockfile');
 assert.ok(publish.includes("workflow_run.conclusion == 'success'"),'Publish must require successful CI');
+assert.match(publish,/^\s*queue:\s*max\s*$/m,'Keep all out-of-order verified deployment events pending');
+assert.match(publish,/^\s*cancel-in-progress:\s*false\s*$/m,'Older CI completions must not cancel newer deployment');
 assert.ok(publish.includes("head_repository.full_name == github.repository"),'Reject foreign workflow runs');
 assert.ok(publish.includes("head_branch == 'main'"),'Publish only main');
 assert.ok(publish.includes("if: steps.final_freshness.outputs.current == 'true'"),'Deploy missing freshness guard');

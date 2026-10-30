@@ -11,9 +11,12 @@ on:
 permissions:
   contents: read
 
+# Keep all completed-CI events queued: an older CI must not cancel a newer
+# verified deployment, even when those workflow_run events arrive out of order.
 concurrency:
   group: verified-pages
-  cancel-in-progress: true
+  queue: max
+  cancel-in-progress: false
 
 jobs:
   deploy:

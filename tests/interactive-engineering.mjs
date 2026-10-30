@@ -93,6 +93,20 @@ const bri=make('bridge',{da:75,db:25,bipolar:0});
 const brb=make('bridge',{da:75,db:25,bipolar:1});
 eq(bri.metrics[3].value,0,1e-8,'Unipolar late period zero state');
 eq(brb.metrics[3].value,-100,1e-8,'Bipolar late period negative voltage');
+// Bridge legs are ideal logic states: waveform edges must be vertical,
+ // and a full PWM cycle must wrap to the same initial level.
+for (const mode of [0,1]){
+ const r=make('bridge',{da:75,db:25,bipolar:mode});
+ const series=r.series;
+ assert.equal(series.length,3,'Three bridge-leg/differential waveforms');
+ for(const s of series){
+   assert.equal(s.step,true,s.label+' must render as an instantaneous step');
+   eq(s.points[100],s.points[0],1e-12,s.label+' period wraps at t/T=1');
+ }
+ eq(series[0].points[74],100,1e-12,'VA before A duty edge');
+ eq(series[0].points[75],0,1e-12,'VA after A duty edge');
+ eq(series[2].points[90],mode?-100:0,1e-12,'VAB bipolar/unipolar late state');
+}
 const pi=make('pi',{kp:1,ki:600,f:100});
 eq(pi.metrics[0].value,Math.hypot(1,600/(2*Math.PI*100)),1e-10,'Inverting PI magnitude');
 eq(pi.metrics[1].value,180-Math.atan2(600/(2*Math.PI*100),1)*180/Math.PI,1e-10,'Inverting PI phase reference');

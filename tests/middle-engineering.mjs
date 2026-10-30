@@ -217,6 +217,10 @@ await page.goto(BASE+'/middle.html#chapter/mid-bridge');
 await page.locator('[data-bridge-mode]').waitFor();
 assert.equal(await page.locator('[data-bridge-mode]').inputValue(),'unipolar');
 assert.equal(await page.locator('[data-middle-chart] svg path').count(),3);
+const bridgeWavePaths=await page.locator('[data-middle-chart] svg path').evaluateAll(
+ nodes=>nodes.map(node=>node.getAttribute('d')));
+assert.ok(bridgeWavePaths.every(d=>/ H/.test(d)&&/ V/.test(d)&&!/ L/.test(d)),
+ 'Bridge-leg SVG must use horizontal/vertical ideal switching edges, no diagonal lines');
 // B Duty is user-owned in Unipolar; Bipolar derives B=100%-A.
 const bControl=page.locator('[data-lab-input="db"]');
 const aControl=page.locator('[data-lab-input="da"]');
