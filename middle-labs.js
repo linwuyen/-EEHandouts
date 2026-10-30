@@ -151,10 +151,11 @@
     for(var lane=0;lane<3;lane++){
       var o=[48,111,169][lane],path='';
       for(var i=0;i<=N;i++){
-        var t=i/N,va=t<a?1:0,vb=bipolar?1-va:(t<b?1:0);
+        var t=i===N?0:i/N,va=t<a?1:0,vb=bipolar?1-va:(t<b?1:0);
         var n=lane===0?va:lane===1?vb:va-vb;
         var x=38+318*t;
-        path+=(i?' L':'M')+f(x,2)+' '+f(y(n,o),2);
+        // Step waveform: ideal bridge-leg voltage jumps at the switching instant.
+         path+=(i?' H':'M')+f(x,2)+(i?' V':' ')+f(y(n,o),2);
       }
       segments+='<path d="'+path+'" fill="none" stroke="'+['#0891b2','#d97706','#16a34a'][lane]+'" stroke-width="2.5"/>';
       segments+='<text x="6" y="'+o+'" font-size="12" fill="currentColor">'+['VA','VB','VAB'][lane]+'</text>';

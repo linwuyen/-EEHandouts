@@ -9,7 +9,20 @@ const publish=readFileSync('.github/workflows/publish-verified.yml','utf8');
 const smoke=readFileSync('tests/smoke.mjs','utf8');
 const pkg=JSON.parse(readFileSync('package.json','utf8'));
 const lock=JSON.parse(readFileSync('package-lock.json','utf8'));
+const sourceViewer=readFileSync('source-viewer.js','utf8');
+const pdfBuildScript=readFileSync('scripts/prepare-pdfjs.sh','utf8');
+assert.ok(sourceViewer.includes("'./vendor/pdfjs/'"),'PDF.js browser runtime must use local assets');
+assert.ok(!sourceViewer.includes('cdnjs.cloudflare.com'),'PDF.js must not run downloaded CDN code');
+assert.ok(pdfBuildScript.includes('openssl dgst -sha512 -binary'),'PDF.js release must have SHA-512 integrity verification');
+assert.ok(pdfBuildScript.includes('4.10.38'),'PDF.js version must remain pinned');
+assert.ok(verify.includes('run: bash scripts/prepare-pdfjs.sh'),'CI must prepare the same PDF.js artifacts that the deploy uses');
+assert.ok(publish.includes('run: bash scripts/prepare-pdfjs.sh'),'Pages must bundle verified PDF.js assets');
+
 assert.ok(pkg.scripts['test:browser'].includes('tests/middle-engineering.mjs'), 'Keep the newer middle-volume DCM engineering regression in the suite');
+assert.equal(pkg.scripts['test:cross-browser'],'node tests/cross-browser.mjs','Firefox/WebKit smoke is a separate CI job');
+assert.ok(verify.includes('  cross-browser:'),'Firefox/WebKit job must exist');
+assert.ok(verify.includes('npx playwright install --with-deps firefox webkit'),'Firefox/WebKit binaries must be installed');
+assert.ok(verify.includes('npm run test:cross-browser'),'Cross-browser smoke must actually execute');
 
 const count=(hay,needle)=>hay.split(needle).length-1;
 assert.equal(count(smoke,"await run('磁路與 ADC 超出物理模型時拒絕數值'"),1,'Duplicated regression block');
@@ -24,6 +37,8 @@ for(const action of ['actions/checkout@v7','actions/configure-pages@v6','actions
 assert.ok(verify.includes('npm ci --ignore-scripts'),'CI must install from committed lockfile');
 assert.ok(!verify.includes('npm install --package-lock-only'),'CI must not regenerate lockfile');
 assert.ok(publish.includes("workflow_run.conclusion == 'success'"),'Publish must require successful CI');
+assert.match(publish,/^\s*queue:\s*max\s*$/m,'Keep all out-of-order verified deployment events pending');
+assert.match(publish,/^\s*cancel-in-progress:\s*false\s*$/m,'Older CI completions must not cancel newer deployment');
 assert.ok(publish.includes("head_repository.full_name == github.repository"),'Reject foreign workflow runs');
 assert.ok(publish.includes("head_branch == 'main'"),'Publish only main');
 assert.ok(publish.includes("if: steps.final_freshness.outputs.current == 'true'"),'Deploy missing freshness guard');

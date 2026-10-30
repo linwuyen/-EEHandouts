@@ -49,3 +49,12 @@
 - **Engineering release PASS**：另外需要磁芯、實際 MCU、datasheet、波形與安全測試；教材網站驗收不等於硬體安全設計驗收。
 
 未列入本次範圍的異常，不能聲稱「永遠沒有問題」。新增需求或新環境可能產生新測試案例；新的 Review 必須區分**新發現缺陷、原已知限制、功能需求變更**。
+
+## 2026-10-30 追加驗收
+
+- Pages workflow 必須 `queue: max` 且 `cancel-in-progress: false`，舊／新 CI 反序完成仍不得取消最新部署，維持部署前後 exact SHA 對齊（佇列容量上限不在保證範圍內）。
+- `VA`、`VB`、`VAB` 理想 H-Bridge PWM 使用水平／垂直階梯波，包含週期邊界，不能以斜線誤示切換斜率；保持原平均值、Duty ownership 與 Unipolar/Bipolar 切換。
+- PDF.js 4.10.38 必須在建置階段驗證 npm tarball SHA-512 後部署同源 module + worker，Chromium 測試須在封鎖舊 PDF.js CDN 下仍能驗證並渲染 107／52 頁講義。
+- `main` Repository Ruleset 未確認之前，不可聲稱它已強制 PR／required status checks；此管理設定不能靠 repo 檔案替代。
+
+- Firefox、WebKit 至少覆蓋上／中冊首頁、搜尋焦點恢復、手機選單、課節預測／探索／重設、H-Bridge 階梯波、PDF.js 本地模組與無整頁橫向溢位；CI 需分開顯示 `cross-browser` status。

@@ -10,6 +10,7 @@ const errors=[],failures=[];
 const desktop=await browser.newContext({viewport:{width:1440,height:900}});
 const page=await desktop.newPage();
 page.on('pageerror',err=>errors.push(err.message));
+await page.route('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/**',route=>route.abort());
 async function visit(route,marker){await page.goto(BASE+'/'+route);await page.locator(marker).first().waitFor({timeout:10000})}
 async function run(name,fn){try{await fn();console.log('PASS middle',name)}catch(err){failures.push({name,message:err.stack});console.error('FAIL middle',name,err.stack)}}
 const chapters=['mid-basics','mid-modes','mid-boost','mid-buckboost','mid-bridge','mid-flyback','mid-magnetic'];

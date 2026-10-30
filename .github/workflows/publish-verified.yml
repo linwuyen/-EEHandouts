@@ -11,9 +11,12 @@ on:
 permissions:
   contents: read
 
+# Keep all completed-CI events queued: an older CI must not cancel a newer
+# verified deployment, even when those workflow_run events arrive out of order.
 concurrency:
   group: verified-pages
-  cancel-in-progress: true
+  queue: max
+  cancel-in-progress: false
 
 jobs:
   deploy:
@@ -39,6 +42,9 @@ jobs:
           VERIFIED_SHA: ${{ github.event.workflow_run.head_sha }}
         shell: bash
         run: bash scripts/check-verified-head.sh
+      - name: Prepare SHA-512-verified local PDF.js assets
+        if: steps.freshness.outputs.current == 'true'
+        run: bash scripts/prepare-pdfjs.sh
       - name: Configure GitHub Pages
         if: steps.freshness.outputs.current == 'true'
         uses: actions/configure-pages@v6
