@@ -166,7 +166,9 @@ try{
   await page.evaluate(target=>{location.hash=target},boostRoute);
   const boostHost=page.locator('#lesson-interactive');
   await boostHost.locator('[data-knob="l"]').waitFor({timeout:10000});
-  for(const [knob,value] of [['l',40],['freq',50]]){
+  // Recreate the specific CCM-valid / invalid / valid islands independently
+  // from the lesson's high-copper-loss teaching defaults.
+  for(const [knob,value] of [['rl',0.5],['load',40],['l',40],['freq',50]]){
     await boostHost.locator('[data-knob="'+knob+'"]').evaluate((el,n)=>{
       el.value=String(n);el.dispatchEvent(new Event('input',{bubbles:true}));
     },value);
