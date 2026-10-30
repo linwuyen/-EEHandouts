@@ -69,10 +69,11 @@
 ```bash
 npm ci --ignore-scripts
 bash scripts/prepare-pdfjs.sh  # PDF.js 4.10.38；檢查 npm tarball SHA-512 後產生 vendor/pdfjs/
-npx playwright install --with-deps chromium
+npx playwright install --with-deps chromium firefox webkit
 python3 -m http.server 4173
 # 另開終端機：
 npm test
+npm run test:cross-browser  # Firefox / WebKit 額外小型回歸
 ```
 
 `npm test` 先檢查部署防回退守門程式（current/stale/API-error）、Action Runtime／lockfile／重複測試，再跑上冊、中冊、KaTeX 公式的 Chromium Regression。CI 固定 `ubuntu-24.04`，GitHub Actions 使用 Node.js 24 Runtime 的新版 Action。
@@ -141,3 +142,5 @@ Node.js 22 開發環境：執行 `npm ci --ignore-scripts`，再安裝 Chromium�
 - `queue: max` 允許多個 CI 完成事件待部署，仍需經過雙重 SHA freshness guard；大量事件超過 GitHub concurrency queue 上限時可能被拒絕，不能視為完整的排隊保證。
 - 上／中冊 PDF.js 模組和 Worker 由 `scripts/prepare-pdfjs.sh` 於 CI 與發布時取得固定版號的 npm 發行包並驗證 SHA-512，再一起部署。這仍需要 CI runner 在建置時能存取 npm registry，但學員瀏覽器不需要 PDF.js CDN。
 - GitHub Repository Ruleset 必須由具備管理權限者於 Settings → Rules → Rulesets 設定；至少保護 `main`、要求 PR、`browser-regression` 等必要檢查、禁止 force-push。**未完成設定前不可宣稱 `main` 已受到強制保護。**
+
+- CI 新增獨立 `cross-browser` job，執行 Firefox + WebKit 的手機導覽、搜尋鍵盤焦點、互動預測狀態、H-Bridge 階梯波及同源 PDF.js 資產回歸；保留原 `browser-regression` Chromium 完整回歸。設定 Ruleset 時須同時要求兩個 job 成功。

@@ -56,3 +56,5 @@
 - `VA`、`VB`、`VAB` 理想 H-Bridge PWM 使用水平／垂直階梯波，包含週期邊界，不能以斜線誤示切換斜率；保持原平均值、Duty ownership 與 Unipolar/Bipolar 切換。
 - PDF.js 4.10.38 必須在建置階段驗證 npm tarball SHA-512 後部署同源 module + worker，Chromium 測試須在封鎖舊 PDF.js CDN 下仍能驗證並渲染 107／52 頁講義。
 - `main` Repository Ruleset 未確認之前，不可聲稱它已強制 PR／required status checks；此管理設定不能靠 repo 檔案替代。
+
+- Firefox、WebKit 至少覆蓋上／中冊首頁、搜尋焦點恢復、手機選單、課節預測／探索／重設、H-Bridge 階梯波、PDF.js 本地模組與無整頁橫向溢位；CI 需分開顯示 `cross-browser` status。

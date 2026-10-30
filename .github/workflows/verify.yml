@@ -49,3 +49,40 @@ jobs:
           path: tests/screenshots/
           if-no-files-found: ignore
           retention-days: 7
+
+  cross-browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - name: Install pinned Firefox and WebKit
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npx playwright install --with-deps firefox webkit
+      - name: Prepare SHA-512-verified local PDF.js assets
+        run: bash scripts/prepare-pdfjs.sh
+      - name: Run static site locally
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/eehandouts-server.log 2>&1 &
+          for i in $(seq 1 20); do
+            if curl -fsS http://127.0.0.1:4173/index.html > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/eehandouts-server.log
+          exit 1
+      - name: Firefox / WebKit navigation and engineering UI regression
+        run: npm run test:cross-browser
+      - name: Upload cross-browser evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: eehandouts-cross-browser-screenshots
+          path: tests/screenshots/cross-*.png
+          if-no-files-found: ignore
+          retention-days: 7
