@@ -61,6 +61,30 @@ const bri=make('bridge',{da:75,db:25,bipolar:0});
 const brb=make('bridge',{da:75,db:25,bipolar:1});
 eq(bri.metrics[3].value,0,1e-8,'Unipolar late period zero state');
 eq(brb.metrics[3].value,-100,1e-8,'Bipolar late period negative voltage');
+const pi=make('pi',{kp:1,ki:600,f:100});
+eq(pi.metrics[0].value,Math.hypot(1,600/(2*Math.PI*100)),1e-10,'Inverting PI magnitude');
+eq(pi.metrics[1].value,180-Math.atan2(600/(2*Math.PI*100),1)*180/Math.PI,1e-10,'Inverting PI phase reference');
+const dcmb=make('buck',{vin:24,duty:50,l:100,freq:100,io:0.1});
+const buckVsw=dcmb.series.find(x=>x.label==='Vsw 開關節點');
+const buckGate=dcmb.series.find(x=>x.label==='Gate 指令');
+eq(buckGate.points[0],1,1e-10,'Buck gate is a logic level');
+eq(buckGate.points[75],0,1e-10,'Buck gate off at t=0.75');
+eq(buckVsw.points[75],18,1e-8,'Buck DCM floating node follows Vout, not zero');
+eq(dcmb.series.find(x=>x.label==='VL 電感兩端').points[75],0,1e-8,'Buck DCM VL zero interval');
+const boostVsw=bd.series.find(x=>x.label==='Vsw 開關節點');
+eq(boostVsw.points[25],0,1e-10,'Boost on-state drain at zero');
+eq(boostVsw.points[75],48,1e-8,'Boost DCM idle switch node equals Vin');
+const fbd=make('flyback',{vin:96,duty:40,ratio:2,lm:200,freq:100,io:0.1});
+assert.equal(fbd.series.some(x=>x.label==='Primary Gate'),false,'Flyback must not label Vin as gate voltage');
+eq(fbd.series.find(x=>x.label==='Gate 指令').points[20],1,1e-8,'Flyback gate logic');
+eq(fbd.series.find(x=>x.label==='一次側磁化電壓').points[20],96,1e-8,'Flyback primary winding voltage on');
+eq(fbd.series.find(x=>x.label==='MOSFET VDS 理想值').points[75],96,1e-8,'Flyback idle ideal VDS');
+assert.ok(fbd.metrics[4].value>0,'Flyback DCM zero-time metric');
+for(const [id,expected] of [['mid-bcm','IL Valley'],['mid-buck-dcm','理想 Vout'],['mid-flyback-dcm','零電流時間比例']]){
+ const [model,,,index]=catalog[id];
+ assert.equal(models[model].compute(Object.fromEntries(models[model].knobs.map(k=>[k.key,k.value]))).metrics[index||0].label,expected,
+   id+' metric must match learning question');
+}
 const opto=make('optocoupler',{if:5,ctr:100});
 eq(opto.primary,5,1e-8,'Optocoupler CTR');
 const diode=make('scr',{vac:48,alpha:180});
