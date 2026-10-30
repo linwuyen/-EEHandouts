@@ -235,7 +235,7 @@
       assumption:'理想同步前緣 PWM，單極性同載波比較或雙極性 A/B 瞬時互補；忽略死區、二極體續流、換向瞬態與 Bus 回生吸收限制。',
       compute:function(v){var a=v.da/100,b=v.bipolar?1-a:v.db/100,avg=v.bipolar?(2*a-1)*100:(a-b)*100,p=avg*v.i,mode=v.bipolar?'雙極性互補':'同載波單極性';
         return result([metric('平均差動 VAB',avg,' V'),metric('平均輸出功率',p,' W'),metric('A 臂平均電壓',a*100,' V'),metric('0.9T 的 VAB',(0.9<a?100:0)-((v.bipolar?0.9>=a:0.9<b)?100:0),' V')],
-          mode+'；'+(p<0?'負載回送能量，DC Bus 必須可吸收。':'平均功率方向由 VAB 與 IAB 共同決定。'),{series:[trace('VA','V',function(t){return t<a?100:0;}),trace('VB','V',function(t){return (v.bipolar?t>=a:t<b)?100:0;}),trace('VAB','V',function(t){return (t<a?100:0)-((v.bipolar?t>=a:t<b)?100:0);})],stage:{kind:'bridge',on:a,mode:mode}});}
+          mode+'；'+(p<0?'負載回送能量，DC Bus 必須可吸收。':'平均功率方向由 VAB 與 IAB 共同決定。'),{series:[trace('VA','V',function(t){return t<a?100:0;}),trace('VB','V',function(t){return (v.bipolar?t>=a:t<b)?100:0;}),trace('VAB','V',function(t){return (t<a?100:0)-((v.bipolar?t>=a:t<b)?100:0);})],stage:{kind:'bridge',on:a,b:b,bipolar:Boolean(v.bipolar),mode:mode}});}
     },
     flyback:{
       title:'Flyback：激磁、放能與工作模式',knobs:[knob('io','輸出定電流負載',0.1,4,0.1,1.5,' A'),knob('duty','Duty',10,70,5,40,' %'),knob('vin','Vin',24,240,12,96,' V'),knob('ratio','Np／Ns',1,6,0.5,2,''),knob('lm','磁化電感',100,600,50,200,' μH'),knob('freq','開關頻率',50,250,25,100,' kHz')],
@@ -392,7 +392,10 @@
   function phaseLabel(stage,t) {
     if(!stage)return '';
     if(t>=1)t=0;
-    if(stage.kind==='bridge')return '橋臂瞬時高低電位：請同步觀察 VA、VB 與 VAB';
+    if(stage.kind==='bridge'){
+      var ah=t<stage.on,bh=stage.bipolar?!ah:t<stage.b;
+      return 'A 臂 '+(ah?'HIGH':'LOW')+'／B 臂 '+(bh?'HIGH':'LOW')+'；差動 VAB = '+(ah===bh?'0':ah?'＋Vbus':'−Vbus')+'（理想，未加死區）';
+    }
     if(t<stage.on-1e-8){
       if(stage.kind==='buck')return 'ON：Vin → MOSFET → L → Load，電感儲能';
       if(stage.kind==='boost')return 'ON：Vin → L → MOSFET → GND；輸出電容供應負載';
@@ -409,6 +412,7 @@
       if(stage.kind==='buckboost')return 'OFF：電感經二極體向反相輸出放能';
       return 'PWM OFF：開關節點為低電位';
     }
+    if(stage.kind==='forward')return '去磁完成：一次側假設不再施加電壓，磁通停在復位位置；不是 DCM 零電流區間';
     return 'ZERO：理想 DCM 電感電流為 0，主要由輸出電容供應負載';
   }
   function svgLine(data,w,h,yMin,yMax) {
