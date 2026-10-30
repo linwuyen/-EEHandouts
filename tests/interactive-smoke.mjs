@@ -111,8 +111,30 @@ try{
       assert.ok((await host.locator('[data-knob-value="db"]').innerText()).includes('互補推導'));
       await host.locator('[data-knob="bipolar"]').evaluate(el=>{el.value='0';el.dispatchEvent(new Event('input',{bubbles:true}));});
       assert.ok(await host.locator('[data-knob="db"]').isEnabled(),'B duty must be restored in unipolar mode');
+      assert.equal(await host.locator('[data-knob="db"]').evaluate(el=>Number(el.value)),25,'Restored independent B duty must remain 25%');
     }
   }
+
+  await page.goto(BASE+'/index.html#lesson/ac-power/pqs');
+  await page.locator('#lesson-interactive [data-knob="angle"]').waitFor({timeout:10000}).catch(()=>{});
+  // Resolve lesson hash from the actual curriculum, never assume chapter IDs.
+  const pqsRoute=await page.evaluate(()=>{
+    const c=window.EE_DATA.chapters.find(c=>c.lessons.some(l=>l.id==='pqs'));
+    return '#lesson/'+c.id+'/pqs';
+  });
+  await page.evaluate(target=>{location.hash=target},pqsRoute);
+  const pqsHost=page.locator('#lesson-interactive');
+  await pqsHost.locator('[data-knob="angle"]').waitFor({timeout:10000});
+  await pqsHost.locator('[data-predict="up"]').click();
+  await pqsHost.locator('[data-knob="thd"]').evaluate(el=>{
+    el.value=String(Number(el.value)+Number(el.step));
+    el.dispatchEvent(new Event('input',{bubbles:true}));
+  });
+  await pqsHost.locator('[data-verify-target]').click();
+  assert.ok((await pqsHost.locator('.interactive-feedback').innerText()).includes('同時變更其他參數'),
+    'Changing a second parameter must invalidate causal prediction grading');
+  await pqsHost.locator('.interactive-reset').click();
+  assert.ok((await pqsHost.locator('.interactive-feedback').innerText()).includes('先選擇預測'),'Reset clears causal invalidation');
   await ctx.close();
 }finally{await browser.close();}
 assert.deepEqual(errors,[],'No uncaught page JavaScript errors');
