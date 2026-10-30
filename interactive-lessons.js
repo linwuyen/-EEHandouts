@@ -18,10 +18,10 @@
   function metric(label,value,unit,digits) {
     return {label:label,value:value,unit:unit||'',digits:digits===undefined?2:digits};
   }
-  function trace(label,unit,fn) {
+  function trace(label,unit,fn,step) {
     var points=[];
     for(var i=0;i<=100;i++) points.push(fn(i/100));
-    return {label:label,unit:unit,points:points};
+    return {label:label,unit:unit,points:points,step:Boolean(step)};
   }
   function result(metrics,note,extra) {
     var output={metrics:metrics,primary:metrics[0].value,note:note||''};
@@ -97,7 +97,7 @@
       assumption:'理想 0/24 V 開關節點、固定占空比；平均值不是實際有載轉換器的瞬態輸出。',
       compute:function(v){var d=v.duty/100;
         return result([metric('PWM 平均電壓',24*d,' V'),metric('ON 時間',1000*d/v.freq,' μs',3),metric('週期',1000/v.freq,' μs',3)],
-          '增加 Duty 會延長 ON 區間。',{series:[trace('Vsw 開關節點','V',function(t){return (t>=1?0:t)<d?24:0;}),trace('理想平均','V',function(){return 24*d;})],stage:{on:d,off:1-d,kind:'pwm'}});}
+          '增加 Duty 會延長 ON 區間。',{series:[trace('Vsw 開關節點','V',function(t){return (t>=1?0:t)<d?24:0;},true),trace('理想平均','V',function(){return 24*d;})],stage:{on:d,off:1-d,kind:'pwm'}});}
     },
     timing:{
       title:'取樣與控制時序預算',knobs:[knob('delay','從觸發到生效延遲',0,25,0.5,2,' μs'),knob('freq','控制頻率',20,200,10,100,' kHz')],
@@ -212,7 +212,7 @@
         var vo=mode==='DCM'?v.vin/(1+2*L*fs*v.io/(v.vin*d*d)):voC,di=(v.vin-vo)*d/(L*fs),peak=mode==='CCM'?v.io+di/2:di,valley=mode==='CCM'?Math.max(0,v.io-di/2):0;
         var fw=mode==='DCM'?d*(v.vin/vo-1):1-d,zero=clamp(1-d-fw,0,1),tt=function(t){return t<d?valley+(peak-valley)*t/d:t<d+fw?peak-(peak-(mode==='CCM'?valley:0))*(t-d)/fw:(mode==='CCM'?valley:0);};
         return result([metric('理想 Vout',vo,' V'),metric('IL Peak',peak,' A'),metric('IL Valley',valley,' A'),metric('BCM 臨界 Io',bound,' A'),metric('零電流時間比例',zero*100,' %')],
-          mode==='DCM'?'DCM：電流歸零後第三區間不再續流，Vout≠D·Vin。':mode==='BCM'?'BCM：谷值恰為零，為 CCM 與 DCM 分界。':'CCM：電感電流不歸零。',{mode:mode,stage:{on:d,freewheel:fw,zero:zero,kind:'buck'},series:[trace('Gate 指令','0/1',function(t){return (t>=1?0:t)<d?1:0;}),trace('Vsw 開關節點','V',function(t){t=t>=1?0:t;return t<d?v.vin:t<d+fw?0:vo;}),trace('VL 電感兩端','V',function(t){t=t>=1?0:t;return t<d?v.vin-vo:t<d+fw?-vo:0;}),trace('IL','A',tt)]});}
+          mode==='DCM'?'DCM：電流歸零後第三區間不再續流，Vout≠D·Vin。':mode==='BCM'?'BCM：谷值恰為零，為 CCM 與 DCM 分界。':'CCM：電感電流不歸零。',{mode:mode,stage:{on:d,freewheel:fw,zero:zero,kind:'buck'},series:[trace('Gate 指令','0/1',function(t){return (t>=1?0:t)<d?1:0;},true),trace('Vsw 開關節點','V',function(t){t=t>=1?0:t;return t<d?v.vin:t<d+fw?0:vo;},true),trace('VL 電感兩端','V',function(t){t=t>=1?0:t;return t<d?v.vin-vo:t<d+fw?-vo:0;},true),trace('IL','A',tt)]});}
     },
     boost:{
       title:'Boost：能量、工作模式與電壓增益',knobs:[knob('io','輸出定電流負載',0.2,5,0.2,0.8,' A'),knob('duty','Duty',10,80,5,50,' %'),knob('vin','Vin',12,72,4,48,' V'),knob('l','電感',40,300,20,100,' μH'),knob('freq','開關頻率',50,250,25,100,' kHz')],
@@ -220,7 +220,7 @@
       compute:function(v){var d=v.duty/100,L=v.l*1e-6,fs=v.freq*1000,di=v.vin*d/(L*fs),iinC=v.io/(1-d),mode=iinC>di/2+1e-9?'CCM':iinC<di/2-1e-9?'DCM':'BCM',vo=mode==='DCM'?v.vin+v.vin*v.vin*d*d/(2*L*fs*v.io):v.vin/(1-d);
         var peak=mode==='CCM'?iinC+di/2:di,valley=mode==='CCM'?Math.max(0,iinC-di/2):0,fw=mode==='DCM'?v.vin*d/(vo-v.vin):1-d,zero=clamp(1-d-fw,0,1),IL=function(t){return t<d?valley+(peak-valley)*t/d:t<d+fw?peak-(peak-(mode==='CCM'?valley:0))*(t-d)/fw:(mode==='CCM'?valley:0);};
         return result([metric('理想 Vout',vo,' V'),metric('IL Peak',peak,' A'),metric('IL Valley',valley,' A'),metric('BCM 輸出 Io',.5*di*(1-d),' A'),metric('零電流時間比例',zero*100,' %')],
-          mode==='DCM'?'DCM：不可沿用 CCM 的 1/(1−D) 增益。':'ON 儲能、OFF 由輸入與電感一起向輸出送能。',{mode:mode,stage:{on:d,freewheel:fw,zero:zero,kind:'boost'},series:[trace('Gate 指令','0/1',function(t){return (t>=1?0:t)<d?1:0;}),trace('Vsw 開關節點','V',function(t){t=t>=1?0:t;return t<d?0:t<d+fw?vo:v.vin;}),trace('VL 電感兩端','V',function(t){t=t>=1?0:t;return t<d?v.vin:t<d+fw?v.vin-vo:0;}),trace('IL','A',IL)]});}
+          mode==='DCM'?'DCM：不可沿用 CCM 的 1/(1−D) 增益。':'ON 儲能、OFF 由輸入與電感一起向輸出送能。',{mode:mode,stage:{on:d,freewheel:fw,zero:zero,kind:'boost'},series:[trace('Gate 指令','0/1',function(t){return (t>=1?0:t)<d?1:0;},true),trace('Vsw 開關節點','V',function(t){t=t>=1?0:t;return t<d?0:t<d+fw?vo:v.vin;},true),trace('VL 電感兩端','V',function(t){t=t>=1?0:t;return t<d?v.vin:t<d+fw?v.vin-vo:0;},true),trace('IL','A',IL)]});}
     },
     buckboost:{
       title:'反相 Buck-Boost：CCM／DCM',knobs:[knob('io','輸出定電流負載',0.1,4,0.1,0.5,' A'),knob('duty','Duty',10,80,5,40,' %'),knob('vin','Vin',12,60,4,24,' V'),knob('l','電感',40,300,20,100,' μH'),knob('freq','開關頻率',50,250,25,100,' kHz')],
@@ -228,7 +228,7 @@
       compute:function(v){var d=v.duty/100,L=v.l*1e-6,fs=v.freq*1000,di=v.vin*d/(L*fs),bound=v.vin*d*(1-d)/(2*L*fs),mode=v.io>bound+1e-9?'CCM':v.io<bound-1e-9?'DCM':'BCM',mag=mode==='DCM'?v.vin*v.vin*d*d/(2*L*fs*v.io):v.vin*d/(1-d);
         var fw=mode==='DCM'?v.vin*d/mag:1-d,zero=clamp(1-d-fw,0,1),avg=v.io/(1-d),peak=mode==='CCM'?avg+di/2:di,valley=mode==='CCM'?Math.max(0,avg-di/2):0;
         return result([metric('反相輸出 Vout',-mag,' V'),metric('IL Peak',peak,' A'),metric('BCM 輸出 Io',bound,' A'),metric('零電流時間比例',zero*100,' %')],
-          mode==='DCM'?'DCM：需要第三段零電流時間，電壓不服從 CCM 轉壓比。':'輸出極性與輸入相反。',{mode:mode,stage:{on:d,freewheel:fw,zero:zero,kind:'buckboost'},series:[trace('Gate 指令','0/1',function(t){return (t>=1?0:t)<d?1:0;}),trace('VL 電感兩端','V',function(t){t=t>=1?0:t;return t<d?v.vin:t<d+fw?-mag:0;}),trace('IL','A',function(t){return t<d?valley+(peak-valley)*t/d:t<d+fw?peak-(peak-(mode==='CCM'?valley:0))*(t-d)/fw:(mode==='CCM'?valley:0);})]});}
+          mode==='DCM'?'DCM：需要第三段零電流時間，電壓不服從 CCM 轉壓比。':'輸出極性與輸入相反。',{mode:mode,stage:{on:d,freewheel:fw,zero:zero,kind:'buckboost'},series:[trace('Gate 指令','0/1',function(t){return (t>=1?0:t)<d?1:0;},true),trace('VL 電感兩端','V',function(t){t=t>=1?0:t;return t<d?v.vin:t<d+fw?-mag:0;},true),trace('IL','A',function(t){return t<d?valley+(peak-valley)*t/d:t<d+fw?peak-(peak-(mode==='CCM'?valley:0))*(t-d)/fw:(mode==='CCM'?valley:0);})]});}
     },
     bridge:{
       title:'H-Bridge：橋臂、PWM 與四象限',knobs:[knob('da','A 臂高電位 Duty',0,100,5,75,' %'),knob('db','B 臂高電位 Duty',0,100,5,25,' %'),knob('i','IAB 電流',-10,10,1,2,' A'),knob('bipolar','雙極性互補模式',0,1,1,0,'')],
@@ -243,7 +243,7 @@
       compute:function(v){var d=v.duty/100,L=v.lm*1e-6,fs=v.freq*1000,n=v.ratio,di=v.vin*d/(L*fs),bound=n*di*(1-d)/2,mode=v.io>bound+1e-9?'CCM':v.io<bound-1e-9?'DCM':'BCM';
         var vo=mode==='DCM'?v.vin*v.vin*d*d/(2*L*fs*v.io):v.vin*d/(n*(1-d)),fw=mode==='DCM'?v.vin*d/(n*vo):1-d,zero=clamp(1-d-fw,0,1),avg=v.io/(n*(1-d)),peak=mode==='CCM'?avg+di/2:di,valley=mode==='CCM'?Math.max(0,avg-di/2):0;
         return result([metric('理想輸出 Vout',vo,' V'),metric('理想 OFF VDS',v.vin+n*vo,' V'),metric('磁化電流 Peak',peak,' A'),metric('BCM 輸出 Io',bound,' A'),metric('零電流時間比例',zero*100,' %')],
-          mode==='DCM'?'DCM：OFF 退磁結束後第三段零電流。':'ON 時激磁、OFF 時經二次側放能。',{mode:mode,stage:{on:d,freewheel:fw,zero:zero,kind:'flyback'},series:[trace('Gate 指令','0/1',function(t){return (t>=1?0:t)<d?1:0;}),trace('一次側磁化電壓','V',function(t){t=t>=1?0:t;return t<d?v.vin:t<d+fw?-n*vo:0;}),trace('MOSFET VDS 理想值','V',function(t){t=t>=1?0:t;return t<d?0:t<d+fw?v.vin+n*vo:v.vin;}),trace('磁化電流','A',function(t){return t<d?valley+(peak-valley)*t/d:t<d+fw?peak-(peak-(mode==='CCM'?valley:0))*(t-d)/fw:(mode==='CCM'?valley:0);})]});}
+          mode==='DCM'?'DCM：OFF 退磁結束後第三段零電流。':'ON 時激磁、OFF 時經二次側放能。',{mode:mode,stage:{on:d,freewheel:fw,zero:zero,kind:'flyback'},series:[trace('Gate 指令','0/1',function(t){return (t>=1?0:t)<d?1:0;},true),trace('一次側磁化電壓','V',function(t){t=t>=1?0:t;return t<d?v.vin:t<d+fw?-n*vo:0;},true),trace('MOSFET VDS 理想值','V',function(t){t=t>=1?0:t;return t<d?0:t<d+fw?v.vin+n*vo:v.vin;},true),trace('磁化電流','A',function(t){return t<d?valley+(peak-valley)*t/d:t<d+fw?peak-(peak-(mode==='CCM'?valley:0))*(t-d)/fw:(mode==='CCM'?valley:0);})]});}
     },
     core:{
       title:'伏秒、匝數與磁通密度擺幅',knobs:[knob('vin','一次側 ON 電壓',40,400,20,100,' V'),knob('duty','單次 ON Duty',10,50,5,40,' %'),knob('turns','一次側匝數',10,80,5,30,' 圈'),knob('area','Ae',50,300,25,150,' mm²'),knob('freq','頻率',25,250,25,100,' kHz')],
@@ -429,6 +429,11 @@
       var y=idx*115,lo=Math.min.apply(null,s.points),hi=Math.max.apply(null,s.points),pad=Math.max((hi-lo)*.1,.001);
       lo-=pad;hi+=pad;
       var plot=svgLine(s.points,w,104,lo,hi).replace(/(M|L)([\d.]+) ([\d.]+)/g,function(_,cmd,x,v){return cmd+x+' '+(Number(v)+y);});
+       if(s.step){
+         var ordinate=function(val){return (y+22+50*(hi-val)/(hi-lo||1)).toFixed(1);};
+         plot='M50 '+ordinate(s.points[0]);
+         for(var j=1;j<s.points.length;j++)plot+=' H'+(50+622*j/(s.points.length-1)).toFixed(1)+' V'+ordinate(s.points[j]);
+       }
       var at=s.points[Math.min(100,Math.round(cursor*100))];
       markup+='<rect x="45" y="'+(y+18)+'" width="632" height="62" rx="5" fill="currentColor" fill-opacity=".035"/>'+
         '<line x1="45" x2="677" y1="'+(y+80)+'" y2="'+(y+80)+'" stroke="currentColor" stroke-opacity=".12"/>'+
@@ -475,13 +480,15 @@
     var spec=M[entry[0]],focus=entry[2],knobs=spec.knobs.slice(),first=knobs.find(function(k){return k.key===focus;});
     if(!first){host.textContent='互動參數設定錯誤';return;}
     var v={};knobs.forEach(function(k){v[k.key]=k.value;});
-    var metricIndex=entry[3]||0,baseline=spec.compute(v).metrics[metricIndex].value,guess=null,changed=false,cursor=.25;
+    var metricIndex=entry[3]||0,baseline=spec.compute(v).metrics[metricIndex].value,guess=null,cursor=.25;
+    var target=first.value<first.max?Math.min(first.max,Number((first.value+first.step).toFixed(8))):Math.max(first.min,Number((first.value-first.step).toFixed(8)));
+    var targetDirection=target>first.value?'增加':'降低';
     host.innerHTML='<div class="interactive-head"><span class="pill">ACTIVE LEARNING</span><h3>'+esc(spec.title)+'</h3>'+
       '<p>'+esc(entry[1])+'</p></div>'+
-      '<div class="interactive-prediction"><strong>先預測：調整「'+esc(first.label)+'」後，「'+esc(spec.compute(v).metrics[metricIndex].label)+'」會？</strong>'+
+      '<div class="interactive-prediction"><strong>先預測：其他參數不變，將「'+esc(first.label)+'」由 '+fmt(first.value)+' '+esc(first.unit)+' '+targetDirection+'至 '+fmt(target)+' '+esc(first.unit)+' 後，「'+esc(spec.compute(v).metrics[metricIndex].label)+'」會？</strong>'+
       '<div class="interactive-choices"><button type="button" class="btn btn-muted" data-predict="up">增加</button>'+
       '<button type="button" class="btn btn-muted" data-predict="down">減少</button><button type="button" class="btn btn-muted" data-predict="same">不變</button></div>'+
-      '<p class="interactive-feedback" aria-live="polite">選擇預測，再拖曳對應參數驗證。</p></div>'+
+      '<button type="button" class="btn btn-muted" data-verify-target>套用指定變更並驗證</button><p class="interactive-feedback" aria-live="polite">先預測，再套用指定變更。其他參數須保持初始值。</p></div>'+
       '<div class="interactive-knobs">'+knobs.map(function(k){return '<label class="interactive-knob"><span>'+esc(k.label)+'</span><strong data-knob-value="'+esc(k.key)+'">'+esc(fmt(k.value))+' '+esc(k.unit)+'</strong>'+
         '<input type="range" min="'+k.min+'" max="'+k.max+'" step="'+k.step+'" value="'+k.value+'" data-knob="'+esc(k.key)+'" aria-label="'+esc(k.label)+'"></label>';}).join('')+'</div>'+
       '<div class="interactive-metrics" aria-live="polite"></div><div class="interactive-chart"></div>'+
@@ -503,18 +510,30 @@
       host.querySelector('.interactive-stage').textContent=r.stage?phaseLabel(r.stage,cursor):'';
       host.querySelector('.interactive-note').textContent=r.note||'';
       var warn=host.querySelector('.interactive-warning');warn.hidden=!r.warning;warn.textContent=r.warning||'';
-      if(changed&&guess){
-        var selectedValue=r.metrics[metricIndex].value,tolerance=Math.max(1e-7,Math.abs(baseline)*1e-7),delta=selectedValue-baseline,observed=delta>tolerance?'up':delta< -tolerance?'down':'same';
+      if(spec===M.bridge){
+        var bipolar=Boolean(v.bipolar),bControl=host.querySelector('[data-knob="db"]');
+        bControl.disabled=bipolar;
+        bControl.value=String(bipolar?100-v.da:v.db);
+        host.querySelector('[data-knob-value="db"]').textContent=fmt(bipolar?100-v.da:v.db)+' %'+(bipolar?'（互補推導，不可調）':'');
+      }
+      var changed=Math.abs(v[focus]-first.value)>1e-9,atTarget=Math.abs(v[focus]-target)<=1e-9;
+      var isolated=knobs.every(function(k){return k.key===focus||Math.abs(v[k.key]-k.value)<=1e-9;});
+      var selectedValue=r.metrics[metricIndex].value;
+      if(!isolated)prediction.textContent='已同時變更其他參數，無法比較單一變數；請重設後只改指定參數。';
+      else if(guess&&atTarget&&Number.isFinite(baseline)&&Number.isFinite(selectedValue)){
+        var tolerance=Math.max(1e-7,Math.abs(baseline)*1e-7),delta=selectedValue-baseline,observed=delta>tolerance?'up':delta< -tolerance?'down':'same';
         var textValue={up:'增加',down:'減少',same:'不變'};
         prediction.textContent=(guess===observed?'符合預測。':'與預測不同，重新觀察。')+
-          '基準 '+fmt(baseline,3)+' → 現在 '+fmt(selectedValue,3)+'；觀察結果：'+textValue[observed]+'。';
-      }else if(changed)prediction.textContent='已調整參數；先選擇預測，或重設實驗再預測。';
-      else prediction.textContent=guess?'預測已記錄。請拖曳「'+first.label+'」觀察結果。':'選擇預測，再拖曳對應參數驗證。';
+          '基準 '+fmt(baseline,3)+' → 指定變更後 '+fmt(selectedValue,3)+'；觀察結果：'+textValue[observed]+'。';
+      }else if(guess&&atTarget)prediction.textContent='指定變更超出模型有效範圍，不能對物理結果評分。';
+      else if(guess&&changed)prediction.textContent='已調整參數，但尚未到指定比較值 '+fmt(target)+' '+first.unit+'；此時不評分。';
+      else if(changed)prediction.textContent='請先選擇預測，再套用指定比較值。';
+      else prediction.textContent=guess?'預測已記錄，按「套用指定變更並驗證」進行單一變數比較。':'先選擇預測，再套用指定變更。其他參數須保持初始值。';
     }
-    host.querySelectorAll('[data-knob]').forEach(function(input){
+        host.querySelectorAll('[data-knob]').forEach(function(input){
       input.addEventListener('input',function(){
+        if(input.disabled)return;
         v[input.dataset.knob]=Number(input.value);
-        if(input.dataset.knob===focus && v[focus]!==first.value)changed=true;
         refresh();
       });
     });
@@ -525,6 +544,11 @@
         refresh();
       });
     });
+    host.querySelector('[data-verify-target]').addEventListener('click',function(){
+      v[focus]=target;
+      host.querySelector('[data-knob="'+focus+'"]').value=String(target);
+      refresh();
+    });
     host.querySelector('[data-time]').addEventListener('input',function(ev){
       cursor=Number(ev.target.value)/100;
       host.querySelector('[data-cursor-value]').textContent=Math.round(cursor*100)+'%';
@@ -532,7 +556,7 @@
     });
     host.querySelector('.interactive-reset').addEventListener('click',function(){
       knobs.forEach(function(k){v[k.key]=k.value;host.querySelector('[data-knob="'+k.key+'"]').value=String(k.value);});
-      guess=null;changed=false;cursor=.25;
+      guess=null;cursor=.25;
       host.querySelector('[data-time]').value='25';
       host.querySelector('[data-cursor-value]').textContent='25%';
       host.querySelectorAll('[data-predict]').forEach(function(node){node.setAttribute('aria-pressed','false');});
