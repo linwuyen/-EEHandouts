@@ -299,6 +299,29 @@ try{
     'Harmonic experiment changes actual DC current, not observation order');
   assert.ok((await harmonicHost.locator('.interactive-feedback').innerText()).includes('符合預測'),
     'Higher Idc raises the same fifth-harmonic RMS');
+  // Invalid-but-finite samples must not join the usable lesson curve.
+  for(const [lessonId,edge] of [['adc','left'],['bh','right'],['ampere','left']]){
+    const h=await navigateInvestigation(lessonId);
+    await h.locator('[data-explore]').click();
+    const path=await h.locator('.interactive-chart path[stroke="#159c81"]').getAttribute('d');
+    const xs=(path.match(/[ML][0-9]+(?:\\.[0-9]+)?/g)||[]).map(s=>Number(s.slice(1)));
+    const expected=await page.evaluate(id=>{
+      const [name,,focus,index=0]=window.EE_INTERACTIVE.catalog[id],spec=window.EE_INTERACTIVE.models[name];
+      const focusKnob=spec.knobs.find(k=>k.key===focus);
+      let valid=0;
+      for(let i=0;i<=80;i++){
+        const knobs=Object.fromEntries(spec.knobs.map(k=>[k.key,k.value]));
+        knobs[focus]=focusKnob.min+(focusKnob.max-focusKnob.min)*i/80;
+        const r=spec.compute(knobs);
+        if(Number.isFinite(r.metrics[index].value)&&(!r.validity||r.validity.scorable!==false))valid++;
+      }
+      return valid;
+    },lessonId);
+    assert.equal(xs.length,expected,lessonId+' must draw only valid-domain points');
+    assert.ok(xs.length>5,lessonId+' usable points must remain');
+    if(edge==='left')assert.ok(xs[0]>60,lessonId+' invalid left side must be disconnected');
+    if(edge==='right')assert.ok(xs.at(-1)<650,lessonId+' invalid right side must be disconnected');
+  }
   await ctx.close();
 }finally{await browser.close();}
 assert.deepEqual(errors,[],'No uncaught page JavaScript errors');
