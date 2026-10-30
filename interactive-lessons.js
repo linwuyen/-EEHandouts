@@ -398,6 +398,60 @@
     }
   };
 
+
+  // Normalized core-loss comparison. No absolute material loss is inferred.
+  M.coreLoss={
+    title:'磁芯損耗：頻率與磁通擺幅的相對影響',
+    knobs:[knob('freq','磁通激磁頻率',25,250,25,100,' kHz'),knob('b','磁通擺幅 ΔB',0.02,0.3,0.02,0.1,' T'),
+           knob('alpha','材料頻率指數 α',1,2.5,0.25,1.5,''),knob('beta','材料磁通指數 β',1.5,3.5,0.25,2.5,'')],
+    assumption:'示範 Steinmetz 類型的相對損耗比 P/P_ref=(f/100kHz)^α(ΔB/0.1T)^β，假定 ΔB 為獨立控制且磁芯材料、激磁波形及溫度不變。α、β 是教學假設，不是任何實際磁材參數；不計算 W 或 W/m³。',
+    compute:function(v){
+      var ratio=Math.pow(v.freq/100,v.alpha)*Math.pow(v.b/.1,v.beta);
+      return result([metric('相對參考損耗 P/P_ref',ratio,'',3),metric('相對參考頻率',v.freq/100,'',3),metric('相對參考 ΔB',v.b/.1,'',3)],
+        '固定 ΔB 提高頻率通常使相對損耗升高。若固定輸入伏秒條件，ΔB 也可能隨頻率改變，須另外聯立分析。',
+        {warning:'僅為歸一化比例模型；任何絕對鐵損、溫升與飽和都需磁材資料和實測。'});
+    }
+  };
+  M.pushPullBalance={
+    title:'Push-Pull：雙側激磁伏秒與 Flux Walking',
+    knobs:[knob('vin','一次側半繞組施加電壓',40,240,20,100,' V'),
+           knob('da','A 開關 ON Duty',10,45,5,30,' %'),knob('db','B 開關 ON Duty',10,45,5,30,' %'),
+           knob('turns','每半繞組匝數',10,80,10,30,' 圈'),knob('area','Ae',50,300,25,150,' mm²'),knob('freq','PWM 週期頻率',50,250,25,100,' kHz')],
+    assumption:'理想中心抽頭 Push-Pull，A 在 0–Da、B 在 0.5–0.5+Db 對磁芯施加大小相同、方向相反的電壓；每個半繞組匝數 N 相同，零區間 Vp=0。不含 B-H 非線性、磁化電流、寄生或電流平衡控制；B(t) 是相對單週期變化。',
+    compute:function(v){
+      var a=v.da/100,b=v.db/100,scale=v.vin/(v.turns*v.area*1e-6*v.freq*1000),net=scale*(a-b),plus=scale*a,minus=scale*b;
+      return result([metric('單週期殘留 ΔB',net,' T',4),metric('A 正向 ΔB',plus,' T',4),metric('B 反向 |ΔB|',minus,' T',4)],
+        Math.abs(net)>1e-9?'正負伏秒不相等，多週期可能累積偏磁；須檢查電流平衡與保護。':'正負伏秒平衡，但仍須確認初始偏磁、材料及驅動時序。',
+        {series:[trace('一次側等效磁化電壓','V',function(t){return t<a?v.vin:t>=0.5&&t<0.5+b?-v.vin:0;},true),
+                 trace('相對磁通密度變化','T',function(t){return t<a?scale*t:t<0.5?plus:t<0.5+b?plus-scale*(t-0.5):net;})],
+         warning:Math.abs(net)>1e-9?'每週期淨伏秒非零：flux walking 風險，不可用單次 ΔB 判斷設計安全。':''});
+    }
+  };
+  M.bridgeFamily={
+    title:'Half-Bridge 與 Full-Bridge 的理想輸出比較',
+    knobs:[knob('vin','輸入 DC Bus',50,450,50,300,' V'),knob('ratio','Ns/Np 匝數比',0.1,1,0.1,0.5,''),
+           knob('duty','每次主開關 Duty',10,45,5,30,' %')],
+    assumption:'使用講義的 0<D<0.5 定義：兩個對稱脈波，每次 ON 持續 D×Ts；Half-Bridge 一次側施加 ±Vin/2，Full-Bridge 施加 ±Vin，理想全波整流、CCM、無死區或壓降。其他 Duty 定義不一定能套用。',
+    compute:function(v){
+      var d=v.duty/100,half=v.ratio*v.vin*d,full=2*v.ratio*v.vin*d;
+      return result([metric('Half-Bridge 理想 Vo',half,' V'),metric('Full-Bridge 理想 Vo',full,' V'),
+                     metric('HB 一次側脈波幅值',v.vin/2,' V'),metric('FB 一次側脈波幅值',v.vin,' V')],
+        '在相同一次側匝數、開關定義及整流方式下，全橋一次側脈波幅值是半橋兩倍。');
+    }
+  };
+  M.multiSecondary={
+    title:'多繞組隔離變壓器：輸出電壓與交叉調節限制',
+    knobs:[knob('vp','一次側理想 RMS 電壓',24,240,12,96,' V'),
+           knob('r1','Np/Ns1',1,8,0.5,2,''),knob('r2','Np/Ns2',1,8,0.5,4,'')],
+    assumption:'理想變壓器，固定二次側 RMS 電流 I1=1A、I2=0.5A；Vp/Vs=Np/Ns。僅呈現多組繞組，未計漏感、繞組電阻、二極體壓降、負載互擾及 Cross Regulation。',
+    compute:function(v){
+      var a=v.vp/v.r1,b=v.vp/v.r2;
+      return result([metric('次級 1 理想 RMS',a,' V'),metric('次級 2 理想 RMS',b,' V'),
+                     metric('總次級視在功率',a+0.5*b,' VA'),metric('理想一次側電流',(1/v.r1+0.5/v.r2),' A')],
+        '不同匝比可提供多組輸出；真實多路穩壓需考慮負載交互影響。');
+    }
+  };
+
   /* Every published lesson resolves to a concrete model and an individual investigation. */
   var C={
     power:['signed','反轉參考電流時，瞬時功率方向如何改變？','i'],
@@ -464,15 +518,15 @@
     'mid-unipolar':['bridge','單極性橋臂 Duty 改變時，VAB 的零狀態如何改變？','da'],
     'mid-isolated-types':['transformer','匝比增加時，隔離變壓器的理想二次電壓如何變化？','ratio'],
     'mid-isolation-feedback':['optocoupler','光耦 CTR 改變時，隔離傳遞的回授電流如何變化？','ctr'],
-    'mid-multi-output':['transformer','單組輸入透過不同匝比得到多少理想二次電壓？','ratio'],
+    'mid-multi-output':['multiSecondary','當第二組次級匝比增加時，該組輸出電壓如何變化？','r2',1],
     'mid-flyback-ccm':['flyback','ON 時存入磁化電感的電流，OFF 時如何釋出？','duty'],
     'mid-flyback-dcm':['flyback','減少 Io，退磁結束後會不會出現零電流區間？','io',4],
     'mid-forward-reset':['forward','提高 ON Duty 後，OFF 去磁時間還夠嗎？','duty'],
     'mid-double-forward':['core','增加匝數，理想正伏秒造成的 ΔB 如何降低？','turns'],
-    'mid-half-full':['core','同樣一次側伏秒，磁芯截面增大如何影響 ΔB？','area'],
-    'mid-pushpull':['core','兩側磁通不平衡可能累積偏磁：單次 ΔB 如何受電壓影響？','vin'],
+    'mid-half-full':['bridgeFamily','提高兩橋式的相同 Duty，全橋理想輸出電壓會如何變化？','duty',1],
+    'mid-pushpull':['pushPullBalance','保持 A 側 Duty 不變，增加 B 側 Duty，每週期淨磁通偏移如何改變？','db'],
     'mid-magnetization':['core','改變 ON Duty，單次磁通擺幅如何改變？','duty'],
-    'mid-coreloss':['core','提高頻率時，單次 ΔB 估計如何改變？它能直接代表鐵損嗎？','freq']
+    'mid-coreloss':['coreLoss','固定磁通擺幅 ΔB，將頻率提高一格後，假設材料的相對鐵損如何改變？','freq']
   };
 
   function phaseLabel(stage,t) {
