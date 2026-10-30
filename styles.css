@@ -140,3 +140,9 @@ html[data-theme="dark"]{color-scheme:dark;--bg:#0b1220;--paper:#121e30;--paper-2
 .formula-panel > div:last-child{min-width:0;max-width:100%;overflow:hidden}
 .formula-panel .equation-list,.formula-panel .equation-row{min-width:0;max-width:100%}
 .formula-panel .equation-math{width:100%;max-width:100%;overflow-x:auto}
+
+/* Prediction gating and model-domain feedback. */
+.interactive-chart-placeholder{padding:22px 14px;text-align:center;color:var(--muted);font-size:13px;line-height:1.7}
+.interactive-validity{margin:0 0 10px;color:var(--muted);font-size:12px;line-height:1.6}
+.interactive-prediction [data-verify-target],.interactive-prediction [data-explore]{margin-top:10px;margin-right:8px;white-space:normal}
+.interactive-prediction button:disabled{opacity:.58;cursor:not-allowed}

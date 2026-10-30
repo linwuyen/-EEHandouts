@@ -68,8 +68,8 @@
       title:'匝數、氣隙、磁阻與電感',knobs:[knob('gap','氣隙長度',0,2,0.1,0.5,' mm'),knob('turns','匝數',40,160,10,100,' 圈'),knob('amps','電流',0.2,3,0.2,1,' A')],
       assumption:'固定磁芯路長 0.1 m、截面 1 cm²、相對導磁係數 1500，線性定 μ；不代表真實 B-H、飽和或邊緣磁通。',
       compute:function(v){var mu=4*Math.PI*1e-7,r=.1/(mu*1500*1e-4)+v.gap/1000/(mu*1e-4),L=v.turns*v.turns/r,B=v.turns*v.amps/(r*1e-4);
-        return result([metric('電感量 L',L*1e3,' mH',3),metric('磁通密度 B',B,' T',3),metric('儲能 ½LI²',.5*L*v.amps*v.amps*1000,' mJ',3)],
-          '增加氣隙會增大磁阻；固定匝數時 L 通常下降。',{warning:B>0.3?'B 高於 0.3 T 教學提醒值，實際飽和須查磁材資料。':''});}
+        return result([metric('線性模型 L',L*1e3,' mH',3),metric('線性模型 B',B,' T',3),metric('線性模型儲能 ½LI²',.5*L*v.amps*v.amps*1000,' mJ',3)],
+          '增加氣隙會增大磁阻；固定匝數時 L 通常下降。超過 0.3 T 時數值僅是固定導磁率的數學外插。',{validity:{scorable:B<=0.3,status:B<=0.3?'IN_DOMAIN':'LINEAR_EXTRAPOLATION'},warning:B>0.3?'固定 μ 模型外插（B > 0.3 T 教學門檻）：此 B、L 與儲能非實際磁芯工作點，禁止用於有效預測評分或磁芯選型。':''});}
     },
     faraday:{
       title:'磁通變化與感應電壓',knobs:[knob('freq','磁通頻率',10,300,10,60,' Hz'),knob('b','磁通密度峰值',0.02,0.3,0.02,0.1,' T')],
@@ -130,15 +130,18 @@
       title:'半波與全波整流',knobs:[knob('vac','輸入電壓 RMS',12,228,6,48,' V'),knob('full','全波模式 0=半波 1=全波',0,1,1,1,'')],
       assumption:'理想二極體、純電阻負載、無濾波電容；輸出平均值不等於加電容後的 DC Bus。',
       compute:function(v){var pk=v.vac*Math.SQRT2,full=Boolean(v.full),f=full?2:1;
-        return result([metric('平均整流電壓',pk*f/Math.PI,' V'),metric('輸入峰值',pk,' V')],
+        return result([metric('平均整流電壓',pk*f/Math.PI,' V'),metric('輸入峰值',pk,' V'),metric('正半週平均輸出',2*pk/Math.PI,' V'),metric('負半週平均輸出',full?2*pk/Math.PI:0,' V')],
           full?'全波每個半週都有脈動。':'半波只有正半週供電。',{series:[trace('輸入 AC','V',function(t){return pk*sin(t);}),trace('負載電壓','V',function(t){var a=pk*sin(t);return full?Math.abs(a):Math.max(a,0);})]});}
     },
     capRipple:{
-      title:'整流後電容漣波近似',knobs:[knob('cap','輸出電容',220,2200,110,990,' μF'),knob('load','負載電流',0.1,3,0.1,1,' A')],
+      title:'整流後電容漣波近似',knobs:[knob('cap','輸出電容',220,2200,110,1650,' μF'),knob('load','負載電流',0.1,3,0.1,1,' A')],
       assumption:'50 Hz 全波、固定電流負載、Vpeak=24√2 V。ΔV≈I/(2fC) 只適用小漣波近似，非充電尖峰電流精確模擬。',
       compute:function(v){var dv=v.load/(100*v.cap*1e-6),pk=24*Math.SQRT2,valid=dv/pk<=0.2;
-        return result([metric('小漣波估計 ΔV',dv,' V'),metric('ΔV／Vpeak',100*dv/pk,' %'),metric('輸入峰值',pk,' V')],
-          valid?'此處小漣波近似可作教學估算。':'超出教學近似門檻，勿將估計當成實際 DC 電壓。',{warning:valid?'':'ΔV／Vpeak > 20%；模型不再用於宣稱實際輸出平均電壓。'});}
+        var values=[metric('有效小漣波估計 ΔV',valid?dv:NaN,' V'),
+          metric('ΔV／Vpeak',100*dv/pk,' %'),metric('輸入峰值',pk,' V')];
+        if(!valid)values.push(metric('超域公式外插（不可用於設計）',dv,' V'));
+        return result(values,
+          valid?'此處小漣波近似可作教學估算。':'超出教學近似門檻，勿將估計當成實際 DC 電壓。',{validity:{scorable:valid,status:valid?'IN_DOMAIN':'OUT_OF_DOMAIN'},warning:valid?'':'ΔV／Vpeak > 20%；超出本站小漣波教學模型，不能把外插值當成有效漣波估值或預測正確的依據。'});}
     },
     sourceL:{
       title:'交流源電感與換向壓降',knobs:[knob('l','源側電感',1,196,5,26,' μH'),knob('didt','電流變化率',0.1,15,0.1,2,' A/μs')],
@@ -149,8 +152,9 @@
       title:'理想三相六脈波整流',knobs:[knob('phase','觀察電角度',0,360,10,30,' °'),knob('vrms','相電壓 RMS',100,240,10,220,' V')],
       assumption:'理想三相平衡、無源側電感、無導通壓降、無儲能電容；VDC=max(VA,VB,VC)−min(VA,VB,VC)。',
       compute:function(v){var a=v.phase*Math.PI/180,pk=v.vrms*Math.SQRT2,ph=function(t){return [pk*sin(t,a),pk*sin(t,a-2*Math.PI/3),pk*sin(t,a+2*Math.PI/3)];},p=ph(0);
+        var hi=p.indexOf(Math.max.apply(null,p)),lo=p.indexOf(Math.min.apply(null,p)),names=['A','B','C'];
         return result([metric('當下 DC 輸出',Math.max.apply(null,p)-Math.min.apply(null,p),' V'),metric('平均 DC 輸出',3*Math.sqrt(6)/Math.PI*v.vrms,' V')],
-          '每 60° 改變最大／最小相的二極體配對。',{series:[trace('VA','V',function(t){return ph(t)[0];}),trace('VB','V',function(t){return ph(t)[1];}),trace('VDC','V',function(t){var x=ph(t);return Math.max.apply(null,x)-Math.min.apply(null,x);})]});}
+          '當下上橋二極體：'+names[hi]+' 相；下橋二極體：'+names[lo]+' 相。每 60° 切換導通配對（理想無換向重疊）。',{series:[trace('VA','V',function(t){return ph(t)[0];}),trace('VB','V',function(t){return ph(t)[1];}),trace('VDC','V',function(t){var x=ph(t);return Math.max.apply(null,x)-Math.min.apply(null,x);})]});}
     },
     neutral:{
       title:'三相三次諧波與中性線電流',knobs:[knob('h3','每相 3 次諧波／基波',0,60,5,15,' %'),knob('i1','每相基波 RMS',1,20,1,5,' A')],
@@ -162,7 +166,7 @@
       title:'反相放大器與線性工作範圍',knobs:[knob('gain','理想反相增益絕對值',1,10,0.5,3,''),knob('vin','輸入電壓',-2,2,0.1,0.5,' V')],
       assumption:'理想負回授反相放大器；假設輸出供電軌 ±12 V 並用理想裁切示意超界，非特定 OP 的實際擺幅規格。',
       compute:function(v){var y=-v.gain*v.vin,limited=clamp(y,-12,12);
-        return result([metric('輸出電壓（示意）',limited,' V'),metric('理想未限制輸出',y,' V')],
+        return result([metric('輸出電壓（示意）',limited,' V'),metric('理想未限制輸出',y,' V'),metric('理想裁切狀態',y!==limited?1:0,' 0/1',0)],
           '輸入極性反相；超過供電軌時理想線性公式失效。',{warning:y!==limited?'超出假設供電軌，輸出已用示意裁切，實際需查 datasheet。':''});}
     },
     diff:{
@@ -187,10 +191,10 @@
     },
     adc:{
       title:'Shunt、偏壓與 ADC 量化',knobs:[knob('i','待量測電流',-30,30,1,10,' A'),knob('gain','差動放大增益',5,20,1,10,'')],
-      assumption:'Rshunt=5 mΩ、偏壓=1.5 V、12-bit ADC、理想 0–3 V 輸入。超界不輸出有效 ADC code；不代表硬體腳位已受保護。',
-      compute:function(v){var vad=1.5+.005*v.i*v.gain,valid=vad>=0&&vad<=3,code=valid?Math.round(vad/3*4095):NaN;
+      assumption:'Rshunt=5 mΩ、偏壓=1.5 V、12-bit ADC、理想 0–3 V 輸入；假設 4096 等間距量化區間，Code=floor(4096×Vadc/3)，最高輸入端點限制為 4095，非指定 MCU 的 ADCRESULT 轉移曲線。超界不輸出有效 ADC code；不代表硬體腳位已受保護。',
+      compute:function(v){var vad=1.5+.005*v.i*v.gain,valid=vad>=0&&vad<=3,code=valid?Math.min(4095,Math.floor(vad/3*4096)):NaN;
         return result([metric('ADC 腳電壓',vad,' V',3),metric('理想有效 Code',code,' count',0)],
-          valid?'符合模型設定的 ADC 輸入範圍。':'ADC 超出輸入範圍，不可將理論轉換碼當成有效資料。',{warning:valid?'':'輸入超出 0–3 V；需額外確認前端保護及絕對最大額定值。'});}
+          valid?'符合模型設定的 ADC 輸入範圍。':'ADC 超出輸入範圍，不可將理論轉換碼當成有效資料。',{validity:{scorable:valid,status:valid?'IN_DOMAIN':'OUT_OF_DOMAIN'},warning:valid?'':'輸入超出 0–3 V；需額外確認前端保護及絕對最大額定值。'});}
     },
     topology:{
       title:'三種基本 DC-DC 轉壓比',knobs:[knob('duty','占空比',10,80,5,40,' %'),knob('vin','輸入電壓',12,96,6,48,' V')],
@@ -234,7 +238,7 @@
       title:'H-Bridge：橋臂、PWM 與四象限',knobs:[knob('da','A 臂高電位 Duty',0,100,5,75,' %'),knob('db','B 臂高電位 Duty',0,100,5,25,' %'),knob('i','IAB 電流',-10,10,1,2,' A'),knob('bipolar','雙極性互補模式',0,1,1,0,'')],
       assumption:'理想同步前緣 PWM，單極性同載波比較或雙極性 A/B 瞬時互補；忽略死區、二極體續流、換向瞬態與 Bus 回生吸收限制。',
       compute:function(v){var a=v.da/100,b=v.bipolar?1-a:v.db/100,avg=v.bipolar?(2*a-1)*100:(a-b)*100,p=avg*v.i,mode=v.bipolar?'雙極性互補':'同載波單極性';
-        return result([metric('平均差動 VAB',avg,' V'),metric('平均輸出功率',p,' W'),metric('A 臂平均電壓',a*100,' V'),metric('0.9T 的 VAB',(0.9<a?100:0)-((v.bipolar?0.9>=a:0.9<b)?100:0),' V')],
+        return result([metric('平均差動 VAB',avg,' V'),metric('平均輸出功率',p,' W'),metric('A 臂平均電壓',a*100,' V'),metric('0.9T 的 VAB',(0.9<a?100:0)-((v.bipolar?0.9>=a:0.9<b)?100:0),' V'),metric('VAB 零電壓比例',v.bipolar?0:100*(1-Math.abs(a-b)),' %')],
           mode+'；'+(p<0?'負載回送能量，DC Bus 必須可吸收。':'平均功率方向由 VAB 與 IAB 共同決定。'),{series:[trace('VA','V',function(t){return t<a?100:0;}),trace('VB','V',function(t){return (v.bipolar?t>=a:t<b)?100:0;}),trace('VAB','V',function(t){return (t<a?100:0)-((v.bipolar?t>=a:t<b)?100:0);})],stage:{kind:'bridge',on:a,b:b,bipolar:Boolean(v.bipolar),mode:mode}});}
     },
     flyback:{
@@ -288,7 +292,7 @@
       return result([metric('CCM 有效 Vout',valid?vo:NaN,' V'),metric('理想無損 CCM Vout',valid?ideal:NaN,' V'),
                      metric('電感銅損（僅 CCM）',valid?il*il*v.rl:NaN,' W'),metric('CCM IL 谷值估算',valley,' A')],
         valid?'高 Duty 下，電感銅損可能抵銷理想 Boost 增益。':'CCM 假設不成立，請改用分段 DCM 模型或調整 L、fs、負載。',
-        {mode:valid?'CCM':'OUT_OF_DOMAIN',warning:valid?'':'計算得到非正 IL 谷值或不合理斜率；CCM 平均模型失效，Vout 與銅損不顯示為有效設計值。'});
+        {mode:valid?'CCM':'OUT_OF_DOMAIN',validity:{scorable:valid,status:valid?'IN_DOMAIN':'OUT_OF_DOMAIN'},warning:valid?'':'計算得到非正 IL 谷值或不合理斜率；CCM 平均模型失效，Vout 與銅損不顯示為有效設計值。'});
     }
   };
   M.boostCap={
@@ -443,12 +447,26 @@
     title:'多繞組隔離變壓器：輸出電壓與交叉調節限制',
     knobs:[knob('vp','一次側理想 RMS 電壓',24,240,12,96,' V'),
            knob('r1','Np/Ns1',1,8,0.5,2,''),knob('r2','Np/Ns2',1,8,0.5,4,'')],
-    assumption:'理想變壓器，固定二次側 RMS 電流 I1=1A、I2=0.5A；Vp/Vs=Np/Ns。僅呈現多組繞組，未計漏感、繞組電阻、二極體壓降、負載互擾及 Cross Regulation。',
+    assumption:'理想變壓器，固定兩組二次側純電阻負載，同相電流 I1=1A、I2=0.5A，且一次側極性定義一致；Vp/Vs=Np/Ns。僅呈現多組繞組，未計漏感、繞組電阻、二極體壓降、負載互擾及 Cross Regulation。',
     compute:function(v){
       var a=v.vp/v.r1,b=v.vp/v.r2;
       return result([metric('次級 1 理想 RMS',a,' V'),metric('次級 2 理想 RMS',b,' V'),
                      metric('總次級視在功率',a+0.5*b,' VA'),metric('理想一次側電流',(1/v.r1+0.5/v.r2),' A')],
-        '不同匝比可提供多組輸出；真實多路穩壓需考慮負載交互影響。');
+        '二次側電流同相時，折算到一次側可以代數相加；若有不同 PF、相位或極性，必須相量相加。');
+    }
+  };
+
+  M.linearRegulator={
+    title:'線性串聯穩壓器：壓差、熱損與效率',
+    knobs:[knob('vin','輸入電壓',8,36,1,12,' V'),knob('vout','設定輸出電壓',1,12,1,5,' V'),knob('io','輸出電流',0.5,10,0.5,2,' A')],
+    assumption:'理想串聯線性穩壓器，假設輸入高於輸出、Iq=0、未考慮 Dropout、SOA、瞬態、熱阻及負載限制；Ppass=(Vin−Vout)Io 只對穩壓成功的條件有效。',
+    compute:function(v){
+      var ok=v.vin>v.vout,heat=ok?(v.vin-v.vout)*v.io:NaN,eff=ok?100*v.vout/v.vin:NaN;
+      return result([metric('Pass 元件耗散功率',heat,' W'),metric('輸出功率',ok?v.vout*v.io:NaN,' W'),
+                     metric('輸入功率',ok?v.vin*v.io:NaN,' W'),metric('理想效率',eff,' %')],
+        '在 Vout、Io 固定時，Vin 越高，線性串聯元件的熱損越大。',
+        {validity:{scorable:ok,status:ok?'IN_DOMAIN':'OUT_OF_DOMAIN'},
+         warning:ok?'':'Vin <= Vout：不符合此串聯線性調節器的穩壓條件，不能宣稱負載輸出或 Pass 損耗有效。'});
     }
   };
 
@@ -460,24 +478,24 @@
     threephase:['phases','改變觀察相位，瞬時線電壓如何變化？','phase'],
     fourier:['harmonics','增加三次諧波會如何改變總 THD？','h3'],
     thd:['harmonics','增加第三諧波，RMS 與失真率如何變化？','h3'],
-    ampere:['magnetic','氣隙增大時，同樣 NI 能維持相同 B 嗎？','gap'],
+    ampere:['magnetic','氣隙增大時，同樣 NI 能維持相同 B 嗎？','gap',1],
     bh:['magnetic','線性磁路模型的 B 是否能直接當作飽和判定？','amps',1],
     reluctance:['magnetic','增加氣隙使磁阻變大時，L 如何改變？','gap'],
     faraday:['faraday','B(t) 變化更快時，感應電壓峰值如何改變？','freq'],
     inductor:['magnetic','匝數改變時，線性模型的 L 如何改變？','turns'],
     transformer:['transformer','提高一次／二次匝比，次級電壓如何改變？','ratio'],
-    blocks:['efficiency','效率降低時，固定輸出功率需要多大的輸入功率？','eta'],
-    linear:['efficiency','同樣 Pout 下，轉換效率改變對熱損有何影響？','eta'],
+    blocks:['efficiency','效率降低時，固定輸出功率需要多大的輸入功率？','eta',1],
+    linear:['linearRegulator','在 Vout、Io 固定時增加 Vin，線性串聯穩壓器的發熱如何變化？','vin'],
     pwm:['pwm','延長 PWM 導通比例，平均開關節點電壓怎麼變？','duty'],
     timing:['timing','控制路徑延遲增加時，佔週期比例會怎麼變？','delay'],
     diodes:['diode','正向電流上升，簡化導通損耗如何變化？','i'],
     legacy:['scr','延後 SCR 觸發角，平均輸出如何改變？','alpha'],
     mosfet:['semiconductor','通電電流提高時，MOSFET I²R 損耗如何變化？','current'],
     switchloss:['switching','單次 Eon/Eoff 變大時，總切換損耗如何變化？','energy'],
-    igbt:['semiconductor','同樣電流下 IGBT 與 MOSFET 的導通損耗差怎麼變？','current'],
+    igbt:['semiconductor','同樣電流下 IGBT 與 MOSFET 的導通損耗差怎麼變？','current',2],
     wbg:['switching','降低單次切換能量時，固定頻率的切換損耗如何變化？','energy'],
     half:['rectifier','半波整流的電壓平均值由哪段波形貢獻？','vac'],
-    bridge:['rectifier','全波相較半波，輸出正半週如何變化？','full'],
+    bridge:['rectifier','切換全波與半波，輸出正半週平均電壓會改變嗎？','full',2],
     overlap:['sourceL','源側電感變大，指定 di/dt 所需的電感壓降如何變化？','l'],
     capacitor:['capRipple','電容增加時，小漣波公式預測 ΔV 如何改變？','cap'],
     notching:['sourceL','換向電流斜率增加時，PCC 可能受到的電感壓降如何變化？','didt'],
@@ -486,7 +504,7 @@
     harmonics:['sixPulseHarmonics','將觀察諧波由第 5 次改成第 7 次，輸入線電流分量如何變化？','order'],
     commutation:['sourceL','換向迴路 Ls 增大，對電流變換速度有何約束？','l'],
     bus:['threeBus','保持其他參數不變，增加 DC Bus 電容後，三相整流器輸出漣波如何改變？','cap',1],
-    op:['op','反相增益增加時，輸出是否可能碰到供電限制？','gain'],
+    op:['op','增加反相增益，理想輸出是否由線性區跨到 ±12 V 的裁切區？','gain',2],
     diff:['diff','差動輸入增加時，理想差動輸出會如何變化？','vdiff'],
     filter:['filter','電阻增大時，一階 RC 截止頻率如何改變？','r'],
     differentiator:['differentiator','提高分析頻率後，帶限微分器增益如何變化？','freq'],
@@ -501,7 +519,7 @@
     'mid-ccm-dcm':['buck','減小負載電流，IL 何時會出現第三段零電流？','io',4],
     'mid-bcm':['buck','把 Io 逐步調到 BCM 臨界值，IL 谷值會如何變化？','io',2],
     'mid-buck-dcm':['buck','進入 DCM 後，Vout 還等於 D×Vin 嗎？','io',0],
-    'mid-boost-ccm':['boost','Boost 的 ON/OFF 區間各由誰供應負載？','duty'],
+    'mid-boost-ccm':['boost','提高 Boost Duty 時理想 CCM 輸出電壓如何變化？並觀察 ON/OFF 能量流。','duty'],
     'mid-boost-ripple':['boostCap','固定 Duty 時提高輸出電容，ON 放電壓降怎麼變？','cap'],
     'mid-boost-rl':['boostCopper','電感銅損存在時提高 Duty，輸出是否必定一直上升？','duty'],
     'mid-boost-efficiency':['boostCopper','增大電感等效電阻時，實際 CCM 平均輸出如何變化？','rl'],
@@ -509,17 +527,17 @@
     'mid-boost-dcm':['boost','減少負載後，Boost 何時離開 CCM？','io',4],
     'mid-buckboost-ccm':['buckboost','增加 Duty，反相輸出電壓與 IL 如何變化？','duty'],
     'mid-buckboost-dcm':['buckboost','降低 Io 後，反相 Buck-Boost 的 DCM 比例如何改變？','io',3],
-    'mid-sepic-zeta':['converterFamily','觀察同樣 Duty 下 Ćuk 的輸出極性與 SEPIC／ZETA 差異。','duty'],
+    'mid-sepic-zeta':['converterFamily','提高 Duty，SEPIC／ZETA 輸出增益如何變化？並比較反相 Ćuk。','duty'],
     'mid-four-switch':['fourSwitch','改變輸入橋臂 Duty，四開關升降壓的平均增益如何變化？','dbuck'],
     'mid-bidirectional':['signed','反轉電流正負後，功率方向如何改變？','i'],
     'mid-quadrants':['bridge','維持 VAB 為正、反轉 IAB，平均功率方向會如何切換？','i',1],
     'mid-motor-hbridge':['bridge','改變 A/B 橋臂 Duty，平均負載電壓如何變化？','da'],
     'mid-bipolar':['bridge','切換瞬時互補模式後，週期後段的 VAB 如何改變？','bipolar',3],
-    'mid-unipolar':['bridge','單極性橋臂 Duty 改變時，VAB 的零狀態如何改變？','da'],
+    'mid-unipolar':['bridge','增加 A 臂 Duty，單極性 VAB 的零電壓時間比例如何改變？','da',4],
     'mid-isolated-types':['transformer','匝比增加時，隔離變壓器的理想二次電壓如何變化？','ratio'],
     'mid-isolation-feedback':['optocoupler','光耦 CTR 改變時，隔離傳遞的回授電流如何變化？','ctr'],
     'mid-multi-output':['multiSecondary','當第二組次級匝比增加時，該組輸出電壓如何變化？','r2',1],
-    'mid-flyback-ccm':['flyback','ON 時存入磁化電感的電流，OFF 時如何釋出？','duty'],
+    'mid-flyback-ccm':['flyback','提高 Flyback Duty 時理想 CCM 輸出電壓如何變化？並觀察 ON/OFF 磁化電流。','duty'],
     'mid-flyback-dcm':['flyback','減少 Io，退磁結束後會不會出現零電流區間？','io',4],
     'mid-forward-reset':['forward','提高 ON Duty 後，OFF 去磁時間還夠嗎？','duty'],
     'mid-double-forward':['core','增加匝數，理想正伏秒造成的 ΔB 如何降低？','turns'],
@@ -529,10 +547,21 @@
     'mid-coreloss':['coreLoss','固定磁通擺幅 ΔB，將頻率提高一格後，假設材料的相對鐵損如何改變？','freq']
   };
 
+  // Per-lesson starting points may differ from reusable model defaults. This
+  // preserves each lesson's physics without mutating shared model definitions.
+  var lessonInitialValues={
+    half:{full:0},
+    op:{gain:5.5,vin:2},
+    'mid-boost-rl':{duty:55,rl:2,load:10}
+  };
   // Lesson-specific comparisons must match the investigation's requested
   // direction and cross the relevant mode or power-flow boundary when needed.
   // All targets are on the published knob's step grid.
   var comparisonTargets={
+    power:-2,
+    blocks:80,
+    op:7,
+    'mid-boost-rl':70,
     wbg:45,
     'mid-bidirectional':-2,
     'mid-quadrants':-2,
@@ -544,14 +573,18 @@
     'mid-flyback-dcm':0.1
   };
   function comparisonTarget(lessonId,knob) {
+    var initial=lessonInitialValues[lessonId]||{};
+    var baseline=Object.prototype.hasOwnProperty.call(initial,knob.key)?initial[knob.key]:knob.value;
     var specified=Object.prototype.hasOwnProperty.call(comparisonTargets,lessonId);
     var value=specified?comparisonTargets[lessonId]:
-      (knob.value<knob.max?Math.min(knob.max,Number((knob.value+knob.step).toFixed(8))):
-        Math.max(knob.min,Number((knob.value-knob.step).toFixed(8))));
-    var grid=(value-knob.min)/knob.step;
-    if(!Number.isFinite(value)||Math.abs(value-knob.value)<1e-9||
+      (baseline<knob.max?Math.min(knob.max,Number((baseline+knob.step).toFixed(8))):
+        Math.max(knob.min,Number((baseline-knob.step).toFixed(8))));
+    var grid=(value-knob.min)/knob.step,baseGrid=(baseline-knob.min)/knob.step;
+    if(!Number.isFinite(value)||!Number.isFinite(baseline)||Math.abs(value-baseline)<1e-9||
+       baseline<knob.min-1e-9||baseline>knob.max+1e-9||
        value<knob.min-1e-9||value>knob.max+1e-9||
-       Math.abs(grid-Math.round(grid))>1e-7) {
+       Math.abs(grid-Math.round(grid))>1e-7||
+       Math.abs(baseGrid-Math.round(baseGrid))>1e-7) {
       throw Error('Invalid lesson target: '+lessonId+'/'+knob.key);
     }
     return value;
@@ -644,6 +677,8 @@
       '<text x="668" y="210" text-anchor="end" font-size="12" fill="currentColor">'+esc(fmt(kn.max))+' '+esc(kn.unit)+'</text>'+
       '</svg>';
   }
+  // Prediction is a one-shot experiment. Any observation of manipulated
+  // values before predicting is exploration and must never earn a prediction grade.
   function mount(chapter,lesson,host) {
     if(!host)return;
     var entry=C[lesson.id];
@@ -653,87 +688,162 @@
     }
     var spec=M[entry[0]],focus=entry[2],knobs=spec.knobs.slice(),first=knobs.find(function(k){return k.key===focus;});
     if(!first){host.textContent='互動參數設定錯誤';return;}
-    var v={};knobs.forEach(function(k){v[k.key]=k.value;});
-    var metricIndex=entry[3]||0,baseline=spec.compute(v).metrics[metricIndex].value,guess=null,cursor=.25;
-    var target=comparisonTarget(lesson.id,first);
-    var targetDirection=target>first.value?'增加':'降低';
+    var v={};
+    knobs.forEach(function(k){v[k.key]=k.value;});
+    var starting=lessonInitialValues[lesson.id]||{};
+    Object.keys(starting).forEach(function(key){
+      var k=knobs.find(function(x){return x.key===key;});
+      if(!k)throw Error('Unknown lesson initial parameter: '+lesson.id+'/'+key);
+      var value=starting[key],grid=(value-k.min)/k.step;
+      if(value<k.min||value>k.max||Math.abs(grid-Math.round(grid))>1e-7)
+        throw Error('Invalid lesson initial parameter: '+lesson.id+'/'+key);
+      v[key]=value;
+    });
+    var initial=Object.assign({},v),metricIndex=entry[3]||0;
+    var initialResult=spec.compute(v),baseline=initialResult.metrics[metricIndex].value;
+    var target=comparisonTarget(lesson.id,first),targetDirection=target>initial[focus]?'增加':'降低';
+    var guess=null,phase='READY',exploreReason='',cursor=.25;
+    function scorable(r) {
+      return r&&r.metrics&&r.metrics[metricIndex]&&
+        Number.isFinite(r.metrics[metricIndex].value)&&
+        (!r.validity||r.validity.scorable!==false);
+    }
+    var baselineUsable=scorable(initialResult);
     host.innerHTML='<div class="interactive-head"><span class="pill">ACTIVE LEARNING</span><h3>'+esc(spec.title)+'</h3>'+
       '<p>'+esc(entry[1])+'</p></div>'+
-      '<div class="interactive-prediction"><strong>先預測：其他參數不變，將「'+esc(first.label)+'」由 '+fmt(first.value)+' '+esc(first.unit)+' '+targetDirection+'至 '+fmt(target)+' '+esc(first.unit)+' 後，「'+esc(spec.compute(v).metrics[metricIndex].label)+'」會？</strong>'+
+      '<div class="interactive-prediction"><strong>先預測：其他參數不變，將「'+esc(first.label)+'」由 '+fmt(initial[focus])+' '+esc(first.unit)+' '+targetDirection+'至 '+fmt(target)+' '+esc(first.unit)+' 後，「'+esc(initialResult.metrics[metricIndex].label)+'」會？</strong>'+
       '<div class="interactive-choices"><button type="button" class="btn btn-muted" data-predict="up">增加</button>'+
-      '<button type="button" class="btn btn-muted" data-predict="down">減少</button><button type="button" class="btn btn-muted" data-predict="same">不變</button></div>'+
-      '<button type="button" class="btn btn-muted" data-verify-target>套用指定變更並驗證</button><p class="interactive-feedback" aria-live="polite">先預測，再套用指定變更。其他參數須保持初始值。</p></div>'+
-      '<div class="interactive-knobs">'+knobs.map(function(k){return '<label class="interactive-knob"><span>'+esc(k.label)+'</span><strong data-knob-value="'+esc(k.key)+'">'+esc(fmt(k.value))+' '+esc(k.unit)+'</strong>'+
-        '<input type="range" min="'+k.min+'" max="'+k.max+'" step="'+k.step+'" value="'+k.value+'" data-knob="'+esc(k.key)+'" aria-label="'+esc(k.label)+'"></label>';}).join('')+'</div>'+
-      '<div class="interactive-metrics" aria-live="polite"></div><div class="interactive-chart"></div>'+
+      '<button type="button" class="btn btn-muted" data-predict="down">減少</button>'+
+      '<button type="button" class="btn btn-muted" data-predict="same">不變</button></div>'+
+      '<button type="button" class="btn btn-muted" data-verify-target disabled>套用指定變更並驗證</button>'+
+      '<button type="button" class="btn btn-muted" data-explore>直接探索（不計入預測）</button>'+
+      '<p class="interactive-feedback" aria-live="polite">先選擇預測，再套用指定變更；或選擇自由探索。</p></div>'+
+      '<div class="interactive-knobs">'+knobs.map(function(k){return '<label class="interactive-knob"><span>'+esc(k.label)+'</span><strong data-knob-value="'+esc(k.key)+'">'+esc(fmt(v[k.key]))+' '+esc(k.unit)+'</strong>'+
+        '<input type="range" min="'+k.min+'" max="'+k.max+'" step="'+k.step+'" value="'+v[k.key]+'" data-knob="'+esc(k.key)+'" aria-label="'+esc(k.label)+'"></label>';}).join('')+'</div>'+
+      '<div class="interactive-metrics" aria-live="polite"></div>'+
+      '<p class="interactive-validity" role="status"></p><div class="interactive-chart"></div>'+
       '<div class="interactive-clock" hidden><label>同步時間游標：<strong data-cursor-value>25%</strong>'+
       '<input type="range" min="0" max="100" step="1" value="25" data-time aria-label="波形時間游標"></label></div>'+
       '<p class="interactive-stage" aria-live="polite"></p><p class="interactive-note"></p><p class="interactive-warning" role="status" hidden></p>'+
       '<p class="interactive-assumptions"><strong>模型條件：</strong>'+esc(spec.assumption)+'</p>'+
       '<button type="button" class="btn btn-muted interactive-reset">重設實驗與預測</button>';
     var prediction=host.querySelector('.interactive-feedback');
-    function refresh(){
-      var r=spec.compute(v),units=r.metrics.map(function(item){return '<div class="interactive-metric"><small>'+esc(item.label)+'</small><strong>'+esc(fmt(item.value,item.digits))+' '+esc(item.unit)+'</strong></div>';}).join('');
-      host.querySelector('.interactive-metrics').innerHTML=units;
+    function isolated() {
+      return knobs.every(function(k){return k.key===focus||Math.abs(v[k.key]-initial[k.key])<=1e-9;});
+    }
+    function refresh() {
+      var r=spec.compute(v);
+      host.dataset.learningState=phase;
+      host.querySelector('.interactive-metrics').innerHTML=r.metrics.map(function(item){
+        return '<div class="interactive-metric"><small>'+esc(item.label)+'</small><strong>'+
+          esc(fmt(item.value,item.digits))+' '+esc(item.unit)+'</strong></div>';
+      }).join('');
       host.querySelectorAll('[data-knob-value]').forEach(function(node){
         var key=node.getAttribute('data-knob-value'),k=knobs.find(function(x){return x.key===key;});
         node.textContent=fmt(v[key])+' '+k.unit;
       });
-      host.querySelector('.interactive-chart').innerHTML=r.series?waveChart(r.series,cursor):sweepChart(spec,v,focus,r.metrics[metricIndex].value,metricIndex);
-      host.querySelector('.interactive-clock').hidden=!r.series;
-      host.querySelector('.interactive-stage').textContent=r.stage?phaseLabel(r.stage,cursor):'';
+      var reveal=phase==='REVIEWED'||phase==='EXPLORING';
+      host.querySelector('.interactive-chart').innerHTML=reveal?
+        (r.series?waveChart(r.series,cursor):sweepChart(spec,v,focus,r.metrics[metricIndex].value,metricIndex)):
+        '<p class="interactive-chart-placeholder">波形／曲線將在驗證後揭曉；直接調參數將轉為自由探索。</p>';
+      host.querySelector('.interactive-clock').hidden=!reveal||!r.series;
+      host.querySelector('.interactive-stage').textContent=reveal&&r.stage?phaseLabel(r.stage,cursor):'';
       host.querySelector('.interactive-note').textContent=r.note||'';
-      var warn=host.querySelector('.interactive-warning');warn.hidden=!r.warning;warn.textContent=r.warning||'';
+      var warn=host.querySelector('.interactive-warning');
+      warn.hidden=!r.warning;warn.textContent=r.warning||'';
+      var validity=host.querySelector('.interactive-validity');
+      validity.textContent=scorable(r)?
+        '模型狀態：限定假設下可比較（非實機設計驗證）':
+        '模型狀態：超出適用域／僅為數學外插，不可給予有效預測評分';
       if(spec===M.bridge){
         var bipolar=Boolean(v.bipolar),bControl=host.querySelector('[data-knob="db"]');
         bControl.disabled=bipolar;
         bControl.value=String(bipolar?100-v.da:v.db);
-        host.querySelector('[data-knob-value="db"]').textContent=fmt(bipolar?100-v.da:v.db)+' %'+(bipolar?'（互補推導，不可調）':'');
+        host.querySelector('[data-knob-value="db"]').textContent=
+          fmt(bipolar?100-v.da:v.db)+' %'+(bipolar?'（互補推導，不可調）':'');
       }
-      var changed=Math.abs(v[focus]-first.value)>1e-9,atTarget=Math.abs(v[focus]-target)<=1e-9;
-      var isolated=knobs.every(function(k){return k.key===focus||Math.abs(v[k.key]-k.value)<=1e-9;});
-      var selectedValue=r.metrics[metricIndex].value;
-      if(!isolated)prediction.textContent='已同時變更其他參數，無法比較單一變數；請重設後只改指定參數。';
-      else if(guess&&atTarget&&Number.isFinite(baseline)&&Number.isFinite(selectedValue)){
-        var tolerance=Math.max(1e-7,Math.abs(baseline)*1e-7),delta=selectedValue-baseline,observed=delta>tolerance?'up':delta< -tolerance?'down':'same';
-        var textValue={up:'增加',down:'減少',same:'不變'};
-        prediction.textContent=(guess===observed?'符合預測。':'與預測不同，重新觀察。')+
-          '基準 '+fmt(baseline,3)+' → 指定變更後 '+fmt(selectedValue,3)+'；觀察結果：'+textValue[observed]+'。';
-      }else if(guess&&atTarget)prediction.textContent='指定變更超出模型有效範圍，不能對物理結果評分。';
-      else if(guess&&changed)prediction.textContent='已調整參數，但尚未到指定比較值 '+fmt(target)+' '+first.unit+'；此時不評分。';
-      else if(changed)prediction.textContent='請先選擇預測，再套用指定比較值。';
-      else prediction.textContent=guess?'預測已記錄，按「套用指定變更並驗證」進行單一變數比較。':'先選擇預測，再套用指定變更。其他參數須保持初始值。';
+      host.querySelectorAll('[data-predict]').forEach(function(button){
+        button.disabled=phase!=='READY'||!baselineUsable;
+        button.setAttribute('aria-pressed',String(guess===button.dataset.predict));
+      });
+      host.querySelector('[data-verify-target]').disabled=phase!=='PREDICTED';
+      if(phase==='READY') {
+        prediction.textContent=baselineUsable?
+          '先選擇預測，再套用指定變更；或選擇自由探索。':
+          '初始工況已超出模型適用範圍；請選擇自由探索，不可評分。';
+      }else if(phase==='PREDICTED') {
+        prediction.textContent='預測已記錄；請按「套用指定變更並驗證」。結果在驗證前不顯示。';
+      }else if(phase==='EXPLORING') {
+        prediction.textContent=exploreReason||'自由探索中：不計入事前預測，重設後才能重新作答。';
+      }else if(phase==='REVIEWED') {
+        var selected=r.metrics[metricIndex].value;
+        if(!isolated())prediction.textContent='已同時變更其他參數，無法進行單一變數預測評分；請重設。';
+        else if(!baselineUsable||!scorable(r)){
+          prediction.textContent='模型超出適用範圍或僅為外插，不能判定事前預測正確；請查看模型條件。';
+        }else{
+          var tol=Math.max(1e-7,Math.abs(baseline)*1e-7),delta=selected-baseline;
+          var observed=delta>tol?'up':delta< -tol?'down':'same';
+          var labels={up:'增加',down:'減少',same:'不變'};
+          prediction.textContent=(guess===observed?'符合預測。':'與預測不同，請核對物理原因。')+
+            '基準 '+fmt(baseline,3)+' → 指定變更後 '+fmt(selected,3)+
+            '；觀察結果：'+labels[observed]+'。';
+        }
+      }
     }
-        host.querySelectorAll('[data-knob]').forEach(function(input){
+    host.querySelectorAll('[data-knob]').forEach(function(input){
       input.addEventListener('input',function(){
         if(input.disabled)return;
-        v[input.dataset.knob]=Number(input.value);
+        var key=input.dataset.knob,next=Number(input.value);
+        if(next===v[key])return;
+        v[key]=next;
+        if(phase==='PREDICTED'&&key===focus&&
+           Math.abs(v[focus]-target)<=1e-9&&isolated())phase='REVIEWED';
+        else if(phase!=='EXPLORING'){
+          exploreReason=key!==focus&&phase==='PREDICTED'?
+            '已同時變更其他參數，無法比較單一變數；請重設後重新預測。':
+            '已先觀察或更改其他工況，這次僅屬自由探索；請重設後重新預測。';
+          phase='EXPLORING';
+        }
         refresh();
       });
     });
     host.querySelectorAll('[data-predict]').forEach(function(button){
       button.addEventListener('click',function(){
+        if(phase!=='READY'||!baselineUsable)return;
         guess=button.dataset.predict;
-        host.querySelectorAll('[data-predict]').forEach(function(node){node.setAttribute('aria-pressed',String(node===button));});
+        phase='PREDICTED';
         refresh();
       });
     });
     host.querySelector('[data-verify-target]').addEventListener('click',function(){
+      if(phase!=='PREDICTED')return;
       v[focus]=target;
       host.querySelector('[data-knob="'+focus+'"]').value=String(target);
+      phase=isolated()?'REVIEWED':'EXPLORING';
+      if(phase==='EXPLORING')exploreReason='已同時變更其他參數，無法比較單一變數；請重設。';
       refresh();
     });
+    host.querySelector('[data-explore]').addEventListener('click',function(){
+      if(phase==='READY'||phase==='PREDICTED'){
+        phase='EXPLORING';
+        exploreReason='自由探索中：可以查看波形、調整參數，但不計入事前預測。';
+        refresh();
+      }
+    });
     host.querySelector('[data-time]').addEventListener('input',function(ev){
+      if(phase!=='REVIEWED'&&phase!=='EXPLORING')return;
       cursor=Number(ev.target.value)/100;
       host.querySelector('[data-cursor-value]').textContent=Math.round(cursor*100)+'%';
       refresh();
     });
     host.querySelector('.interactive-reset').addEventListener('click',function(){
-      knobs.forEach(function(k){v[k.key]=k.value;host.querySelector('[data-knob="'+k.key+'"]').value=String(k.value);});
-      guess=null;cursor=.25;
+      knobs.forEach(function(k){
+        v[k.key]=initial[k.key];
+        host.querySelector('[data-knob="'+k.key+'"]').value=String(initial[k.key]);
+      });
+      phase='READY';guess=null;cursor=.25;exploreReason='';
       host.querySelector('[data-time]').value='25';
       host.querySelector('[data-cursor-value]').textContent='25%';
-      host.querySelectorAll('[data-predict]').forEach(function(node){node.setAttribute('aria-pressed','false');});
       refresh();
     });
     refresh();

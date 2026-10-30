@@ -30,7 +30,10 @@ async function inspect(file,expectedCount,width) {
       const host=page.locator('#lesson-interactive');
       assert.ok((await host.locator('.interactive-head').innerText()).length>8,x.id+' investigation title');
       assert.ok((await host.locator('.interactive-metric').count())>=1,x.id+' computed result');
-      assert.ok((await host.locator('.interactive-svg').count())>=1,x.id+' chart');
+      assert.equal(await host.getAttribute('data-learning-state'),'READY',x.id+' initial learning state');
+      assert.equal(await host.locator('.interactive-svg').count(),0,x.id+' must not leak sweep or waveform before prediction');
+      assert.ok((await host.locator('.interactive-chart-placeholder').innerText()).length>12,x.id+' chart placeholder');
+      assert.ok(await host.locator('[data-verify-target]').isDisabled(),x.id+' verification locked before prediction');
       assert.ok((await host.locator('[data-knob]').count())>=1,x.id+' controls');
       assert.ok((await host.locator('.interactive-assumptions').innerText()).length>20,x.id+' model limits');
 
@@ -49,7 +52,13 @@ async function inspect(file,expectedCount,width) {
         x.id+' comparison must land on a valid slider step');
       const original=await host.locator('.interactive-metric strong').first().innerText();
       await host.locator('[data-predict="up"]').click();
+      assert.equal(await host.getAttribute('data-learning-state'),'PREDICTED',x.id+' prediction recorded');
+      assert.equal(await host.locator('.interactive-svg').count(),0,x.id+' result stays hidden until verification');
+      assert.ok(await host.locator('[data-predict="down"]').isDisabled(),x.id+' prevent changing answer after prediction');
+      assert.ok(await host.locator('[data-verify-target]').isEnabled(),x.id+' verification enabled after prediction');
       await host.locator('[data-verify-target]').click();
+      assert.equal(await host.getAttribute('data-learning-state'),'REVIEWED',x.id+' post-verification state');
+      assert.ok((await host.locator('.interactive-svg').count())>=1,x.id+' chart revealed after verification');
       assert.ok(Math.abs((await control.evaluate(el=>Number(el.value)))-end)<1e-8,x.id+' target application');
       const current=await host.locator('.interactive-metric strong').first().innerText();
       const feedback=await host.locator('.interactive-feedback').innerText();
@@ -68,6 +77,8 @@ async function inspect(file,expectedCount,width) {
         assert.equal(await host.locator('[data-cursor-value]').innerText(),'75%',x.id+' waveform cursor');
       }
       await host.locator('.interactive-reset').click();
+      assert.equal(await host.getAttribute('data-learning-state'),'READY',x.id+' reset learning state');
+      assert.equal(await host.locator('.interactive-svg').count(),0,x.id+' answer hidden again after reset');
       assert.equal(await control.evaluate(el=>Number(el.value)),start,x.id+' reset slider');
       assert.ok((await host.locator('.interactive-feedback').innerText()).includes('選擇預測'),x.id+' reset prediction');
       verified++;
@@ -92,6 +103,8 @@ try{
     ['middle.html','mid-bridge','mid-bipolar']
   ]){
     await page.goto(BASE+'/'+file+'#lesson/'+chapter+'/'+lesson);
+    await page.locator('#lesson-interactive [data-explore]').waitFor({timeout:10000});
+    await page.locator('#lesson-interactive [data-explore]').click();
     await page.locator('#lesson-interactive .interactive-svg').waitFor({timeout:10000});
     const size=await page.evaluate(()=>({client:document.documentElement.clientWidth,scroll:document.documentElement.scrollWidth}));
     if(size.scroll>size.client+2){
@@ -136,7 +149,10 @@ try{
     el.value=String(Number(el.value)+Number(el.step));
     el.dispatchEvent(new Event('input',{bubbles:true}));
   });
-  await pqsHost.locator('[data-verify-target]').click();
+  assert.equal(await pqsHost.getAttribute('data-learning-state'),'EXPLORING',
+    'Changing an unrelated parameter revokes graded prediction state');
+  assert.ok(await pqsHost.locator('[data-verify-target]').isDisabled(),
+    'Invalidated prediction may not submit an answer');
   assert.ok((await pqsHost.locator('.interactive-feedback').innerText()).includes('同時變更其他參數'),
     'Changing a second parameter must invalidate causal prediction grading');
   await pqsHost.locator('.interactive-reset').click();
@@ -150,7 +166,9 @@ try{
   await page.evaluate(target=>{location.hash=target},boostRoute);
   const boostHost=page.locator('#lesson-interactive');
   await boostHost.locator('[data-knob="l"]').waitFor({timeout:10000});
-  for(const [knob,value] of [['l',40],['freq',50]]){
+  // Recreate the specific CCM-valid / invalid / valid islands independently
+  // from the lesson's high-copper-loss teaching defaults.
+  for(const [knob,value] of [['rl',0.5],['load',40],['l',40],['freq',50]]){
     await boostHost.locator('[data-knob="'+knob+'"]').evaluate((el,n)=>{
       el.value=String(n);el.dispatchEvent(new Event('input',{bubbles:true}));
     },value);
@@ -158,6 +176,47 @@ try{
   const sweepPath=await boostHost.locator('.interactive-chart path[stroke="#159c81"]').getAttribute('d');
   assert.ok((sweepPath.match(/M/g)||[]).length>=2,
     'Invalid Boost CCM duty ranges must create separate SVG subpaths without bridging the gap');
+
+  await page.goto(BASE+'/index.html#home');
+  await page.locator('.subject-card').first().waitFor({timeout:10000});
+  const powerRoute=await page.evaluate(()=>{
+    const c=window.EE_DATA.chapters.find(c=>c.lessons.some(l=>l.id==='power'));
+    return '#lesson/'+c.id+'/power';
+  });
+  await page.evaluate(target=>{location.hash=target},powerRoute);
+  const powerHost=page.locator('#lesson-interactive');
+  await powerHost.locator('[data-knob="i"]').waitFor({timeout:10000});
+  await powerHost.locator('[data-knob="i"]').evaluate(el=>{
+    el.value='-2';el.dispatchEvent(new Event('input',{bubbles:true}));
+  });
+  assert.equal(await powerHost.getAttribute('data-learning-state'),'EXPLORING',
+    'Seeing the changed answer before guessing must revoke prediction credit');
+  assert.ok(await powerHost.locator('[data-predict="down"]').isDisabled(),
+    'Cannot submit a prediction after viewing a manipulated result');
+  assert.ok((await powerHost.locator('.interactive-feedback').innerText()).includes('自由探索'));
+  await powerHost.locator('.interactive-reset').click();
+  assert.equal(await powerHost.getAttribute('data-learning-state'),'READY');
+  await powerHost.locator('[data-predict="down"]').click();
+  await powerHost.locator('[data-verify-target]').click();
+  assert.ok((await powerHost.locator('.interactive-feedback').innerText()).includes('符合預測'),
+    '24 V x +2A to -2A is a real sign reversal');
+  assert.equal(await powerHost.locator('[data-knob="i"]').evaluate(el=>Number(el.value)),-2);
+  // Explicit out-of-domain fixtures must not be used for graded predictions.
+  const capRoute=await page.evaluate(()=>{
+    const c=window.EE_DATA.chapters.find(c=>c.lessons.some(l=>l.id==='capacitor'));
+    return '#lesson/'+c.id+'/capacitor';
+  });
+  await page.evaluate(target=>{location.hash=target},capRoute);
+  const capHost=page.locator('#lesson-interactive');
+  await capHost.locator('[data-knob="cap"]').waitFor({timeout:10000});
+  await capHost.locator('[data-knob="cap"]').evaluate(el=>{
+    el.value='220';el.dispatchEvent(new Event('input',{bubbles:true}));
+  });
+  assert.equal(await capHost.getAttribute('data-learning-state'),'EXPLORING');
+  assert.ok((await capHost.locator('.interactive-validity').innerText()).includes('超出適用域'),
+    'Large ripple must explicitly report invalid model domain');
+  assert.ok(await capHost.locator('[data-predict="down"]').isDisabled(),
+    'Out-of-domain result cannot be graded after observation');
   await ctx.close();
 }finally{await browser.close();}
 assert.deepEqual(errors,[],'No uncaught page JavaScript errors');
