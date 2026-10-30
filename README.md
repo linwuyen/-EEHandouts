@@ -144,3 +144,23 @@ Node.js 22 開發環境：執行 `npm ci --ignore-scripts`，再安裝 Chromium�
 - GitHub Repository Ruleset 必須由具備管理權限者於 Settings → Rules → Rulesets 設定；至少保護 `main`、要求 PR、`browser-regression` 等必要檢查、禁止 force-push。**未完成設定前不可宣稱 `main` 已受到強制保護。**
 
 - CI 新增獨立 `cross-browser` job，執行 Firefox + WebKit 的手機導覽、搜尋鍵盤焦點、互動預測狀態、H-Bridge 階梯波及同源 PDF.js 資產回歸；保留原 `browser-regression` Chromium 完整回歸。設定 Ruleset 時須同時要求兩個 job 成功。
+
+
+## 進階電力電子實驗室（獨立於 72 節教材）
+
+第三入口 [advanced.html](./advanced.html) 提供七種參數互動模型；不改變上冊 38 節、中冊 34 節、47 個原有課節模型與讀書進度。
+
+1. **Boost PFC**：單相整流源的指定市電相位，固定 DC Bus，理想 CCM／BCM／DCM 分段 Duty、Gate/IL/VL/VSW 同步波形；由理想線電流命令導出整流瞬時輸入功率。**不是**整個 50/60Hz 週期的 PF/THD、外電壓迴路或整流橋損耗模擬。
+2. **LLC**：半橋 ±Vin/2 方波、Lr/Cr/Lm 開關週期時域 RK4 積分，使用經 FHA 近似的整流等效負載 Rac=8 n² Rdc/π²；觀察諧振電流、磁化電流、電容電壓、儲能及基波輸入阻抗相位。無法由電感性相位直接確認實機 ZVS，不計非線性二極體與 Coss。
+3. **PSFB**：雙橋臂 50% 相移、一個週期內 ±Vin/0、次級理想全波整流和輸出濾波 L CCM/BCM/DCM；只示範理想有效 Duty，未計循環電流、漏感換流 Duty Loss 或 ZVS。
+4. **Bode / 補償**：電壓模式 Buck **CCM** 小訊號 L/C/ESR 電壓植物，PI + 高頻極點、PWM ramp 和固定延遲；掃描所有 0dB 交越，顯示相位與增益裕度。多重交越警告；無完整 z-domain/ZOH、電流內迴路或大訊號穩定證據。
+5. **C2000 ePWM/ADC/ISR**：以 F28004x UP-DOWN TBCLK 量化，SOCA ZERO/PERIOD/CMPA up/down → ADC acquisition/EOC → ISR → CMP shadow load；ADC 與 CPU 延遲為使用者假設值，不是特定晶片測得時間或可直接套用的暫存器設定。
+6. **同步 Buck 非理想**：高低側 RDS(on)、DCR、Body Diode Dead Time、Eon+Eoff 和 ESR；比較電壓、效率、電感/電容波形，並做平均能量平衡。僅適用正向 CCM。
+7. **PSFB ZVS 前提**：Llk 電流儲能對兩顆等效 Coss 充放能量、Dead Time 粗估需求，不宣稱完整換流或 ZVS 已達成。
+
+測試：`npm test` 必須執行 `tests/advanced-engineering.mjs`、`tests/advanced-smoke.mjs`；`cross-browser` 額外在 Firefox/WebKit 驗證 7 個新實驗與 390px 顯示。原有基礎教材和 PDF Regression 保持完整。
+
+工程參考：
+- TI [Boost PFC Modes](https://www.ti.com/document-viewer/lit/html/SLUAAO8/GUID-86F7AD2D-7DF0-45E7-B7A9-79F8DC862F14)
+- TI [PSFB Operational Principles](https://www.ti.com/document-viewer/lit/html/SLUP414/GUID-C4C4C20D-3B3D-4298-813F-5E3A9DA91B12)
+- TI [TMS320F28004x TRM](https://www.ti.com/lit/ug/sprui33c/sprui33c.pdf)

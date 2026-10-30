@@ -9,6 +9,19 @@ const publish=readFileSync('.github/workflows/publish-verified.yml','utf8');
 const smoke=readFileSync('tests/smoke.mjs','utf8');
 const pkg=JSON.parse(readFileSync('package.json','utf8'));
 const lock=JSON.parse(readFileSync('package-lock.json','utf8'));
+const upperHtml=readFileSync('index.html','utf8');
+const middleHtml=readFileSync('middle.html','utf8');
+const advancedHtml=readFileSync('advanced.html','utf8');
+assert.ok(upperHtml.includes('href="./advanced.html"')&&middleHtml.includes('href="./advanced.html"'),
+  'Advanced lab link must exist on both original volumes');
+assert.ok(advancedHtml.includes('./advanced-models.js')&&advancedHtml.includes('./advanced-app.js'),
+  'Advanced page must load model and viewer code');
+assert.ok(pkg.scripts['test:ci'].includes('tests/advanced-engineering.mjs'),
+  'Advanced engineering model regression must be required');
+assert.ok(pkg.scripts['test:browser'].includes('tests/advanced-smoke.mjs'),
+  'Advanced Chromium UI regression must be required');
+assert.ok(readFileSync('tests/cross-browser.mjs','utf8').includes("['pfc','llc','psfb','loop','timing','nonideal','zvs']"),
+  'Keep all seven advanced models in WebKit/Firefox regression');
 const sourceViewer=readFileSync('source-viewer.js','utf8');
 const pdfBuildScript=readFileSync('scripts/prepare-pdfjs.sh','utf8');
 assert.ok(sourceViewer.includes("'./vendor/pdfjs/'"),'PDF.js browser runtime must use local assets');
