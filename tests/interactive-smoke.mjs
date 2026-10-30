@@ -39,16 +39,15 @@ async function inspect(file,expectedCount,width) {
       const start=await control.evaluate(el=>Number(el.value));
       const max=await control.evaluate(el=>Number(el.max));
       const min=await control.evaluate(el=>Number(el.min));
-      const end=start<max?max:min;
+      const step=await control.evaluate(el=>Number(el.step));
+      const end=start<max?Math.min(max,Number((start+step).toFixed(8))):Math.max(min,Number((start-step).toFixed(8)));
       const original=await host.locator('.interactive-metric strong').first().innerText();
       await host.locator('[data-predict="up"]').click();
-      await control.evaluate((el,n)=>{
-        el.value=String(n);
-        el.dispatchEvent(new Event('input',{bubbles:true}));
-      },end);
+      await host.locator('[data-verify-target]').click();
+      assert.ok(Math.abs((await control.evaluate(el=>Number(el.value)))-end)<1e-8,x.id+' target application');
       const current=await host.locator('.interactive-metric strong').first().innerText();
       const feedback=await host.locator('.interactive-feedback').innerText();
-      assert.ok(feedback.includes('觀察結果'),x.id+' prediction feedback');
+      assert.ok(feedback.includes('觀察結果'),x.id+' isolated prediction feedback');
       const hasBad=await host.evaluate(node=>/NaN|Infinity|undefined/.test(
         node.querySelector('.interactive-metrics').innerText+' '+
         node.querySelector('.interactive-stage').innerText));
@@ -105,6 +104,14 @@ try{
     assert.ok(await page.locator('#lesson-interactive .interactive-metric').count()>0);
     if(lesson==='mid-buck-dcm')
       await page.screenshot({path:'tests/screenshots/interactive-buck-mobile.png',fullPage:true});
+    if(lesson==='mid-bipolar'){
+      const host=page.locator('#lesson-interactive');
+      await host.locator('[data-knob="bipolar"]').evaluate(el=>{el.value='1';el.dispatchEvent(new Event('input',{bubbles:true}));});
+      assert.ok(await host.locator('[data-knob="db"]').isDisabled(),'B duty must be disabled in bipolar mode');
+      assert.ok((await host.locator('[data-knob-value="db"]').innerText()).includes('互補推導'));
+      await host.locator('[data-knob="bipolar"]').evaluate(el=>{el.value='0';el.dispatchEvent(new Event('input',{bubbles:true}));});
+      assert.ok(await host.locator('[data-knob="db"]').isEnabled(),'B duty must be restored in unipolar mode');
+    }
   }
   await ctx.close();
 }finally{await browser.close();}
