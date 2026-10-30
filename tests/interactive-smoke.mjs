@@ -217,6 +217,88 @@ try{
     'Large ripple must explicitly report invalid model domain');
   assert.ok(await capHost.locator('[data-predict="down"]').isDisabled(),
     'Out-of-domain result cannot be graded after observation');
+
+  // Third review: every displayed instant, diode label and plotted sample
+  // must share one clock (phase offset + time cursor).
+  async function navigateInvestigation(id){
+    await page.goto(BASE+'/index.html#home');
+    await page.locator('.subject-card').first().waitFor({timeout:10000});
+    const hash=await page.evaluate(lessonId=>{
+      const c=window.EE_DATA.chapters.find(c=>c.lessons.some(l=>l.id===lessonId));
+      return '#lesson/'+c.id+'/'+lessonId;
+    },id);
+    await page.evaluate(route=>{location.hash=route},hash);
+    const host=page.locator('#lesson-interactive');
+    await host.locator('[data-explore]').waitFor({timeout:10000});
+    return host;
+  }
+  for(const [id,model] of [['threephase','phases'],['sixpulse','threeRect']]){
+    const host=await navigateInvestigation(id);
+    await host.locator('[data-explore]').click();
+    assert.equal(await host.getAttribute('data-learning-state'),'EXPLORING',id+' exploration mode');
+    for(const tick of [0,25,75]){
+      await host.locator('[data-time]').evaluate((el,n)=>{
+        el.value=String(n);el.dispatchEvent(new Event('input',{bubbles:true}));
+      },tick);
+      const expected=await page.evaluate(({model,tick})=>{
+        const m=window.EE_INTERACTIVE.models[model];
+        const v=Object.fromEntries(m.knobs.map(k=>[
+          k.key,Number(document.querySelector('[data-knob="'+k.key+'"]').value)]));
+        const output=m.compute(v),probe=output.probe(tick/100);
+        const lane=model==='phases'?'VAB':'VDC';
+        return {value:probe.metrics[0].value,note:probe.note,
+          seriesValue:output.series.find(s=>s.label===lane).points[tick],
+          upper:probe.upper,lower:probe.lower,boundary:probe.boundary};
+      },{model,tick});
+      const displayed=Number((await host.locator('.interactive-metric strong').first().innerText()).replace(/,/g,'').split(/\s+/)[0]);
+      assert.ok(Math.abs(displayed-expected.value)<0.02,id+' displayed metric matches cursor '+tick);
+      assert.ok(Math.abs(expected.value-expected.seriesValue)<1e-8,id+' plotted waveform matches cursor '+tick);
+      assert.equal((await host.locator('.interactive-stage').innerText()).trim(),expected.note,
+        id+' observation and phase/conduction labels from cursor '+tick);
+      assert.equal(await host.locator('[data-cursor-value]').innerText(),tick+'%');
+      if(id==='sixpulse'&&tick===0){
+        assert.equal(expected.boundary,true,'Initial 30-degree upper commutation boundary');
+        assert.deepEqual(expected.upper,['A','C']);
+        assert.ok(expected.note.includes('換相邊界'),'Commutation tie cannot name one diode only');
+      }
+      if(id==='sixpulse'&&tick===25){
+        assert.equal(expected.boundary,false,'120-degree observation not a tie');
+        assert.deepEqual(expected.lower,['C'],'Current lower diode matches waveform instant');
+      }
+    }
+  }
+  // Prediction scoring is fixed at its original cursor even when the learner
+  // subsequently scrubs the waveform to inspect a different switching instant.
+  const phaseHost=await navigateInvestigation('threephase');
+  await phaseHost.locator('[data-predict="up"]').click();
+  await phaseHost.locator('[data-verify-target]').click();
+  const fixedGrade=await phaseHost.locator('.interactive-feedback').innerText();
+  const beforeCursor=await phaseHost.locator('.interactive-metric strong').first().innerText();
+  await phaseHost.locator('[data-time]').evaluate(el=>{
+    el.value='75';el.dispatchEvent(new Event('input',{bubbles:true}));
+  });
+  const afterCursor=await phaseHost.locator('.interactive-metric strong').first().innerText();
+  assert.notEqual(beforeCursor,afterCursor,'Three-phase live voltage responds to cursor');
+  assert.equal(await phaseHost.locator('.interactive-feedback').innerText(),fixedGrade,
+    'Moving time cursor cannot retroactively change graded prediction');
+  // ADC lecture example and harmonic comparison must retain fixed quantities.
+  const adcHost=await navigateInvestigation('adc');
+  assert.equal(await adcHost.locator('[data-knob="gain"]').evaluate(el=>Number(el.value)),14,
+    'ADC lesson must default to the lecture gain 14');
+  const adcNumbers=await adcHost.locator('.interactive-metric strong').allInnerTexts();
+  assert.ok(adcNumbers[0].includes('2.2 V'),'ADC +10 A should yield 2.20 V');
+  assert.ok(adcNumbers[1].replace(/,/g,'').includes('3003'),'ADC +10 A 12-bit count should be 3003');
+  const harmonicHost=await navigateInvestigation('harmonics');
+  const harmonicLabels=await harmonicHost.locator('.interactive-metric small').allInnerTexts();
+  assert.ok(harmonicLabels.includes('第 5 次線電流 RMS'),'Fifth harmonic always shown');
+  assert.ok(harmonicLabels.includes('第 7 次線電流 RMS'),'Seventh harmonic always shown');
+  assert.ok(harmonicLabels.includes('5 次／7 次 RMS 比'),'Fifth-to-seventh harmonic ratio always shown');
+  await harmonicHost.locator('[data-predict="up"]').click();
+  await harmonicHost.locator('[data-verify-target]').click();
+  assert.equal(await harmonicHost.locator('[data-knob="idc"]').evaluate(el=>Number(el.value)),7,
+    'Harmonic experiment changes actual DC current, not observation order');
+  assert.ok((await harmonicHost.locator('.interactive-feedback').innerText()).includes('符合預測'),
+    'Higher Idc raises the same fifth-harmonic RMS');
   await ctx.close();
 }finally{await browser.close();}
 assert.deepEqual(errors,[],'No uncaught page JavaScript errors');
