@@ -21,7 +21,7 @@
     var vals=t.values,n=vals.length,lo=Math.min.apply(null,vals),hi=Math.max.apply(null,vals),span=hi-lo;
     if(!Number.isFinite(lo)||!Number.isFinite(hi))return '';
     var pad=Math.max(span*.12,.001),ymin=lo-pad,ymax=hi+pad,x0=48,y0=11,w=600,h=110;
-    function px(i){return x0+i*w/(n-1);}
+    function px(i){if(selected==='loop'&&t.x&&t.x.length>1&&t.x[0]>0){return x0+Math.log(t.x[i]/t.x[0])/Math.log(t.x[n-1]/t.x[0])*w;}return x0+i*w/(n-1);}
     function py(a){return y0+(ymax-a)/(ymax-ymin)*h;}
     if(n===2&&t.labels){
       var lim=Math.max(hi,0.001),bars=vals.map(function(v,i){var x=80+280*i,b=92*Math.max(0,v)/lim;return '<rect x="'+x+'" y="'+(122-b)+'" width="90" height="'+b+'" rx="4" fill="'+(i?'#d39a47':'#3986d6')+'"/><text x="'+(x+45)+'" y="140" text-anchor="middle" class="advanced-chart-axis">'+esc(t.labels[i])+'</text><text x="'+(x+45)+'" y="'+(116-b)+'" text-anchor="middle" class="advanced-chart-axis">'+esc(fmt(v,2))+'</text>';}).join('');

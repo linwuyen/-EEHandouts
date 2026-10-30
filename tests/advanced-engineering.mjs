@@ -79,6 +79,42 @@ assert.ok(Number.isFinite(bode.data.pm),'Bode phase margin exists at default');
 const invalidBode=calculate('loop',{r:24,l:20,fs:50});
 assert.equal(invalidBode.validity,false,'DCM outside CCM small-signal plant');
 assert.ok(Number.isNaN(invalidBode.metrics[0].value),'Invalid CCM plant must not show crossover as valid');
+// Independent Bode magnitude formula with a much denser reference scan.
+ // A narrow LC peak can cross 0 dB twice inside ONE 220-point plot interval.
+function referenceDb(f,v){
+  const w=2*Math.PI*f,L=v.l*1e-6,C=v.c*1e-6,esr=v.esr/1000;
+  const plant=v.vin*Math.hypot(1,w*esr*C)/
+    Math.hypot(1-w*w*L*C*(1+esr/v.r),w*(L/v.r+esr*C));
+  const comp=v.kp*Math.hypot(1,2*Math.PI*v.fz/w)/Math.hypot(1,w/(2*Math.PI*v.fp));
+  return 20*Math.log10(plant*comp/v.ramp);
+}
+for(const options of [
+ {fs:100,l:100,c:300,r:24,kp:.002,ramp:3,esr:0,fp:60000,fz:100,delay:0},
+ {fs:100,l:200,c:300,r:24,kp:.004,ramp:3,esr:20,fp:60000,fz:100,delay:0}
+]){
+ const v=params('loop',options),model=calculate('loop',options),reference=[];
+ const N=16000,lo=10,hi=.45*v.fs*1000;
+ let a=lo,fa=referenceDb(lo,v);
+ for(let i=1;i<N;i++){
+   const b=lo*Math.pow(hi/lo,i/(N-1)),fb=referenceDb(b,v);
+   if(fa*fb<0){
+     let left=a,right=b,fl=fa;
+     for(let j=0;j<46;j++){const mid=(left+right)/2,fx=referenceDb(mid,v);
+       if(fl*fx>0){left=mid;fl=fx;}else right=mid;}
+     reference.push((left+right)/2);
+   }
+   a=b;fa=fb;
+ }
+ assert.equal(reference.length,2,'16k-point Bode reference must detect two 0dB roots');
+ assert.equal(model.data.crossovers.length,2,'Extremum-based Bode root finder must detect both');
+ assert.equal(model.mode,'MULTIPLE_CROSSOVERS','Multiple 0dB crossings should be flagged');
+ for(let i=0;i<2;i++){
+   near(model.data.crossovers[i].f,reference[i],.5,'Bode 0dB root from independent magnitude');
+   assert.ok(Number.isFinite(model.data.crossovers[i].pm),'Per-crossover phase margin must be finite');
+ }
+ assert.ok(Math.max(...model.traces[0].values)>0,'Bode SVG data must include narrow above-zero peak');
+ assert.ok(model.data.points.every((q,i,a)=>i===0||q.f>a[i-1].f),'Refined Bode x must be monotonic');
+}
 const schedule=calculate('timing');near(schedule.data.tbprd,500,0,'TBPRD 100MHz/100kHz updown');
 near(schedule.data.T,10,1e-12,'PWM period 100kHz');
 near(schedule.data.soc,1.75,1e-12,'CMPA UP trigger');
