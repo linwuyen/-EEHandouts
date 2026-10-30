@@ -674,6 +674,8 @@
       '<text x="668" y="210" text-anchor="end" font-size="12" fill="currentColor">'+esc(fmt(kn.max))+' '+esc(kn.unit)+'</text>'+
       '</svg>';
   }
+  // Prediction is a one-shot experiment. Any observation of manipulated
+  // values before predicting is exploration and must never earn a prediction grade.
   function mount(chapter,lesson,host) {
     if(!host)return;
     var entry=C[lesson.id];
@@ -683,87 +685,162 @@
     }
     var spec=M[entry[0]],focus=entry[2],knobs=spec.knobs.slice(),first=knobs.find(function(k){return k.key===focus;});
     if(!first){host.textContent='互動參數設定錯誤';return;}
-    var v={};knobs.forEach(function(k){v[k.key]=k.value;});
-    var metricIndex=entry[3]||0,baseline=spec.compute(v).metrics[metricIndex].value,guess=null,cursor=.25;
-    var target=comparisonTarget(lesson.id,first);
-    var targetDirection=target>first.value?'增加':'降低';
+    var v={};
+    knobs.forEach(function(k){v[k.key]=k.value;});
+    var starting=lessonInitialValues[lesson.id]||{};
+    Object.keys(starting).forEach(function(key){
+      var k=knobs.find(function(x){return x.key===key;});
+      if(!k)throw Error('Unknown lesson initial parameter: '+lesson.id+'/'+key);
+      var value=starting[key],grid=(value-k.min)/k.step;
+      if(value<k.min||value>k.max||Math.abs(grid-Math.round(grid))>1e-7)
+        throw Error('Invalid lesson initial parameter: '+lesson.id+'/'+key);
+      v[key]=value;
+    });
+    var initial=Object.assign({},v),metricIndex=entry[3]||0;
+    var initialResult=spec.compute(v),baseline=initialResult.metrics[metricIndex].value;
+    var target=comparisonTarget(lesson.id,first),targetDirection=target>initial[focus]?'增加':'降低';
+    var guess=null,phase='READY',exploreReason='',cursor=.25;
+    function scorable(r) {
+      return r&&r.metrics&&r.metrics[metricIndex]&&
+        Number.isFinite(r.metrics[metricIndex].value)&&
+        (!r.validity||r.validity.scorable!==false);
+    }
+    var baselineUsable=scorable(initialResult);
     host.innerHTML='<div class="interactive-head"><span class="pill">ACTIVE LEARNING</span><h3>'+esc(spec.title)+'</h3>'+
       '<p>'+esc(entry[1])+'</p></div>'+
-      '<div class="interactive-prediction"><strong>先預測：其他參數不變，將「'+esc(first.label)+'」由 '+fmt(first.value)+' '+esc(first.unit)+' '+targetDirection+'至 '+fmt(target)+' '+esc(first.unit)+' 後，「'+esc(spec.compute(v).metrics[metricIndex].label)+'」會？</strong>'+
+      '<div class="interactive-prediction"><strong>先預測：其他參數不變，將「'+esc(first.label)+'」由 '+fmt(initial[focus])+' '+esc(first.unit)+' '+targetDirection+'至 '+fmt(target)+' '+esc(first.unit)+' 後，「'+esc(initialResult.metrics[metricIndex].label)+'」會？</strong>'+
       '<div class="interactive-choices"><button type="button" class="btn btn-muted" data-predict="up">增加</button>'+
-      '<button type="button" class="btn btn-muted" data-predict="down">減少</button><button type="button" class="btn btn-muted" data-predict="same">不變</button></div>'+
-      '<button type="button" class="btn btn-muted" data-verify-target>套用指定變更並驗證</button><p class="interactive-feedback" aria-live="polite">先預測，再套用指定變更。其他參數須保持初始值。</p></div>'+
-      '<div class="interactive-knobs">'+knobs.map(function(k){return '<label class="interactive-knob"><span>'+esc(k.label)+'</span><strong data-knob-value="'+esc(k.key)+'">'+esc(fmt(k.value))+' '+esc(k.unit)+'</strong>'+
-        '<input type="range" min="'+k.min+'" max="'+k.max+'" step="'+k.step+'" value="'+k.value+'" data-knob="'+esc(k.key)+'" aria-label="'+esc(k.label)+'"></label>';}).join('')+'</div>'+
-      '<div class="interactive-metrics" aria-live="polite"></div><div class="interactive-chart"></div>'+
+      '<button type="button" class="btn btn-muted" data-predict="down">減少</button>'+
+      '<button type="button" class="btn btn-muted" data-predict="same">不變</button></div>'+
+      '<button type="button" class="btn btn-muted" data-verify-target disabled>套用指定變更並驗證</button>'+
+      '<button type="button" class="btn btn-muted" data-explore>直接探索（不計入預測）</button>'+
+      '<p class="interactive-feedback" aria-live="polite">先選擇預測，再套用指定變更；或選擇自由探索。</p></div>'+
+      '<div class="interactive-knobs">'+knobs.map(function(k){return '<label class="interactive-knob"><span>'+esc(k.label)+'</span><strong data-knob-value="'+esc(k.key)+'">'+esc(fmt(v[k.key]))+' '+esc(k.unit)+'</strong>'+
+        '<input type="range" min="'+k.min+'" max="'+k.max+'" step="'+k.step+'" value="'+v[k.key]+'" data-knob="'+esc(k.key)+'" aria-label="'+esc(k.label)+'"></label>';}).join('')+'</div>'+
+      '<div class="interactive-metrics" aria-live="polite"></div>'+
+      '<p class="interactive-validity" role="status"></p><div class="interactive-chart"></div>'+
       '<div class="interactive-clock" hidden><label>同步時間游標：<strong data-cursor-value>25%</strong>'+
       '<input type="range" min="0" max="100" step="1" value="25" data-time aria-label="波形時間游標"></label></div>'+
       '<p class="interactive-stage" aria-live="polite"></p><p class="interactive-note"></p><p class="interactive-warning" role="status" hidden></p>'+
       '<p class="interactive-assumptions"><strong>模型條件：</strong>'+esc(spec.assumption)+'</p>'+
       '<button type="button" class="btn btn-muted interactive-reset">重設實驗與預測</button>';
     var prediction=host.querySelector('.interactive-feedback');
-    function refresh(){
-      var r=spec.compute(v),units=r.metrics.map(function(item){return '<div class="interactive-metric"><small>'+esc(item.label)+'</small><strong>'+esc(fmt(item.value,item.digits))+' '+esc(item.unit)+'</strong></div>';}).join('');
-      host.querySelector('.interactive-metrics').innerHTML=units;
+    function isolated() {
+      return knobs.every(function(k){return k.key===focus||Math.abs(v[k.key]-initial[k.key])<=1e-9;});
+    }
+    function refresh() {
+      var r=spec.compute(v);
+      host.dataset.learningState=phase;
+      host.querySelector('.interactive-metrics').innerHTML=r.metrics.map(function(item){
+        return '<div class="interactive-metric"><small>'+esc(item.label)+'</small><strong>'+
+          esc(fmt(item.value,item.digits))+' '+esc(item.unit)+'</strong></div>';
+      }).join('');
       host.querySelectorAll('[data-knob-value]').forEach(function(node){
         var key=node.getAttribute('data-knob-value'),k=knobs.find(function(x){return x.key===key;});
         node.textContent=fmt(v[key])+' '+k.unit;
       });
-      host.querySelector('.interactive-chart').innerHTML=r.series?waveChart(r.series,cursor):sweepChart(spec,v,focus,r.metrics[metricIndex].value,metricIndex);
-      host.querySelector('.interactive-clock').hidden=!r.series;
-      host.querySelector('.interactive-stage').textContent=r.stage?phaseLabel(r.stage,cursor):'';
+      var reveal=phase==='REVIEWED'||phase==='EXPLORING';
+      host.querySelector('.interactive-chart').innerHTML=reveal?
+        (r.series?waveChart(r.series,cursor):sweepChart(spec,v,focus,r.metrics[metricIndex].value,metricIndex)):
+        '<p class="interactive-chart-placeholder">波形／曲線將在驗證後揭曉；直接調參數將轉為自由探索。</p>';
+      host.querySelector('.interactive-clock').hidden=!reveal||!r.series;
+      host.querySelector('.interactive-stage').textContent=reveal&&r.stage?phaseLabel(r.stage,cursor):'';
       host.querySelector('.interactive-note').textContent=r.note||'';
-      var warn=host.querySelector('.interactive-warning');warn.hidden=!r.warning;warn.textContent=r.warning||'';
+      var warn=host.querySelector('.interactive-warning');
+      warn.hidden=!r.warning;warn.textContent=r.warning||'';
+      var validity=host.querySelector('.interactive-validity');
+      validity.textContent=scorable(r)?
+        '模型狀態：限定假設下可比較（非實機設計驗證）':
+        '模型狀態：超出適用域／僅為數學外插，不可給予有效預測評分';
       if(spec===M.bridge){
         var bipolar=Boolean(v.bipolar),bControl=host.querySelector('[data-knob="db"]');
         bControl.disabled=bipolar;
         bControl.value=String(bipolar?100-v.da:v.db);
-        host.querySelector('[data-knob-value="db"]').textContent=fmt(bipolar?100-v.da:v.db)+' %'+(bipolar?'（互補推導，不可調）':'');
+        host.querySelector('[data-knob-value="db"]').textContent=
+          fmt(bipolar?100-v.da:v.db)+' %'+(bipolar?'（互補推導，不可調）':'');
       }
-      var changed=Math.abs(v[focus]-first.value)>1e-9,atTarget=Math.abs(v[focus]-target)<=1e-9;
-      var isolated=knobs.every(function(k){return k.key===focus||Math.abs(v[k.key]-k.value)<=1e-9;});
-      var selectedValue=r.metrics[metricIndex].value;
-      if(!isolated)prediction.textContent='已同時變更其他參數，無法比較單一變數；請重設後只改指定參數。';
-      else if(guess&&atTarget&&Number.isFinite(baseline)&&Number.isFinite(selectedValue)){
-        var tolerance=Math.max(1e-7,Math.abs(baseline)*1e-7),delta=selectedValue-baseline,observed=delta>tolerance?'up':delta< -tolerance?'down':'same';
-        var textValue={up:'增加',down:'減少',same:'不變'};
-        prediction.textContent=(guess===observed?'符合預測。':'與預測不同，重新觀察。')+
-          '基準 '+fmt(baseline,3)+' → 指定變更後 '+fmt(selectedValue,3)+'；觀察結果：'+textValue[observed]+'。';
-      }else if(guess&&atTarget)prediction.textContent='指定變更超出模型有效範圍，不能對物理結果評分。';
-      else if(guess&&changed)prediction.textContent='已調整參數，但尚未到指定比較值 '+fmt(target)+' '+first.unit+'；此時不評分。';
-      else if(changed)prediction.textContent='請先選擇預測，再套用指定比較值。';
-      else prediction.textContent=guess?'預測已記錄，按「套用指定變更並驗證」進行單一變數比較。':'先選擇預測，再套用指定變更。其他參數須保持初始值。';
+      host.querySelectorAll('[data-predict]').forEach(function(button){
+        button.disabled=phase!=='READY'||!baselineUsable;
+        button.setAttribute('aria-pressed',String(guess===button.dataset.predict));
+      });
+      host.querySelector('[data-verify-target]').disabled=phase!=='PREDICTED';
+      if(phase==='READY') {
+        prediction.textContent=baselineUsable?
+          '先選擇預測，再套用指定變更；或選擇自由探索。':
+          '初始工況已超出模型適用範圍；請選擇自由探索，不可評分。';
+      }else if(phase==='PREDICTED') {
+        prediction.textContent='預測已記錄；請按「套用指定變更並驗證」。結果在驗證前不顯示。';
+      }else if(phase==='EXPLORING') {
+        prediction.textContent=exploreReason||'自由探索中：不計入事前預測，重設後才能重新作答。';
+      }else if(phase==='REVIEWED') {
+        var selected=r.metrics[metricIndex].value;
+        if(!isolated())prediction.textContent='已同時變更其他參數，無法進行單一變數預測評分；請重設。';
+        else if(!baselineUsable||!scorable(r)){
+          prediction.textContent='模型超出適用範圍或僅為外插，不能判定事前預測正確；請查看模型條件。';
+        }else{
+          var tol=Math.max(1e-7,Math.abs(baseline)*1e-7),delta=selected-baseline;
+          var observed=delta>tol?'up':delta< -tol?'down':'same';
+          var labels={up:'增加',down:'減少',same:'不變'};
+          prediction.textContent=(guess===observed?'符合預測。':'與預測不同，請核對物理原因。')+
+            '基準 '+fmt(baseline,3)+' → 指定變更後 '+fmt(selected,3)+
+            '；觀察結果：'+labels[observed]+'。';
+        }
+      }
     }
-        host.querySelectorAll('[data-knob]').forEach(function(input){
+    host.querySelectorAll('[data-knob]').forEach(function(input){
       input.addEventListener('input',function(){
         if(input.disabled)return;
-        v[input.dataset.knob]=Number(input.value);
+        var key=input.dataset.knob,next=Number(input.value);
+        if(next===v[key])return;
+        v[key]=next;
+        if(phase==='PREDICTED'&&key===focus&&
+           Math.abs(v[focus]-target)<=1e-9&&isolated())phase='REVIEWED';
+        else if(phase!=='EXPLORING'){
+          exploreReason=key!==focus&&phase==='PREDICTED'?
+            '已同時變更其他參數，無法比較單一變數；請重設後重新預測。':
+            '已先觀察或更改其他工況，這次僅屬自由探索；請重設後重新預測。';
+          phase='EXPLORING';
+        }
         refresh();
       });
     });
     host.querySelectorAll('[data-predict]').forEach(function(button){
       button.addEventListener('click',function(){
+        if(phase!=='READY'||!baselineUsable)return;
         guess=button.dataset.predict;
-        host.querySelectorAll('[data-predict]').forEach(function(node){node.setAttribute('aria-pressed',String(node===button));});
+        phase='PREDICTED';
         refresh();
       });
     });
     host.querySelector('[data-verify-target]').addEventListener('click',function(){
+      if(phase!=='PREDICTED')return;
       v[focus]=target;
       host.querySelector('[data-knob="'+focus+'"]').value=String(target);
+      phase=isolated()?'REVIEWED':'EXPLORING';
+      if(phase==='EXPLORING')exploreReason='已同時變更其他參數，無法比較單一變數；請重設。';
       refresh();
     });
+    host.querySelector('[data-explore]').addEventListener('click',function(){
+      if(phase==='READY'||phase==='PREDICTED'){
+        phase='EXPLORING';
+        exploreReason='自由探索中：可以查看波形、調整參數，但不計入事前預測。';
+        refresh();
+      }
+    });
     host.querySelector('[data-time]').addEventListener('input',function(ev){
+      if(phase!=='REVIEWED'&&phase!=='EXPLORING')return;
       cursor=Number(ev.target.value)/100;
       host.querySelector('[data-cursor-value]').textContent=Math.round(cursor*100)+'%';
       refresh();
     });
     host.querySelector('.interactive-reset').addEventListener('click',function(){
-      knobs.forEach(function(k){v[k.key]=k.value;host.querySelector('[data-knob="'+k.key+'"]').value=String(k.value);});
-      guess=null;cursor=.25;
+      knobs.forEach(function(k){
+        v[k.key]=initial[k.key];
+        host.querySelector('[data-knob="'+k.key+'"]').value=String(initial[k.key]);
+      });
+      phase='READY';guess=null;cursor=.25;exploreReason='';
       host.querySelector('[data-time]').value='25';
       host.querySelector('[data-cursor-value]').textContent='25%';
-      host.querySelectorAll('[data-predict]').forEach(function(node){node.setAttribute('aria-pressed','false');});
       refresh();
     });
     refresh();
