@@ -120,6 +120,7 @@
       '<article class="reading-block"><h2>先理解物理現象</h2>'+l.explain.map(function(p){return '<p>'+e(p)+'</p>'}).join('')+'</article>'+
       '<article class="reading-block"><h2>核心公式與條件</h2><div class="formula-panel"><div class="formula-icon">ƒ</div><div><strong>KEY RELATION</strong>'+formulaMarkup(l)+'</div></div><h3>帶入數字看看</h3><div class="example">'+e(l.example)+'</div></article>'+
       '<article class="reading-block"><h2>工程現場要注意</h2><div class="point-list">'+l.points.map(function(p){return '<div class="point-item"><span class="point-dot"></span><span>'+e(p)+'</span></div>'}).join('')+'</div><div class="warning-note"><strong>!</strong><div><strong>常見誤解</strong><div>'+e(l.trap)+'</div></div></div></article>'+
+      '<section class="reading-block"><h2>操作、預測、驗證</h2><p class="interactive-intro">先做預測，再改變參數觀察即時模型；波形與開關區間使用同一份計算結果。模型是教學近似，不可視為實機量測。</p><div id="lesson-interactive" class="interactive-lesson"></div></section>'+ 
       '<section class="reading-block"><h2>30 秒觀念確認</h2><div id="quick-check">'+quick(l)+'</div></section>'+
       '<div class="lesson-bottom"><button type="button" class="btn '+(completed.has(l.id)?'btn-muted':'btn-primary')+'" data-action="complete">'+(completed.has(l.id)?'✓ 已標記完成':'✓ 標記這節已完成')+'</button><div class="lesson-pager">'+(prev?buttonLink(lessonPath(prev.chapter,prev.lesson),'← 上一節'):'')+(next?buttonLink(lessonPath(next.chapter,next.lesson),'下一節 →',true):buttonLink('#home','返回總覽 →',true))+'</div></div></div>';
   }
@@ -194,7 +195,7 @@
     updateSidebar(r);updateBreadcrumb(r,c,l);
     if(r.type==='home')main.innerHTML=home();
     else if(r.type==='chapter'){main.innerHTML=chapter(c);window.EE_LABS.mount(c.lab,$('#lab-holder'))}
-    else if(r.type==='lesson')main.innerHTML=lesson(c,l);
+    else if(r.type==='lesson'){main.innerHTML=lesson(c,l);if(window.EE_INTERACTIVE)window.EE_INTERACTIVE.mount(c,l,$('#lesson-interactive'))}
     else if(r.type==='slides')main.innerHTML=slides(c);
     else if(r.type==='slide'){main.innerHTML=sourcePage(pg);if(window.EE_SOURCE_PDF)window.EE_SOURCE_PDF.mount($('#source-pdf-holder'),pg)}
     else if(r.type==='quiz')main.innerHTML=quiz(c);

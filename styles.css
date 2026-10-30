@@ -75,3 +75,68 @@ html[data-theme="dark"]{color-scheme:dark;--bg:#0b1220;--paper:#121e30;--paper-2
   .equation-math{font-size:18px}
   .equation-row{padding:12px 0}
 }
+
+
+/* Per-lesson active investigations (upper and middle volume). */
+.interactive-intro{margin:0 0 16px;color:var(--muted);line-height:1.8}
+.interactive-lesson{border:1px solid var(--line);border-radius:18px;background:var(--paper);padding:22px;overflow:hidden}
+.interactive-head{margin-bottom:18px}
+.interactive-head h3{font-size:20px;line-height:1.4;margin:9px 0 6px;color:var(--text)}
+.interactive-head p{margin:0;color:var(--muted);line-height:1.8}
+.interactive-prediction{background:var(--paper-2);border:1px solid var(--line);border-radius:13px;padding:15px;margin-bottom:19px}
+.interactive-prediction strong{display:block;font-size:14px;color:var(--text);margin-bottom:10px}
+.interactive-choices{display:flex;gap:8px;flex-wrap:wrap}
+.interactive-choices button{min-height:37px;font-size:13px}
+.interactive-choices [aria-pressed="true"]{background:var(--accent);color:#fff;border-color:var(--accent)}
+.interactive-feedback{font-size:13px;color:var(--muted);min-height:22px;line-height:1.65;margin:10px 0 0}
+.interactive-knobs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:12px;margin-bottom:18px}
+.interactive-knob{padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--paper-2);display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;column-gap:10px;row-gap:8px}
+.interactive-knob span{font-size:12px;color:var(--muted);line-height:1.45}
+.interactive-knob strong{font-size:13px;color:var(--text);font-variant-numeric:tabular-nums;white-space:nowrap}
+.interactive-knob input{grid-column:1/-1;width:100%;accent-color:var(--accent);min-height:26px;cursor:pointer}
+.interactive-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr));gap:9px;margin-bottom:15px}
+.interactive-metric{border:1px solid var(--line);border-radius:11px;padding:12px;background:var(--paper)}
+.interactive-metric small{font-size:11px;color:var(--muted);display:block;line-height:1.5}
+.interactive-metric strong{display:block;font-size:19px;font-weight:750;color:var(--text);margin-top:5px;font-variant-numeric:tabular-nums}
+.interactive-chart{overflow-x:auto;width:100%;border:1px solid var(--line);border-radius:12px;background:var(--paper-2);padding:10px;margin-bottom:12px}
+.interactive-svg{display:block;width:100%;height:auto;min-width:340px;max-height:550px}
+.interactive-clock{border:1px solid var(--line);border-radius:10px;padding:11px 13px;margin:8px 0 12px;background:var(--paper-2)}
+.interactive-clock[hidden]{display:none}
+.interactive-clock label{display:block;color:var(--text);font-size:13px;line-height:1.8}
+.interactive-clock strong{font-variant-numeric:tabular-nums}
+.interactive-clock input{display:block;width:100%;accent-color:var(--accent);min-height:30px;cursor:pointer}
+.interactive-stage{font-size:14px;font-weight:650;color:var(--accent);line-height:1.6;margin:10px 0}
+.interactive-stage:empty{display:none}
+.interactive-note{margin:9px 0;color:var(--text);line-height:1.75}
+.interactive-warning{margin:11px 0;color:#a35b13;background:rgba(217,147,45,.1);padding:10px 13px;border-radius:10px;font-size:13px}
+.interactive-warning[hidden]{display:none}
+.interactive-assumptions{border-top:1px solid var(--line);padding-top:13px;font-size:12px;color:var(--muted);line-height:1.8}
+.interactive-reset{margin-top:8px}
+@media(max-width:610px){
+  .interactive-lesson{padding:13px;border-radius:13px}
+  .interactive-knobs{grid-template-columns:1fr}
+  .interactive-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .interactive-metric strong{font-size:16px}
+  .interactive-chart{padding:5px}
+}
+@media(prefers-reduced-motion:reduce){
+  .interactive-lesson *{scroll-behavior:auto;transition:none!important;animation:none!important}
+}
+
+
+/* Keep wide SVG plots in their own scroll region, not in the page's min-content width. */
+.lesson-layout,.reading-block,.interactive-lesson,.interactive-knobs,.interactive-metrics,.interactive-chart{min-width:0;max-width:100%}
+.interactive-lesson{width:100%;overflow:hidden}
+.interactive-chart{width:100%;overflow-x:auto;overscroll-behavior-x:contain}
+.interactive-knob strong,.interactive-metric strong{overflow-wrap:anywhere;word-break:break-word}
+@media(max-width:610px){
+  .interactive-knob strong{white-space:normal;text-align:right}
+  .interactive-chart{contain:layout}
+}
+
+
+/* Grid-item min-content fix: long KaTeX equations may scroll locally, not widen the mobile page. */
+.formula-panel{min-width:0;max-width:100%;width:100%}
+.formula-panel > div:last-child{min-width:0;max-width:100%;overflow:hidden}
+.formula-panel .equation-list,.formula-panel .equation-row{min-width:0;max-width:100%}
+.formula-panel .equation-math{width:100%;max-width:100%;overflow-x:auto}

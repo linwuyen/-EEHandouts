@@ -43,6 +43,9 @@
 - KaTeX CSS/JS 由 jsDelivr 載入；若 KaTeX JavaScript 或 CSS 任一資產無法載入，保留原本的文字公式作為可閱讀備援，不影響章節導覽與測驗。
 - 長公式在手機僅於公式區域水平捲動，不造成整頁橫向溢位。
 - 每個主題提供一個可調參數的工程小實驗
+- **上冊 38 節＋中冊 34 節，共 72 節都有獨立研究問題和即時互動操作**。`interactive-lessons.js` 提供 40 種明確標示適用條件的工程模型，以「預測 → 調參數 → 觀察 → 比對」流程操作；每節有滑桿、數值輸出、曲線／同步波形和重設。
+- Buck、Boost、反相 Buck-Boost、Flyback、Forward 等提供同步 PWM／電感或磁化波形；時間游標對齊 ON／OFF／ZERO 區間。
+- SCR 觸發角、Boost 串聯銅損、輸出電容近似、光耦 CTR、帶限微分器、四開關升降壓、H-Bridge 單極性／互補波形、ADC 超界等使用專題模型。這些是**教學用理想或簡化模型**，不是 SPICE、元件選型或實機測量。
 - **全部 107 頁**可搜尋的標題與原講義文字索引（含封面、課程安排與結語）
 - 每頁皆可在瀏覽器**載入本機原講義 PDF**。使用 PDF.js 解析，先驗證 **107 頁**與首頁／第 24 頁的講義標題，再將真正的 PDF 頁面渲染為 Canvas；PDF 位元組儲存於本機 IndexedDB，不會上傳到伺服器
 - 閱讀完成標記、學習進度保存於瀏覽器本機、深色／淺色模式
@@ -82,6 +85,11 @@ npm test
 
 網站不附帶原 PPTX/PDF 二進位檔，避免未經確認公開轉載講義；你在網站載入的檔案不會傳送到 GitHub。若瀏覽器禁止 IndexedDB，重新整理後可能需重新選取。
 
+## 新增互動研究範圍
+- 72 節都有可調模型；**不是全部 159 張原投影片都能逐像素操作**。原始 PDF 仍由使用者本機載入對照。
+- 模型有適用條件，例如 Sallen-Key 章先用一階 RC 基礎對照、Boost 銅損只示範 CCM 平均穩態、Forward 只計伏秒，不能推定硬體安全或迴路穩定。
+- 預測功能比較基準與當次參數結果；非單調曲線需針對實際操作方向解讀。
+
 ## 範圍與限制
 - 文字搜尋支援「25」「P.25」「第25頁」「頁碼 25」。抽取結果只有頁碼的圖形型投影片會提示必須查看原始 PDF。
 - 本站提供主題重整、教學補充、完整頁碼及文字擷取。原始 PPTX 中以圖片形式存在的公式、波形及示波器截圖**不會被文字擷取取代**，請在原講義 PDF 檢視器核對；此 PDF 須使用者自行載入。
@@ -98,16 +106,19 @@ npm test
 - `app.js`：導航、搜尋、測驗、學習進度和 KaTeX 公式插入
 - `formula-math.js`：上冊／中冊經人工編寫並分段呈現的數學式資料
 - `labs.js`：七個互動實驗與數學模型
+- `interactive-lessons.js`：72 節的研究題、40 種可重用模型及同步波形（上冊／中冊共用）
 - `slide-text.js`：從使用者提供的 107 頁 PPTX 擷取的原文
 - `source-viewer.js`：PDF.js（動態 CDN 程式）解析及身分／頁數驗證、Canvas 繪製、IndexedDB 本機保存；不向網站後端上傳 PDF
 - `tests/smoke.mjs`：Playwright 真實瀏覽器測試
+- `tests/interactive-smoke.mjs`：逐一操作上、下冊 72 節的預測、滑桿、時間游標、重設和手機版檢查
+- `tests/interactive-engineering.mjs`：獨立數值 fixture，驗證 CCM/DCM、Forward、Bridge、SCR、CTR、ADC 模型
 - `tests/middle-engineering.mjs`：七個中冊互動模型、Buck CCM／BCM／DCM 公式與實際模型電流波形的獨立預期值測試
 - `.github/workflows/verify.yml`：每次推送執行桌機／手機及數學邊界回歸測試
 - `.nojekyll`：GitHub Pages 靜態資產處理
 
 ## 驗證
 
-Node.js 22 開發環境：執行 `npm ci --ignore-scripts`，再安裝 Chromium、啟動本機靜態網站後執行 `npm test`。完整測試分為守門程式 `tests/release-guard.mjs`、上冊 `tests/smoke.mjs`、中冊 `tests/middle-smoke.mjs`、中冊工程模式與 Buck DCM `tests/middle-engineering.mjs`、公式排版 `tests/math-smoke.mjs`。上冊／中冊都有 PDF 測試、手機顯示與錯誤條件檢查；工具程式和固定相依版本見 `package.json`、`package-lock.json`。
+Node.js 22 開發環境：執行 `npm ci --ignore-scripts`，再安裝 Chromium、啟動本機靜態網站後執行 `npm test`。完整測試分為守門程式 `tests/release-guard.mjs`、上冊 `tests/smoke.mjs`、中冊 `tests/middle-smoke.mjs`、中冊工程模式與 Buck DCM `tests/middle-engineering.mjs`、公式排版 `tests/math-smoke.mjs`、`tests/interactive-smoke.mjs`。上冊／中冊都有 PDF 測試、手機顯示與錯誤條件檢查；工具程式和固定相依版本見 `package.json`、`package-lock.json`。
 
 本專案由使用者提供的講義與前述學習討論整理而成。
 ## 內容權利提示
