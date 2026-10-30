@@ -34,7 +34,21 @@ assert.ok((await page.locator('.advanced-metric').first().innerText()).includes(
 await go('timing');await page.locator('[data-selector="soca"]').selectOption('ZERO');
 await page.locator('[data-selector="shadow"]').selectOption('ZERO');await knob('fs',200);await knob('isr',30000);await waitMode('CPU_OVERRUN');
 assert.equal(await page.locator('.advanced-model-status').getAttribute('data-valid'),'false');
-await page.locator('.advanced-reset').click();await waitMode('SAME_CYCLE');
+await page.locator('.advanced-reset').click();await waitMode('NEXT_PWM_CYCLE');
+// Device-domain and PWM-period labeling must be observable in the UI.
+await go('timing');await page.locator('.advanced-reset').click();
+await knob('acqps',5);await waitMode('OUT_OF_DEVICE_DOMAIN');
+assert.equal(await page.locator('.advanced-model-status').getAttribute('data-valid'),'false');
+await page.locator('.advanced-reset').click();await waitMode('NEXT_PWM_CYCLE');
+await page.locator('[data-selector="epwmdiv"]').selectOption('2');
+await page.waitForFunction(()=>{
+ const m=Array.from(document.querySelectorAll('.advanced-metric')).find(el=>el.querySelector('small')?.textContent?.includes('量化後 TBPRD'));
+ return Number.parseFloat(m?.querySelector('strong')?.textContent||'')===250;
+},null,{timeout:15000});
+await page.locator('.advanced-reset').click();
+await page.locator('[data-selector="soca"]').selectOption('ZERO');
+await page.locator('[data-selector="shadow"]').selectOption('PERIOD');
+await waitMode('SAME_PWM_CYCLE');
 await go('nonideal');const vo=await output('非理想 Buck Vout');await knob('rh',80);
 await page.waitForFunction(old=>document.querySelectorAll('.advanced-metric strong')[1]?.textContent!==old,vo,{timeout:15000});
 // A same-hash navigation may reuse the current page and its slider state.
