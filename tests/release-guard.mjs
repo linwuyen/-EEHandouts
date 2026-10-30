@@ -113,7 +113,7 @@ try{
   writeFileSync(mockCurl,`#!/usr/bin/env bash
 set -euo pipefail
 for arg in "$@"; do
-  if [[ "$arg" == *"release-sha.txt"* ]]; then printf '%s\\n' "${MOCK_PUBLISHED_SHA}"; exit 0; fi
+  if [[ "$arg" == *"release-sha.txt"* ]]; then printf '%s\\n' "\${MOCK_PUBLISHED_SHA}"; exit 0; fi
 done
 exit 0
 `);
