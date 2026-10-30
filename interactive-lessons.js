@@ -501,7 +501,7 @@
     harmonics:['sixPulseHarmonics','將觀察諧波由第 5 次改成第 7 次，輸入線電流分量如何變化？','order'],
     commutation:['sourceL','換向迴路 Ls 增大，對電流變換速度有何約束？','l'],
     bus:['threeBus','保持其他參數不變，增加 DC Bus 電容後，三相整流器輸出漣波如何改變？','cap',1],
-    op:['op','反相增益增加時，輸出是否可能碰到供電限制？','gain'],
+    op:['op','增加反相增益，理想輸出是否由線性區跨到 ±12 V 的裁切區？','gain',2],
     diff:['diff','差動輸入增加時，理想差動輸出會如何變化？','vdiff'],
     filter:['filter','電阻增大時，一階 RC 截止頻率如何改變？','r'],
     differentiator:['differentiator','提高分析頻率後，帶限微分器增益如何變化？','freq'],
