@@ -40,7 +40,13 @@ async function inspect(file,expectedCount,width) {
       const max=await control.evaluate(el=>Number(el.max));
       const min=await control.evaluate(el=>Number(el.min));
       const step=await control.evaluate(el=>Number(el.step));
-      const end=start<max?Math.min(max,Number((start+step).toFixed(8))):Math.max(min,Number((start-step).toFixed(8)));
+      const end=await page.evaluate(id=>{
+        const [model,,key]=window.EE_INTERACTIVE.catalog[id];
+        const knob=window.EE_INTERACTIVE.models[model].knobs.find(k=>k.key===key);
+        return window.EE_INTERACTIVE.comparisonTarget(id,knob);
+      },x.id);
+      assert.ok(end>=min&&end<=max&&Math.abs((end-min)/step-Math.round((end-min)/step))<1e-7,
+        x.id+' comparison must land on a valid slider step');
       const original=await host.locator('.interactive-metric strong').first().innerText();
       await host.locator('[data-predict="up"]').click();
       await host.locator('[data-verify-target]').click();
@@ -135,6 +141,23 @@ try{
     'Changing a second parameter must invalidate causal prediction grading');
   await pqsHost.locator('.interactive-reset').click();
   assert.ok((await pqsHost.locator('.interactive-feedback').innerText()).includes('先選擇預測'),'Reset clears causal invalidation');
+  await page.goto(BASE+'/middle.html#home');
+  await page.locator('.subject-card').first().waitFor({timeout:10000});
+  const boostRoute=await page.evaluate(()=>{
+    const c=window.EE_DATA.chapters.find(c=>c.lessons.some(l=>l.id==='mid-boost-rl'));
+    return '#lesson/'+c.id+'/mid-boost-rl';
+  });
+  await page.evaluate(target=>{location.hash=target},boostRoute);
+  const boostHost=page.locator('#lesson-interactive');
+  await boostHost.locator('[data-knob="l"]').waitFor({timeout:10000});
+  for(const [knob,value] of [['l',40],['freq',50]]){
+    await boostHost.locator('[data-knob="'+knob+'"]').evaluate((el,n)=>{
+      el.value=String(n);el.dispatchEvent(new Event('input',{bubbles:true}));
+    },value);
+  }
+  const sweepPath=await boostHost.locator('.interactive-chart path[stroke="#159c81"]').getAttribute('d');
+  assert.ok((sweepPath.match(/M/g)||[]).length>=2,
+    'Invalid Boost CCM duty ranges must create separate SVG subpaths without bridging the gap');
   await ctx.close();
 }finally{await browser.close();}
 assert.deepEqual(errors,[],'No uncaught page JavaScript errors');
