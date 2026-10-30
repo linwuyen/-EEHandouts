@@ -21,6 +21,21 @@
     return {mode:mode,vout:vout,ripple:ripple,boundary:boundary,valley:valley,peak:peak,
       on:d,freewheel:freewheel,zero:zero};
   }
+  // Integrate iC = iDiode - Iout over the ideal three-interval Boost cycle.
+  // Charge is kept in A * normalized switching-period units; divide by C*fs
+  // for Vpp. Includes the capacitor-voltage maximum where iDiode crosses Io,
+  // which can occur inside OFF even in CCM.
+  function boostCapRipple(m,io,fs,c){
+    var qOn=-io*m.on;
+    var qOff=qOn + ((m.peak+m.valley)/2-io)*m.freewheel;
+    var qEnd=qOff-io*m.zero;
+    var samples=[0,qOn,qOff,qEnd];
+    if(m.peak>io && m.valley<io){
+      var crossed=m.freewheel*(m.peak-io)/(m.peak-m.valley);
+      samples.push(qOn+(m.peak-io)*crossed/2);
+    }
+    return (Math.max.apply(null,samples)-Math.min.apply(null,samples))/(c*fs);
+  }
   var defs={
     'mid-buck':{
       name:'Buck Duty、電感漣波與 BCM',hint:'理想非同步 Buck CCM / BCM / DCM，依負載切換穩態模型',
@@ -40,9 +55,9 @@
       }
     },
     'mid-boost':{
-      name:'Boost 增益、電感與輸出漣波',hint:'理想 Boost CCM，測試 Duty 增大造成的電流應力',
+      name:'Boost 增益、電感與輸出漣波',hint:'理想非同步 Boost｜CCM／BCM／DCM 電流與電容漣波',
       knobs:[k('vin','輸入電壓',12,72,4,48,' V'),k('duty','Duty',10,80,5,50,'%'),k('freq','切換頻率',50,250,25,100,' kHz'),k('l','電感',40,300,20,100,' μH'),k('io','輸出電流',.5,5,.5,2,' A')],
-      note:'理想非同步 Boost，固定輸入、Duty、L、fs 與輸出定電流負載。分段處理 CCM/BCM/DCM；電容 220 μF 漣波只用一階近似，忽略 ESR、寄生與暫態。',
+      note:'理想非同步 Boost，固定 Vin、Duty、L、fs 與定電流輸出。CCM／BCM／DCM 電容漣波以二極體電流三段波形積分 iC=iD−Io 求得（固定 C=220 μF、小漣波）。忽略 ESR、ESL、實際輸出負載電阻、寄生與動態暫態；非實機規格。',
       compute:function(v){
         var d=v.duty/100,L=v.l*1e-6,fs=v.freq*1000,di=v.vin*d/(L*fs);
         var vccm=v.vin/(1-d),iinCcm=v.io/(1-d),threshold=di/2;
@@ -52,10 +67,12 @@
         var peak=mode==='CCM'?iinCcm+di/2:di;
         var valley=mode==='CCM'?iinCcm-di/2:0;
         var iin=mode==='DCM'?peak*(d+off)/2:iinCcm;
-        var zero=Math.max(0,1-d-off),dv=v.io*d/(220e-6*fs);
+        var zero=Math.max(0,1-d-off);
         var model={mode:mode,vout:vo,peak:peak,valley:Math.max(0,valley),iin:iin,on:d,freewheel:off,zero:zero,boundary:threshold*(1-d)};
-        return {model:model,values:[['理想 '+mode+' Vout',f(vo,2)+' V'],['輸入平均電流',f(iin,2)+' A'],['電感峰值',f(peak,2)+' A'],['電容漣波近似',f(dv,2)+' V']],
-          warning:mode==='DCM'?'DCM：採用 ON／二極體導通／零電流三區間穩態模型；輸出漣波僅為忽略 ESR 的一階估算。':mode==='BCM'?'BCM：電感電流谷值為 0；處於臨界邊界。':d>.7?'高 Duty：寄生、損耗與元件電流應力未納入理想模型。':''};
+        var dv=boostCapRipple(model,v.io,fs,220e-6);
+        model.rippleVpp=dv;
+        return {model:model,values:[['理想 '+mode+' Vout',f(vo,2)+' V'],['輸入平均電流',f(iin,2)+' A'],['電感峰值',f(peak,2)+' A'],['電容漣波 p-p',f(dv*1000,2)+' mVpp']],
+          warning:mode==='DCM'?'DCM：電容漣波已包含二極體導通與零電流區間，依 iC 積分；忽略 ESR／寄生與實際暫態。':mode==='BCM'?'BCM：電感電流谷值為 0；電容漣波仍依分段電流積分。':d>.7?'高 Duty：寄生、損耗與元件電流應力未納入理想模型。':''};
       }
     },
     'mid-buckboost':{
