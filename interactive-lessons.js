@@ -107,7 +107,7 @@
           '總延遲需要逐一量測；若超過週期，控制資料可能跨週期生效。',{warning:ratio>=1?'延遲已達或超過一個更新週期，需重新確認確定性時序。':''});}
     },
     semiconductor:{
-      title:'MOSFET 與 IGBT 導通損耗比較',knobs:[knob('current','通電電流',1,30,1,10,' A'),knob('rds','MOSFET RDS(on)',2,80,2,15,' mΩ'),knob('vce','IGBT 假設 VCE(sat)',1,3,0.2,2,' V')],
+      title:'MOSFET 與 IGBT 導通損耗比較',knobs:[knob('current','通電電流',1,30,1,10,' A'),knob('rds','MOSFET RDS(on)',2,80,2,16,' mΩ'),knob('vce','IGBT 假設 VCE(sat)',1,3,0.2,2,' V')],
       assumption:'比較固定電流下的簡化導通損耗，不包含 Duty、熱阻、RDS(on) 溫升、IGBT Tail Current 或切換損耗。',
       compute:function(v){var pm=v.current*v.current*v.rds/1000,pi=v.current*v.vce;
         return result([metric('MOSFET 導通損耗',pm,' W'),metric('IGBT 導通損耗',pi,' W'),metric('兩者損耗差',pi-pm,' W')],
@@ -127,21 +127,21 @@
         '切換恢復應力與 di/dt、電路電感、溫度相關，不可只用 VF 評估。');}
     },
     rectifier:{
-      title:'半波與全波整流',knobs:[knob('vac','輸入電壓 RMS',12,230,6,48,' V'),knob('full','全波模式 0=半波 1=全波',0,1,1,1,'')],
+      title:'半波與全波整流',knobs:[knob('vac','輸入電壓 RMS',12,228,6,48,' V'),knob('full','全波模式 0=半波 1=全波',0,1,1,1,'')],
       assumption:'理想二極體、純電阻負載、無濾波電容；輸出平均值不等於加電容後的 DC Bus。',
       compute:function(v){var pk=v.vac*Math.SQRT2,full=Boolean(v.full),f=full?2:1;
         return result([metric('平均整流電壓',pk*f/Math.PI,' V'),metric('輸入峰值',pk,' V')],
           full?'全波每個半週都有脈動。':'半波只有正半週供電。',{series:[trace('輸入 AC','V',function(t){return pk*sin(t);}),trace('負載電壓','V',function(t){var a=pk*sin(t);return full?Math.abs(a):Math.max(a,0);})]});}
     },
     capRipple:{
-      title:'整流後電容漣波近似',knobs:[knob('cap','輸出電容',220,2200,110,1000,' μF'),knob('load','負載電流',0.1,3,0.1,1,' A')],
+      title:'整流後電容漣波近似',knobs:[knob('cap','輸出電容',220,2200,110,990,' μF'),knob('load','負載電流',0.1,3,0.1,1,' A')],
       assumption:'50 Hz 全波、固定電流負載、Vpeak=24√2 V。ΔV≈I/(2fC) 只適用小漣波近似，非充電尖峰電流精確模擬。',
       compute:function(v){var dv=v.load/(100*v.cap*1e-6),pk=24*Math.SQRT2,valid=dv/pk<=0.2;
         return result([metric('小漣波估計 ΔV',dv,' V'),metric('ΔV／Vpeak',100*dv/pk,' %'),metric('輸入峰值',pk,' V')],
           valid?'此處小漣波近似可作教學估算。':'超出教學近似門檻，勿將估計當成實際 DC 電壓。',{warning:valid?'':'ΔV／Vpeak > 20%；模型不再用於宣稱實際輸出平均電壓。'});}
     },
     sourceL:{
-      title:'交流源電感與換向壓降',knobs:[knob('l','源側電感',1,200,5,25,' μH'),knob('didt','電流變化率',0.1,15,0.1,2,' A/μs')],
+      title:'交流源電感與換向壓降',knobs:[knob('l','源側電感',1,196,5,26,' μH'),knob('didt','電流變化率',0.1,15,0.1,2,' A/μs')],
       assumption:'僅估算元件瞬時電感電壓大小 |vL|=L|di/dt|；不能代替整流器重疊角、PCC Notch 深度與完整換向解。',
       compute:function(v){return result([metric('電感電壓幅值',v.l*v.didt,' V')], '電流無法瞬間跳變；電感壓降會影響換向。');}
     },
@@ -256,7 +256,7 @@
 
 
   M.scr={
-    title:'SCR：觸發角與半波導通',knobs:[knob('alpha','觸發角 α',0,180,5,60,' °'),knob('vac','輸入 RMS',24,230,6,48,' V')],
+    title:'SCR：觸發角與半波導通',knobs:[knob('alpha','觸發角 α',0,180,5,60,' °'),knob('vac','輸入 RMS',24,228,6,48,' V')],
     assumption:'純電阻負載、單相半波 SCR、理想鎖存與自然換向；不描述 RL 保持電流、Gate 驅動或 GTO 關斷特性。',
     compute:function(v){var a=v.alpha*Math.PI/180,pk=v.vac*Math.SQRT2,avg=pk*(1+Math.cos(a))/(2*Math.PI);
       return result([metric('半波平均 Vout',avg,' V'),metric('導通角',180-v.alpha,' °')],
@@ -284,7 +284,7 @@
         '高 Duty 下，電感銅損可能抵銷理想 Boost 增益。');}
   };
   M.boostCap={
-    title:'Boost：輸出電容漣波（CCM 近似）',knobs:[knob('cap','輸出電容',47,470,47,220,' μF'),knob('io','輸出平均電流',0.2,5,0.2,2,' A'),knob('duty','Duty',10,75,5,50,' %'),knob('freq','頻率',50,250,25,100,' kHz')],
+    title:'Boost：輸出電容漣波（CCM 近似）',knobs:[knob('cap','輸出電容',47,470,47,235,' μF'),knob('io','輸出平均電流',0.2,5,0.2,2,' A'),knob('duty','Duty',10,75,5,50,' %'),knob('freq','頻率',50,250,25,100,' kHz')],
     assumption:'理想 CCM、小漣波、電容供電 ON 區間估算 ΔV≈Io×D/(Cfs)；忽略 ESR、ESL、OFF 電流梯形充電峰值、DCM 與負載暫態。',
     compute:function(v){var delta=v.io*(v.duty/100)/(v.cap*1e-6*v.freq*1000);
       return result([metric('ON 期間電容放電 ΔV',delta,' V',4),metric('估計 ON 放電電荷',v.io*(v.duty/100)/(v.freq*1000)*1e6,' μC',3)],
