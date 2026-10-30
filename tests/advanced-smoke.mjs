@@ -37,11 +37,22 @@ assert.equal(await page.locator('.advanced-model-status').getAttribute('data-val
 await page.locator('.advanced-reset').click();await waitMode('SAME_CYCLE');
 await go('nonideal');const vo=await output('非理想 Buck Vout');await knob('rh',80);
 await page.waitForFunction(old=>document.querySelectorAll('.advanced-metric strong')[1]?.textContent!==old,vo,{timeout:15000});
-await go('nonideal');await knob('fs',125);await knob('duty',40);await knob('dead',175);await knob('load',16);await knob('l',40);
+// A same-hash navigation may reuse the current page and its slider state.
+// Reset explicitly before each independent physical fixture.
+await go('nonideal');await page.locator('.advanced-reset').click();
+await knob('fs',125);await knob('duty',40);await knob('dead',175);await knob('load',16);await knob('l',40);
 await waitMode('OUT_OF_DOMAIN');
 assert.equal(await page.locator('.advanced-model-status').getAttribute('data-valid'),'false','Dead-time boundary invalidates CCM');
-await go('nonideal');await knob('fs',50);await knob('l',40);await knob('load',2);await knob('dead',0);await knob('esr',100);
-await page.waitForFunction(()=>document.querySelectorAll('.advanced-metric strong')[8]?.textContent?.trim().startsWith('0.3'),null,{timeout:15000});
+await go('nonideal');await page.locator('.advanced-reset').click();
+assert.equal(await page.locator('[data-knob="duty"]').inputValue(),'50','ESR fixture must start from baseline 50% duty');
+assert.equal(await page.locator('[data-knob="rh"]').inputValue(),'20','ESR fixture must restore baseline RDS(on)');
+await knob('fs',50);await knob('l',40);await knob('load',2);await knob('dead',0);await knob('esr',100);
+await page.waitForFunction(()=>{
+  const row=Array.from(document.querySelectorAll('.advanced-metric')).find(
+    el=>el.querySelector('small')?.textContent?.includes('電容 ESR 耗損'));
+  const watts=Number.parseFloat(row?.querySelector('strong')?.textContent||'');
+  return Number.isFinite(watts)&&Math.abs(watts-.300)<.001;
+},null,{timeout:15000});
 assert.ok((await output('電容 ESR 耗損')).includes('0.3'),'UI must expose capacitor loss in watts');
 await go('zvs');await waitMode('INSUFFICIENT');await knob('ip',15);await waitMode('ENERGY_AND_TIME');
 for(const file of ['index.html','middle.html']){
