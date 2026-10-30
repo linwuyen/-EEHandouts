@@ -25,6 +25,10 @@ for(const [id,[model,key,focus,index]] of Object.entries(catalog)){
   const out=make(model);
   assert.ok(Number.isFinite(out.metrics[index||0].value),'invalid main metric '+id);
   assert.ok(typeof models[model].assumption==='string' && models[model].assumption.length>=20,'missing model assumptions '+id);
+  for(const knob of models[model].knobs){
+    const aligned=(value)=>Math.abs((value-knob.min)/knob.step-Math.round((value-knob.min)/knob.step))<1e-7;
+    assert.ok(aligned(knob.value)&&aligned(knob.max),'Range input default/max not on step grid '+id+':'+knob.key);
+  }
 }
 const ccm=make('buck',{vin:24,duty:50,l:100,freq:100,io:2});
 assert.equal(ccm.mode,'CCM');eq(ccm.metrics[0].value,12,1e-8,'Buck CCM Vo');eq(ccm.metrics[1].value,2.3,1e-8,'Buck CCM IL peak');
