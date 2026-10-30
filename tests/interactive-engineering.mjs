@@ -247,4 +247,63 @@ assert.ok(models.multiSecondary.assumption.includes('純電阻負載')&&
   models.multiSecondary.assumption.includes('同相'),
   'Multi-output current arithmetic requires explicitly same-phase resistive loads');
 
-console.log('PASS independent interactive model fixtures: 72 lessons, 47 models, explicit model domains and topic-consistent prediction contracts');
+
+/* Third-review numerical contracts: the same phase and cursor determine all
+   phasor/rectifier metrics, plotted samples, and conduction candidates. */
+for(const [modelName,metricSignal,signals] of [
+  ['phases','VAB',['VA','VB','VC','VAB']],
+  ['threeRect','VDC',['VA','VB','VC','VDC']]
+]){
+  const r=make(modelName),signalMap=Object.fromEntries(r.series.map(series=>[series.label,series.points]));
+  assert.equal(typeof r.probe,'function',modelName+' must expose a live cursor snapshot');
+  for(const t of [0,.25,.75,1]){
+    const observed=r.probe(t),sampleIndex=Math.round(t*100);
+    for(const key of signals)
+      eq(signalMap[key][sampleIndex],(key==='VA'?observed.va:key==='VB'?observed.vb:key==='VC'?observed.vc:observed.metrics[0].value),1e-8,
+        modelName+' '+key+' plot and cursor probe at '+t);
+    eq(observed.metrics[0].value,signalMap[metricSignal][sampleIndex],1e-8,
+      modelName+' first displayed metric must equal waveform at '+t);
+    assert.ok(observed.note.includes('游標電角度'),modelName+' time-based observation note');
+  }
+}
+const rectAngle30=make('threeRect',{phase:30,vrms:220});
+const rectBoundary=rectAngle30.probe(0);
+assert.equal(rectBoundary.boundary,true,'30 degrees is the A/C upper-diode commutation boundary');
+assert.equal(rectBoundary.upper.join('/'),'A/C','upper pair must identify both candidate phases');
+assert.equal(rectBoundary.lower.join('/'),'B','lower conducting phase at the same instant');
+assert.ok(rectBoundary.note.includes('換相邊界')&&rectBoundary.note.includes('無法決定'),
+  'Do not assign unique current division at the zero-overlap boundary');
+const rectQuarter=rectAngle30.probe(.25);
+assert.equal(rectQuarter.boundary,false,'120 degrees is not a commutation boundary');
+assert.equal(rectQuarter.upper.join('/'),'A','upper diode at 120 degrees');
+assert.equal(rectQuarter.lower.join('/'),'C','lower diode at 120 degrees');
+const rectLowerBoundary=make('threeRect',{phase:90,vrms:220}).probe(0);
+assert.equal(rectLowerBoundary.boundary,true,'90 degrees is lower B/C commutation boundary');
+assert.equal(rectLowerBoundary.lower.join('/'),'B/C','bottom candidates must be visible');
+const probeAt40=make('threeRect',{phase:40,vrms:220});
+eq(probeAt40.probe(.25).metrics[0].value,probeAt40.series.find(x=>x.label==='VDC').points[25],1e-8,
+  'Adjusted phase + cursor VDC must be identical to plotted value');
+assert.ok(probeAt40.probe(0).note!==probeAt40.probe(.25).note,
+  'Diode state must change when cursor crosses switching phase');
+const h=make('sixPulseHarmonics',{idc:6,order:5});
+const h7=make('sixPulseHarmonics',{idc:7,order:5});
+assert.equal(catalog.harmonics[2],'idc','Harmonics prediction must change DC current, not select a different quantity');
+assert.equal(catalog.harmonics[3],4,'Harmonics grade must refer to an invariant 5th harmonic metric');
+assert.equal(h.metrics[4].label,h7.metrics[4].label,'Graded physical quantity must remain fixed');
+assert.equal(h.metrics[5].label,'第 7 次線電流 RMS','Always display independent 7th harmonic component');
+eq(h.metrics[4].value,h.metrics[0].value,1e-9,'Fifth RMS matches selected 5th trace');
+eq(h.metrics[4].value/h.metrics[5].value,h.metrics[6].value,1e-9,'5/7 ratio consistency');
+eq(h.metrics[6].value,7/5,0.01,'Ideal six-pulse fifth/seventh ratio');
+eq(h7.metrics[4].value/h.metrics[4].value,7/6,1e-9,'Actual Idc change scales fifth harmonic');
+eq(h7.metrics[5].value/h.metrics[5].value,7/6,1e-9,'Actual Idc change scales seventh harmonic');
+const hObserve7=make('sixPulseHarmonics',{idc:6,order:7});
+eq(hObserve7.metrics[4].value,h.metrics[4].value,1e-10,
+  'Changing observation order cannot alter physical 5th harmonic');
+eq(hObserve7.metrics[5].value,h.metrics[5].value,1e-10,
+  'Changing observation order cannot alter physical 7th harmonic');
+const gainKnob=models.adc.knobs.find(k=>k.key==='gain');
+eq(gainKnob.value,14,1e-12,'Default ADC lesson gain must equal lecture gain 14');
+const adcDefault=make('adc',{i:10});
+eq(adcDefault.metrics[0].value,2.2,1e-12,'ADC +10A lesson example voltage');
+eq(adcDefault.metrics[1].value,3003,1e-12,'ADC +10A 12-bit floor-4096 code');
+console.log('PASS independent interactive model fixtures: 72 lessons, 47 models, synchronized 3-phase probes and stable harmonic contracts');
