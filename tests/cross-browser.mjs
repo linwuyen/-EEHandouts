@@ -80,6 +80,17 @@ for(const [engineName,engine] of [['firefox',firefox],['webkit',webkit]]){
     assert.ok(local.every(Boolean),engineName+'/'+volume+' missing self-hosted PDF.js assets');
     console.log('PASS cross-browser',engineName,volume,'search/nav/interactive/step/RWD/vendor');
   }
+  // Advanced engineering page: no test may silently degrade to a missing lab.
+  for (const lab of ['pfc','llc','psfb','loop','timing','nonideal','zvs']){
+    await page.goto(BASE+'/advanced.html#'+lab);
+    await page.locator('.advanced-metric').first().waitFor({timeout:20000});
+    assert.equal(await page.locator('.advanced-model-status').getAttribute('data-valid'),'true',
+      engineName+' advanced '+lab+' default validity');
+    assert.ok(await page.locator('.advanced-chart svg').count()>0,engineName+' advanced '+lab+' chart');
+    const w=await page.evaluate(()=>({vw:innerWidth,sw:document.documentElement.scrollWidth}));
+    assert.ok(w.sw<=w.vw+2,engineName+' advanced '+lab+' mobile overflow '+JSON.stringify(w));
+  }
+  await page.screenshot({path:'tests/screenshots/cross-'+engineName+'-advanced.png',fullPage:true});
   assert.deepEqual(errors,[],engineName+' uncaught JavaScript errors');
   await context.close();
   await browser.close();
