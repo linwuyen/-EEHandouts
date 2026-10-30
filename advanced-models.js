@@ -335,7 +335,7 @@
     pfc:{title:'Boost PFC｜CCM / BCM / DCM',category:'power',knobs:[k('vac','AC 電壓 RMS',100,240,10,230,'V'),k('bus','DC Bus',300,450,10,400,'V'),k('phase','市電相位',5,175,5,60,'°'),k('power','理想目標輸入功率',100,3000,100,1000,'W'),k('l','Boost L',100,800,20,460,'µH'),k('fs','PWM 頻率',50,200,10,100,'kHz')],compute:pfc,
       source:'https://www.ti.com/document-viewer/lit/html/SLUAAO8/GUID-86F7AD2D-7DF0-45E7-B7A9-79F8DC862F14'},
     llc:{title:'LLC｜半橋諧振槽逐週期',category:'power',knobs:[k('vin','DC Bus',250,450,25,400,'V'),k('fs','開關頻率',60,200,10,110,'kHz'),k('lr','Lr',10,60,5,20,'µH'),k('cr','Cr',40,200,20,100,'nF'),k('lm','Lm',60,300,20,120,'µH'),k('rdc','二次側 DC 負載電阻',4,32,2,8,'Ω'),k('n','Np/Ns',4,12,1,8,'')],compute:llc,
-      source:'https://www.ti.com/document-viewer/lit/html/SLUP414/GUID-C4C4C20D-3B3D-4298-813F-5E3A9DA91B12'},
+      source:'https://www.ti.com/seclit/ml/slup263/slup263.pdf'},
     psfb:{title:'PSFB｜相移、整流與輸出電感',category:'power',knobs:[k('vin','一次側 DC Bus',200,500,20,400,'V'),k('phase','橋臂相移角',10,170,10,90,'°'),k('n','Np/Ns',4,12,1,8,''),k('fs','PWM 頻率',50,200,10,100,'kHz'),k('lout','輸出濾波 L',20,200,20,100,'µH'),k('io','輸出定電流負載',.1,10,.1,3,'A')],compute:psfb,
       source:'https://www.ti.com/document-viewer/lit/html/SLUP414/GUID-C4C4C20D-3B3D-4298-813F-5E3A9DA91B12'},
     loop:{title:'Buck 電壓迴路｜Bode 與裕度',category:'control',knobs:[k('vin','輸入電壓',24,72,4,48,'V'),k('fs','PWM 頻率',50,250,25,100,'kHz'),k('l','輸出 L',20,300,20,100,'µH'),k('c','輸出 C',20,500,20,100,'µF'),k('r','負載 R',2,24,2,8,'Ω'),k('esr','電容 ESR',0,200,10,20,'mΩ'),k('kp','PI 比例 Kp',.002,.05,.002,.01,''),k('fz','PI 零點',100,3000,100,500,'Hz'),k('fp','補償高頻極點',5000,60000,5000,30000,'Hz'),k('delay','控制固定延遲',0,10,.5,2,'µs'),k('ramp','PWM ramp 峰對峰',.5,3,.5,1,'V')],compute:loop,
