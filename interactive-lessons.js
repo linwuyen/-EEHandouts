@@ -52,10 +52,26 @@
     },
     phases:{
       title:'三相相量與線電壓',knobs:[knob('phase','觀察相位',0,360,15,30,' °'),knob('vrms','相電壓 RMS',100,240,10,220,' V')],
-      assumption:'對稱三相 ABC 正相序，理想純正弦；VA、VB、VC 相差 120°。',
-      compute:function(v){var angle=v.phase*Math.PI/180,pk=v.vrms*Math.SQRT2,va=pk*Math.sin(angle),vb=pk*Math.sin(angle-2*Math.PI/3);
-        return result([metric('當下 VAB',va-vb,' V'),metric('線電壓 RMS',Math.sqrt(3)*v.vrms,' V')],
-          '線電壓是兩條相電壓的瞬時差，不是只把峰值相加。',{series:[trace('VA','V',function(t){return pk*sin(t,angle);}),trace('VB','V',function(t){return pk*sin(t,angle-2*Math.PI/3);}),trace('VAB','V',function(t){return pk*(sin(t,angle)-sin(t,angle-2*Math.PI/3));})]});}
+      assumption:'對稱三相 ABC 正相序、理想純正弦；相位旋鈕是起始角，時間游標 t/T 對應額外 360°×t/T，所有數值與波形取自同一觀測時刻。',
+      compute:function(v){
+        var a=v.phase*Math.PI/180,pk=v.vrms*Math.SQRT2;
+        function stateAt(t){
+          var fraction=t>=1?0:t,angle=a+2*Math.PI*fraction,deg=((v.phase+360*fraction)%360+360)%360;
+          var va=pk*Math.sin(angle),vb=pk*Math.sin(angle-2*Math.PI/3),vc=pk*Math.sin(angle+2*Math.PI/3);
+          return {va:va,vb:vb,vc:vc,vab:va-vb,angleDegrees:deg};
+        }
+        function probe(t){
+          var st=stateAt(t);
+          return {metrics:[metric('當下 VAB',st.vab,' V'),metric('線電壓 RMS',Math.sqrt(3)*v.vrms,' V')],
+            note:'游標電角度 '+fmt(st.angleDegrees,1)+'°；VAB = VA − VB，VA='+fmt(st.va,2)+' V、VB='+fmt(st.vb,2)+' V。',
+            angleDegrees:st.angleDegrees,va:st.va,vb:st.vb,vc:st.vc};
+        }
+        return result(probe(0).metrics,'線電壓是同一瞬間兩條相電壓的差；拖曳游標時數值、波形同步更新。',
+          {probe:probe,series:[trace('VA','V',function(t){return stateAt(t).va;}),
+            trace('VB','V',function(t){return stateAt(t).vb;}),
+            trace('VC','V',function(t){return stateAt(t).vc;}),
+            trace('VAB','V',function(t){return stateAt(t).vab;})]});
+      }
     },
     harmonics:{
       title:'傅立葉分量與波形失真',knobs:[knob('h3','3 次諧波／基波',0,80,5,25,' %'),knob('h5','5 次諧波／基波',0,50,5,10,' %')],
@@ -150,11 +166,37 @@
     },
     threeRect:{
       title:'理想三相六脈波整流',knobs:[knob('phase','觀察電角度',0,360,10,30,' °'),knob('vrms','相電壓 RMS',100,240,10,220,' V')],
-      assumption:'理想三相平衡、無源側電感、無導通壓降、無儲能電容；VDC=max(VA,VB,VC)−min(VA,VB,VC)。',
-      compute:function(v){var a=v.phase*Math.PI/180,pk=v.vrms*Math.SQRT2,ph=function(t){return [pk*sin(t,a),pk*sin(t,a-2*Math.PI/3),pk*sin(t,a+2*Math.PI/3)];},p=ph(0);
-        var hi=p.indexOf(Math.max.apply(null,p)),lo=p.indexOf(Math.min.apply(null,p)),names=['A','B','C'];
-        return result([metric('當下 DC 輸出',Math.max.apply(null,p)-Math.min.apply(null,p),' V'),metric('平均 DC 輸出',3*Math.sqrt(6)/Math.PI*v.vrms,' V')],
-          '當下上橋二極體：'+names[hi]+' 相；下橋二極體：'+names[lo]+' 相。每 60° 切換導通配對（理想無換向重疊）。',{series:[trace('VA','V',function(t){return ph(t)[0];}),trace('VB','V',function(t){return ph(t)[1];}),trace('VDC','V',function(t){var x=ph(t);return Math.max.apply(null,x)-Math.min.apply(null,x);})]});}
+      assumption:'理想平衡三相、無源側電感、無導通壓降、無儲能電容；VDC=max(VA,VB,VC)−min(VA,VB,VC)。相位為起始角，游標增加 360°×t/T；相電壓相等處只知換相候選，無法決定瞬時分流。',
+      compute:function(v){
+        var a=v.phase*Math.PI/180,pk=v.vrms*Math.SQRT2,names=['A','B','C'],avg=3*Math.sqrt(6)/Math.PI*v.vrms;
+        function stateAt(t){
+          var fraction=t>=1?0:t,angle=a+2*Math.PI*fraction,deg=((v.phase+360*fraction)%360+360)%360;
+          var values=[pk*Math.sin(angle),pk*Math.sin(angle-2*Math.PI/3),pk*Math.sin(angle+2*Math.PI/3)];
+          var vmax=Math.max.apply(null,values),vmin=Math.min.apply(null,values);
+          // Purely numerical tie tolerance; not a physical commutation-overlap angle.
+          var tol=Math.max(1e-8,pk*1e-9),upper=[],lower=[];
+          for(var i=0;i<3;i++){
+            if(Math.abs(values[i]-vmax)<=tol)upper.push(names[i]);
+            if(Math.abs(values[i]-vmin)<=tol)lower.push(names[i]);
+          }
+          return {values:values,vdc:vmax-vmin,upper:upper,lower:lower,
+            angleDegrees:deg,boundary:upper.length>1||lower.length>1};
+        }
+        function probe(t){
+          var st=stateAt(t);
+          return {metrics:[metric('當下 DC 輸出',st.vdc,' V'),metric('平均 DC 輸出',avg,' V')],
+            note:'游標電角度 '+fmt(st.angleDegrees,1)+'°；上橋二極體：'+st.upper.join('／')+' 相；下橋二極體：'+st.lower.join('／')+' 相。'+
+              (st.boundary?'換相邊界：理想無換相重疊模型僅標示候選相，無法決定瞬間電流分配。':'理想最高／最低相導通，未計換相重疊。'),
+            angleDegrees:st.angleDegrees,upper:st.upper,lower:st.lower,boundary:st.boundary,
+            va:st.values[0],vb:st.values[1],vc:st.values[2]};
+        }
+        return result(probe(0).metrics,
+          '上橋二極體接最高相，下橋二極體接最低相；實際導通相與換相邊界請看同步時間游標。',
+          {probe:probe,series:[trace('VA','V',function(t){return stateAt(t).values[0];}),
+            trace('VB','V',function(t){return stateAt(t).values[1];}),
+            trace('VC','V',function(t){return stateAt(t).values[2];}),
+            trace('VDC','V',function(t){return stateAt(t).vdc;})]});
+      }
     },
     neutral:{
       title:'三相三次諧波與中性線電流',knobs:[knob('h3','每相 3 次諧波／基波',0,60,5,15,' %'),knob('i1','每相基波 RMS',1,20,1,5,' A')],
@@ -190,7 +232,7 @@
           '反相 PI 的相位採 +90° 至 +180° 分支；若重新定義誤差極性，需一併更新傳遞函數符號。');}
     },
     adc:{
-      title:'Shunt、偏壓與 ADC 量化',knobs:[knob('i','待量測電流',-30,30,1,10,' A'),knob('gain','差動放大增益',5,20,1,10,'')],
+      title:'Shunt、偏壓與 ADC 量化',knobs:[knob('i','待量測電流',-30,30,1,10,' A'),knob('gain','差動放大增益',5,20,1,14,'')],
       assumption:'Rshunt=5 mΩ、偏壓=1.5 V、12-bit ADC、理想 0–3 V 輸入；假設 4096 等間距量化區間，Code=floor(4096×Vadc/3)，最高輸入端點限制為 4095，非指定 MCU 的 ADCRESULT 轉移曲線。超界不輸出有效 ADC code；不代表硬體腳位已受保護。',
       compute:function(v){var vad=1.5+.005*v.i*v.gain,valid=vad>=0&&vad<=3,code=valid?Math.min(4095,Math.floor(vad/3*4096)):NaN;
         return result([metric('ADC 腳電壓',vad,' V',3),metric('理想有效 Code',code,' count',0)],
@@ -355,10 +397,11 @@
         for(var k=0;k<N;k++){var a=2*Math.PI*order*k/N;re+=ia[k]*Math.cos(a);im+=ia[k]*Math.sin(a);}
         return [2*re/N,2*im/N];
       }
-      var c1=coeff(1),cn=coeff(v.order),i1=Math.hypot(c1[0],c1[1])/Math.SQRT2,ih=Math.hypot(cn[0],cn[1])/Math.SQRT2;
+      var c1=coeff(1),c5=coeff(5),c7=coeff(7),cn=coeff(v.order),i1=Math.hypot(c1[0],c1[1])/Math.SQRT2,ih=Math.hypot(cn[0],cn[1])/Math.SQRT2,i5=Math.hypot(c5[0],c5[1])/Math.SQRT2,i7=Math.hypot(c7[0],c7[1])/Math.SQRT2;
       var irms=Math.sqrt(sumSq/N),thd=100*Math.sqrt(Math.max(0,irms*irms-i1*i1))/i1;
-      return result([metric('第 '+v.order+' 次線電流 RMS',ih,' A',3),metric('線電流基波 RMS',i1,' A',3),metric('線電流總 RMS',irms,' A',3),metric('THDi',thd,' %')],
-        '理想 120° 導通相電流，只有 6n±1 次特徵諧波。負載換成大電容時，波形與諧波不再適用。',
+      return result([metric('第 '+v.order+' 次線電流 RMS',ih,' A',3),metric('線電流基波 RMS',i1,' A',3),metric('線電流總 RMS',irms,' A',3),metric('THDi',thd,' %'),
+        metric('第 5 次線電流 RMS',i5,' A',3),metric('第 7 次線電流 RMS',i7,' A',3),metric('5 次／7 次 RMS 比',i7>0?i5/i7:NaN,'',3)],
+        '同一固定 DC 電流下，第 5 與第 7 次線電流 RMS 可直接比較；改變觀察次數不會改變物理諧波。提高 Idc 才會改變兩者幅值。大電容輸入整流不適用本模型。',
         {series:[trace('IA 線電流','A',function(t){return ia[Math.min(N-1,Math.floor((t>=1?0:t)*N))];},true),
                  trace('IB 線電流','A',function(t){return ib[Math.min(N-1,Math.floor((t>=1?0:t)*N))];},true),
                  trace('選定諧波分量','A',function(t){return cn[0]*Math.cos(2*Math.PI*v.order*t)+cn[1]*Math.sin(2*Math.PI*v.order*t);})]});
@@ -501,7 +544,7 @@
     notching:['sourceL','換向電流斜率增加時，PCC 可能受到的電感壓降如何變化？','didt'],
     neutral:['neutral','提高三次零序諧波，平衡系統的中性線電流如何改變？','h3'],
     sixpulse:['threeRect','三相相位移動時，最大最小相的導通組合如何切換？','phase'],
-    harmonics:['sixPulseHarmonics','將觀察諧波由第 5 次改成第 7 次，輸入線電流分量如何變化？','order'],
+    harmonics:['sixPulseHarmonics','增加固定直流側電流 Idc，第 5 次線電流 RMS 如何變化？並比較第 5 次與第 7 次幅值。','idc',4],
     commutation:['sourceL','換向迴路 Ls 增大，對電流變換速度有何約束？','l'],
     bus:['threeBus','保持其他參數不變，增加 DC Bus 電容後，三相整流器輸出漣波如何改變？','cap',1],
     op:['op','增加反相增益，理想輸出是否由線性區跨到 ±12 V 的裁切區？','gain',2],
@@ -699,19 +742,21 @@
         throw Error('Invalid lesson initial parameter: '+lesson.id+'/'+key);
       v[key]=value;
     });
-    var initial=Object.assign({},v),metricIndex=entry[3]||0;
-    var initialResult=spec.compute(v),baseline=initialResult.metrics[metricIndex].value;
+    var initial=Object.assign({},v),metricIndex=entry[3]||0,gradeCursor=.25;
+    function viewAt(r,t){return typeof r.probe==='function'?r.probe(t):r;}
+    var initialResult=spec.compute(v),initialView=viewAt(initialResult,gradeCursor);
+    var baseline=initialView.metrics[metricIndex].value;
     var target=comparisonTarget(lesson.id,first),targetDirection=target>initial[focus]?'增加':'降低';
-    var guess=null,phase='READY',exploreReason='',cursor=.25;
+    var guess=null,phase='READY',exploreReason='',cursor=gradeCursor;
     function scorable(r) {
-      return r&&r.metrics&&r.metrics[metricIndex]&&
-        Number.isFinite(r.metrics[metricIndex].value)&&
+      return r&&viewAt(r,gradeCursor).metrics&&viewAt(r,gradeCursor).metrics[metricIndex]&&
+        Number.isFinite(viewAt(r,gradeCursor).metrics[metricIndex].value)&&
         (!r.validity||r.validity.scorable!==false);
     }
     var baselineUsable=scorable(initialResult);
     host.innerHTML='<div class="interactive-head"><span class="pill">ACTIVE LEARNING</span><h3>'+esc(spec.title)+'</h3>'+
       '<p>'+esc(entry[1])+'</p></div>'+
-      '<div class="interactive-prediction"><strong>先預測：其他參數不變，將「'+esc(first.label)+'」由 '+fmt(initial[focus])+' '+esc(first.unit)+' '+targetDirection+'至 '+fmt(target)+' '+esc(first.unit)+' 後，「'+esc(initialResult.metrics[metricIndex].label)+'」會？</strong>'+
+      '<div class="interactive-prediction"><strong>先預測：其他參數不變，將「'+esc(first.label)+'」由 '+fmt(initial[focus])+' '+esc(first.unit)+' '+targetDirection+'至 '+fmt(target)+' '+esc(first.unit)+' 後，「'+esc(initialView.metrics[metricIndex].label)+'」會？</strong>'+
       '<div class="interactive-choices"><button type="button" class="btn btn-muted" data-predict="up">增加</button>'+
       '<button type="button" class="btn btn-muted" data-predict="down">減少</button>'+
       '<button type="button" class="btn btn-muted" data-predict="same">不變</button></div>'+
@@ -732,9 +777,9 @@
       return knobs.every(function(k){return k.key===focus||Math.abs(v[k.key]-initial[k.key])<=1e-9;});
     }
     function refresh() {
-      var r=spec.compute(v);
+      var r=spec.compute(v),view=viewAt(r,cursor);
       host.dataset.learningState=phase;
-      host.querySelector('.interactive-metrics').innerHTML=r.metrics.map(function(item){
+      host.querySelector('.interactive-metrics').innerHTML=view.metrics.map(function(item){
         return '<div class="interactive-metric"><small>'+esc(item.label)+'</small><strong>'+
           esc(fmt(item.value,item.digits))+' '+esc(item.unit)+'</strong></div>';
       }).join('');
@@ -744,10 +789,10 @@
       });
       var reveal=phase==='REVIEWED'||phase==='EXPLORING';
       host.querySelector('.interactive-chart').innerHTML=reveal?
-        (r.series?waveChart(r.series,cursor):sweepChart(spec,v,focus,r.metrics[metricIndex].value,metricIndex)):
+        (r.series?waveChart(r.series,cursor):sweepChart(spec,v,focus,view.metrics[metricIndex].value,metricIndex)):
         '<p class="interactive-chart-placeholder">波形／曲線將在驗證後揭曉；直接調參數將轉為自由探索。</p>';
       host.querySelector('.interactive-clock').hidden=!reveal||!r.series;
-      host.querySelector('.interactive-stage').textContent=reveal&&r.stage?phaseLabel(r.stage,cursor):'';
+      host.querySelector('.interactive-stage').textContent=reveal?(typeof r.probe==='function'?view.note||'':(r.stage?phaseLabel(r.stage,cursor):'')):'';
       host.querySelector('.interactive-note').textContent=r.note||'';
       var warn=host.querySelector('.interactive-warning');
       warn.hidden=!r.warning;warn.textContent=r.warning||'';
@@ -776,7 +821,7 @@
       }else if(phase==='EXPLORING') {
         prediction.textContent=exploreReason||'自由探索中：不計入事前預測，重設後才能重新作答。';
       }else if(phase==='REVIEWED') {
-        var selected=r.metrics[metricIndex].value;
+        var selected=viewAt(r,gradeCursor).metrics[metricIndex].value;
         if(!isolated())prediction.textContent='已同時變更其他參數，無法進行單一變數預測評分；請重設。';
         else if(!baselineUsable||!scorable(r)){
           prediction.textContent='模型超出適用範圍或僅為外插，不能判定事前預測正確；請查看模型條件。';
@@ -786,7 +831,7 @@
           var labels={up:'增加',down:'減少',same:'不變'};
           prediction.textContent=(guess===observed?'符合預測。':'與預測不同，請核對物理原因。')+
             '基準 '+fmt(baseline,3)+' → 指定變更後 '+fmt(selected,3)+
-            '；觀察結果：'+labels[observed]+'。';
+            '；觀察結果：'+labels[observed]+'。'+(typeof r.probe==='function'?'（評分固定在 25% 時間游標；拖曳只更新即時觀測。）':'');
         }
       }
     }
