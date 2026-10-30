@@ -109,7 +109,8 @@ const b=await calc('mid-boost',boost);
 near('Boost ideal Vout',numeric(b,'Vout'),96,.1);
 near('Boost input average current',numeric(b,'輸入平均'),4,.01);
 near('Boost peak inductor current',numeric(b,'峰值'),5.2,.01);
-near('Boost output capacitor ripple',numeric(b,'電容漣波'),.04545,.005);
+near('Boost output capacitor ripple mVpp',numeric(b,'電容漣波'),45.45,.02);
+near('Boost output capacitor ripple model Vpp',b.model.rippleVpp,.04545454545,.00000002);
 const bInvalid=await calc('mid-boost',{vin:12,duty:70,freq:50,l:40,io:.5});
 assert.ok(bInvalid.warning.includes('DCM'));
 assert.equal(bInvalid.model.mode,'DCM');
@@ -134,6 +135,51 @@ await page.locator('[data-middle-chart] svg polyline').waitFor();
 const boostTrace=await page.locator('[data-middle-chart] svg polyline').getAttribute('points');
 assert.equal(boostTrace.trim().split(/\s+/).length,4,'Boost current waveform must contain calculated ON/rectify/zero segments');
 pass('Boost CCM/BCM/DCM transfer, DCM volt-second, average output current and waveform');
+
+function referenceBoostCapRipple(p,m){
+  // Independent midpoint integration of diode current, not the production
+  // analytic extremum formula. Charge is in A * cycle-fraction units.
+  const N=120000,dt=1/N,cap=220e-6,fs=p.freq*1000;
+  let q=0,qMin=0,qMax=0;
+  for(let i=0;i<N;i++){
+    const t=(i+.5)*dt;
+    const diode=t<m.on?0:
+      t<m.on+m.freewheel?m.peak+(m.valley-m.peak)*(t-m.on)/m.freewheel:0;
+    q+=(diode-p.io)*dt;
+    qMin=Math.min(qMin,q);
+    qMax=Math.max(qMax,q);
+  }
+  near('Boost capacitor period charge balance',q,0,.00006);
+  return (qMax-qMin)/(cap*fs);
+}
+const boostRippleFixtures=[
+  {vin:48,duty:50,freq:100,l:100,io:2}, // CCM diode valley above Io
+  {vin:48,duty:50,freq:100,l:100,io:1}, // CCM diode crosses Io during OFF
+  {vin:72,duty:10,freq:50,l:40,io:.5}, // DCM: CCM Ripple underestimates by >7x
+  {vin:12,duty:70,freq:50,l:40,io:.5}, // DCM large Duty
+  {vin:72,duty:10,freq:50,l:40,io:1.62}, // BCM
+  {vin:72,duty:10,freq:50,l:40,io:1.61999}, // just below BCM
+  {vin:72,duty:10,freq:50,l:40,io:1.62001} // just above BCM
+];
+const boostRippleResults=[];
+for(const fixture of boostRippleFixtures){
+  const result=await calc('mid-boost',fixture);
+  near('Boost capacitor ripple independent waveform integration',result.model.rippleVpp,
+    referenceBoostCapRipple(fixture,result.model),.000035);
+  near('Boost capacitor ripple displayed in mVpp',numeric(result,'電容漣波'),
+    result.model.rippleVpp*1000,.015);
+  assert.ok(result.values.find(x=>x[0].includes('電容漣波'))[1].endsWith('mVpp'));
+  boostRippleResults.push(result);
+}
+const lowDutyRipple=boostRippleResults[2];
+assert.equal(lowDutyRipple.model.mode,'DCM');
+near('Boost DCM low Duty 72V/0.5A output',lowDutyRipple.model.vout,97.92,.00001);
+near('Boost DCM low Duty exact capacitor ripple',lowDutyRipple.model.rippleVpp,.03370510662,.000001);
+near('Boost DCM low Duty displayed mVpp',numeric(lowDutyRipple,'電容漣波'),33.71,.01);
+near('DCM to BCM ripple continuity',boostRippleResults[5].model.rippleVpp,boostRippleResults[4].model.rippleVpp,.000001);
+near('BCM to CCM ripple continuity',boostRippleResults[6].model.rippleVpp,boostRippleResults[4].model.rippleVpp,.000001);
+pass('Boost capacitor Ripple matches independent integration across CCM/BCM/DCM and continuous boundary');
+
 
 const twoWay={vin:48,vout:24,power:300};
 const forward=await calc('mid-buckboost',twoWay);
@@ -171,9 +217,32 @@ await page.goto(BASE+'/middle.html#chapter/mid-bridge');
 await page.locator('[data-bridge-mode]').waitFor();
 assert.equal(await page.locator('[data-bridge-mode]').inputValue(),'unipolar');
 assert.equal(await page.locator('[data-middle-chart] svg path').count(),3);
+// B Duty is user-owned in Unipolar; Bipolar derives B=100%-A.
+const bControl=page.locator('[data-lab-input="db"]');
+const aControl=page.locator('[data-lab-input="da"]');
+await bControl.evaluate(el=>{el.value='80';el.dispatchEvent(new Event('input',{bubbles:true}));});
+assert.equal(await bControl.inputValue(),'80');
+assert.equal(await page.locator('[data-lab-value="db"]').innerText(),'80%');
 await page.locator('[data-bridge-mode]').selectOption('bipolar');
 assert.equal(await page.locator('[data-bridge-mode]').inputValue(),'bipolar');
+assert.equal(await bControl.isDisabled(),true);
+assert.equal(await bControl.inputValue(),'25');
+assert.equal(await page.locator('[data-lab-value="db"]').innerText(),'25%');
+assert.ok((await page.locator('[data-bridge-db-hint]').innerText()).includes('100% − A'));
+assert.ok((await page.locator('[data-middle-output]').innerText()).includes('50.0 V'));
+await aControl.evaluate(el=>{el.value='60';el.dispatchEvent(new Event('input',{bubbles:true}));});
+assert.equal(await bControl.inputValue(),'40');
+assert.equal(await page.locator('[data-lab-value="db"]').innerText(),'40%');
+assert.ok((await page.locator('[data-middle-output]').innerText()).includes('20.0 V'));
+await page.screenshot({path:'tests/screenshots/middle-bridge-bipolar.png',fullPage:true});
+await page.locator('[data-bridge-mode]').selectOption('unipolar');
+assert.equal(await bControl.isEnabled(),true);
+assert.equal(await bControl.inputValue(),'80');
+assert.equal(await page.locator('[data-lab-value="db"]').innerText(),'80%');
+assert.ok((await page.locator('[data-middle-output]').innerText()).includes('-20.0 V'));
+await page.screenshot({path:'tests/screenshots/middle-bridge-unipolar.png',fullPage:true});
 assert.ok((await page.locator('[data-middle-chart] svg').getAttribute('aria-label')).includes('PWM'));
+pass('H-Bridge Bipolar derived B Duty is disabled and shown; Unipolar B value is restored');
 pass('H-Bridge voltage difference, power sign, and four quadrant classification');
 
 const flyback=await calc('mid-flyback',{vin:96,duty:40,ratio:2,lm:200,freq:100});
