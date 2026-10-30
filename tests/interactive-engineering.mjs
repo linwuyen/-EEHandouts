@@ -126,6 +126,7 @@ assert.ok(cap.warning,'Large ripple approximation must be flagged');
 const adc=make('adc',{i:30,gain:20});
 assert.ok(Number.isNaN(adc.metrics[1].value),'Out-of-range ADC must not present a valid code');
 assert.ok(adc.warning,'Out-of-range ADC must warn');
+assert.equal(adc.validity?.scorable,false,'Out-of-range ADC input must never be scored as an effective measurement');
 
 const six=make('sixPulseHarmonics',{idc:6,order:5});
 const sixI1=6*Math.sqrt(6)/Math.PI;
