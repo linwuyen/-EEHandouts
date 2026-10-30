@@ -97,7 +97,7 @@
       assumption:'理想 0/24 V 開關節點、固定占空比；平均值不是實際有載轉換器的瞬態輸出。',
       compute:function(v){var d=v.duty/100;
         return result([metric('PWM 平均電壓',24*d,' V'),metric('ON 時間',1000*d/v.freq,' μs',3),metric('週期',1000/v.freq,' μs',3)],
-          '增加 Duty 會延長 ON 區間。',{series:[trace('PWM','V',function(t){return t<d?24:0;}),trace('理想平均','V',function(){return 24*d;})],stage:{on:d,off:1-d,kind:'pwm'}});}
+          '增加 Duty 會延長 ON 區間。',{series:[trace('Vsw 開關節點','V',function(t){return (t>=1?0:t)<d?24:0;}),trace('理想平均','V',function(){return 24*d;})],stage:{on:d,off:1-d,kind:'pwm'}});}
     },
     timing:{
       title:'取樣與控制時序預算',knobs:[knob('delay','從觸發到生效延遲',0,25,0.5,2,' μs'),knob('freq','控制頻率',20,200,10,100,' kHz')],
@@ -179,11 +179,11 @@
           '輸入頻率接近 fc 時，增益約 −3 dB。');}
     },
     pi:{
-      title:'PI 補償器頻率響應',knobs:[knob('kp','Kp',0.1,5,0.1,1,''),knob('ki','Ki',10,3000,10,600,' s⁻¹'),knob('f','分析頻率',10,2000,10,100,' Hz')],
-      assumption:'連續時間 Gc(s)=Kp+Ki/s、Kp 無量綱；只計算補償器，不包含功率級、ADC、PWM 延遲或閉迴路穩定性。',
+      title:'反相 PI 補償器頻率響應',knobs:[knob('kp','Kp',0.1,5,0.1,1,''),knob('ki','Ki',10,3000,10,600,' s⁻¹'),knob('f','分析頻率',10,2000,10,100,' Hz')],
+      assumption:'連續時間反相補償器 G(s)=−(Kp+Ki/s)，相位使用補償器輸入到輸出的參考定義；只計算補償器，不包含功率級、ADC、PWM 或閉迴路穩定性。',
       compute:function(v){var b=v.ki/(2*Math.PI*v.f),mag=Math.hypot(v.kp,b);
-        return result([metric('PI 幅值',mag,' V/V',3),metric('PI 相位',-Math.atan2(b,v.kp)*180/Math.PI,' °'),metric('PI 零點頻率',v.ki/(2*Math.PI*v.kp),' Hz')],
-          '降低頻率會增加積分項影響；不能只看這張圖判斷迴路穩定。');}
+        return result([metric('PI 幅值',mag,' V/V',3),metric('反相 PI 相位',180-Math.atan2(b,v.kp)*180/Math.PI,' °'),metric('PI 零點頻率',v.ki/(2*Math.PI*v.kp),' Hz')],
+          '反相 PI 的相位採 +90° 至 +180° 分支；若重新定義誤差極性，需一併更新傳遞函數符號。');}
     },
     adc:{
       title:'Shunt、偏壓與 ADC 量化',knobs:[knob('i','待量測電流',-30,30,1,10,' A'),knob('gain','差動放大增益',5,20,1,10,'')],
@@ -207,20 +207,20 @@
     },
     buck:{
       title:'Buck：PWM／CCM／BCM／DCM',knobs:[knob('io','輸出定電流負載',0.05,5,0.05,0.5,' A'),knob('duty','Duty',10,90,5,50,' %'),knob('vin','Vin',12,60,4,24,' V'),knob('l','電感',20,300,20,100,' μH'),knob('freq','開關頻率',25,250,25,100,' kHz')],
-      assumption:'理想非同步 Buck、固定 Duty、定電流負載之穩態三區間模型；忽略寄生、電容漣波、閉迴路暫態及同步整流負電流。',
+      assumption:'理想非同步 Buck、固定 Duty、定電流負載之穩態三區間模型。Gate 指令為 0/1（非 VGS），Vsw 是開關節點對地電壓；忽略寄生、電容漣波、暫態與同步整流負電流。',
       compute:function(v){var d=v.duty/100,L=v.l*1e-6,fs=v.freq*1000,voC=v.vin*d,diC=v.vin*d*(1-d)/(L*fs),bound=diC/2,mode=v.io>bound+1e-9?'CCM':v.io<bound-1e-9?'DCM':'BCM';
         var vo=mode==='DCM'?v.vin/(1+2*L*fs*v.io/(v.vin*d*d)):voC,di=(v.vin-vo)*d/(L*fs),peak=mode==='CCM'?v.io+di/2:di,valley=mode==='CCM'?Math.max(0,v.io-di/2):0;
         var fw=mode==='DCM'?d*(v.vin/vo-1):1-d,zero=clamp(1-d-fw,0,1),tt=function(t){return t<d?valley+(peak-valley)*t/d:t<d+fw?peak-(peak-(mode==='CCM'?valley:0))*(t-d)/fw:(mode==='CCM'?valley:0);};
-        return result([metric('理想 Vout',vo,' V'),metric('IL Peak',peak,' A'),metric('BCM 臨界 Io',bound,' A'),metric('零電流時間比例',zero*100,' %')],
-          mode==='DCM'?'DCM：電流歸零後第三區間不再續流，Vout≠D·Vin。':mode==='BCM'?'BCM：谷值恰為零，為 CCM 與 DCM 分界。':'CCM：電感電流不歸零。',{mode:mode,stage:{on:d,freewheel:fw,zero:zero,kind:'buck'},series:[trace('PWM','V',function(t){return t<d?v.vin:0;}),trace('VL','V',function(t){return t<d?v.vin-vo:t<d+fw?-vo:0;}),trace('IL','A',tt)]});}
+        return result([metric('理想 Vout',vo,' V'),metric('IL Peak',peak,' A'),metric('IL Valley',valley,' A'),metric('BCM 臨界 Io',bound,' A'),metric('零電流時間比例',zero*100,' %')],
+          mode==='DCM'?'DCM：電流歸零後第三區間不再續流，Vout≠D·Vin。':mode==='BCM'?'BCM：谷值恰為零，為 CCM 與 DCM 分界。':'CCM：電感電流不歸零。',{mode:mode,stage:{on:d,freewheel:fw,zero:zero,kind:'buck'},series:[trace('Gate 指令','0/1',function(t){return (t>=1?0:t)<d?1:0;}),trace('Vsw 開關節點','V',function(t){t=t>=1?0:t;return t<d?v.vin:t<d+fw?0:vo;}),trace('VL 電感兩端','V',function(t){t=t>=1?0:t;return t<d?v.vin-vo:t<d+fw?-vo:0;}),trace('IL','A',tt)]});}
     },
     boost:{
       title:'Boost：能量、工作模式與電壓增益',knobs:[knob('io','輸出定電流負載',0.2,5,0.2,0.8,' A'),knob('duty','Duty',10,80,5,50,' %'),knob('vin','Vin',12,72,4,48,' V'),knob('l','電感',40,300,20,100,' μH'),knob('freq','開關頻率',50,250,25,100,' kHz')],
-      assumption:'理想非同步 Boost、固定 Duty、定電流負載；小漣波與動態未納入，不等於實測效率或元件安全裕度。',
+      assumption:'理想非同步 Boost、固定 Duty、定電流負載；Gate 指令為 0/1（非 VGS），Vsw 為 MOSFET Drain 開關節點，DCM 歸零區忽略寄生振鈴；小漣波與動態未納入。',
       compute:function(v){var d=v.duty/100,L=v.l*1e-6,fs=v.freq*1000,di=v.vin*d/(L*fs),iinC=v.io/(1-d),mode=iinC>di/2+1e-9?'CCM':iinC<di/2-1e-9?'DCM':'BCM',vo=mode==='DCM'?v.vin+v.vin*v.vin*d*d/(2*L*fs*v.io):v.vin/(1-d);
         var peak=mode==='CCM'?iinC+di/2:di,valley=mode==='CCM'?Math.max(0,iinC-di/2):0,fw=mode==='DCM'?v.vin*d/(vo-v.vin):1-d,zero=clamp(1-d-fw,0,1),IL=function(t){return t<d?valley+(peak-valley)*t/d:t<d+fw?peak-(peak-(mode==='CCM'?valley:0))*(t-d)/fw:(mode==='CCM'?valley:0);};
-        return result([metric('理想 Vout',vo,' V'),metric('IL Peak',peak,' A'),metric('BCM 輸出 Io',.5*di*(1-d),' A'),metric('零電流時間比例',zero*100,' %')],
-          mode==='DCM'?'DCM：不可沿用 CCM 的 1/(1−D) 增益。':'ON 儲能、OFF 由輸入與電感一起向輸出送能。',{mode:mode,stage:{on:d,freewheel:fw,zero:zero,kind:'boost'},series:[trace('PWM','V',function(t){return t<d?v.vin:0;}),trace('VL','V',function(t){return t<d?v.vin:t<d+fw?v.vin-vo:0;}),trace('IL','A',IL)]});}
+        return result([metric('理想 Vout',vo,' V'),metric('IL Peak',peak,' A'),metric('IL Valley',valley,' A'),metric('BCM 輸出 Io',.5*di*(1-d),' A'),metric('零電流時間比例',zero*100,' %')],
+          mode==='DCM'?'DCM：不可沿用 CCM 的 1/(1−D) 增益。':'ON 儲能、OFF 由輸入與電感一起向輸出送能。',{mode:mode,stage:{on:d,freewheel:fw,zero:zero,kind:'boost'},series:[trace('Gate 指令','0/1',function(t){return (t>=1?0:t)<d?1:0;}),trace('Vsw 開關節點','V',function(t){t=t>=1?0:t;return t<d?0:t<d+fw?vo:v.vin;}),trace('VL 電感兩端','V',function(t){t=t>=1?0:t;return t<d?v.vin:t<d+fw?v.vin-vo:0;}),trace('IL','A',IL)]});}
     },
     buckboost:{
       title:'反相 Buck-Boost：CCM／DCM',knobs:[knob('io','輸出定電流負載',0.1,4,0.1,0.5,' A'),knob('duty','Duty',10,80,5,40,' %'),knob('vin','Vin',12,60,4,24,' V'),knob('l','電感',40,300,20,100,' μH'),knob('freq','開關頻率',50,250,25,100,' kHz')],
@@ -228,7 +228,7 @@
       compute:function(v){var d=v.duty/100,L=v.l*1e-6,fs=v.freq*1000,di=v.vin*d/(L*fs),bound=v.vin*d*(1-d)/(2*L*fs),mode=v.io>bound+1e-9?'CCM':v.io<bound-1e-9?'DCM':'BCM',mag=mode==='DCM'?v.vin*v.vin*d*d/(2*L*fs*v.io):v.vin*d/(1-d);
         var fw=mode==='DCM'?v.vin*d/mag:1-d,zero=clamp(1-d-fw,0,1),avg=v.io/(1-d),peak=mode==='CCM'?avg+di/2:di,valley=mode==='CCM'?Math.max(0,avg-di/2):0;
         return result([metric('反相輸出 Vout',-mag,' V'),metric('IL Peak',peak,' A'),metric('BCM 輸出 Io',bound,' A'),metric('零電流時間比例',zero*100,' %')],
-          mode==='DCM'?'DCM：需要第三段零電流時間，電壓不服從 CCM 轉壓比。':'輸出極性與輸入相反。',{mode:mode,stage:{on:d,freewheel:fw,zero:zero,kind:'buckboost'},series:[trace('PWM','V',function(t){return t<d?v.vin:0;}),trace('IL','A',function(t){return t<d?valley+(peak-valley)*t/d:t<d+fw?peak-(peak-(mode==='CCM'?valley:0))*(t-d)/fw:(mode==='CCM'?valley:0);})]});}
+          mode==='DCM'?'DCM：需要第三段零電流時間，電壓不服從 CCM 轉壓比。':'輸出極性與輸入相反。',{mode:mode,stage:{on:d,freewheel:fw,zero:zero,kind:'buckboost'},series:[trace('Gate 指令','0/1',function(t){return (t>=1?0:t)<d?1:0;}),trace('VL 電感兩端','V',function(t){t=t>=1?0:t;return t<d?v.vin:t<d+fw?-mag:0;}),trace('IL','A',function(t){return t<d?valley+(peak-valley)*t/d:t<d+fw?peak-(peak-(mode==='CCM'?valley:0))*(t-d)/fw:(mode==='CCM'?valley:0);})]});}
     },
     bridge:{
       title:'H-Bridge：橋臂、PWM 與四象限',knobs:[knob('da','A 臂高電位 Duty',0,100,5,75,' %'),knob('db','B 臂高電位 Duty',0,100,5,25,' %'),knob('i','IAB 電流',-10,10,1,2,' A'),knob('bipolar','雙極性互補模式',0,1,1,0,'')],
@@ -239,11 +239,11 @@
     },
     flyback:{
       title:'Flyback：激磁、放能與工作模式',knobs:[knob('io','輸出定電流負載',0.1,4,0.1,1.5,' A'),knob('duty','Duty',10,70,5,40,' %'),knob('vin','Vin',24,240,12,96,' V'),knob('ratio','Np／Ns',1,6,0.5,2,''),knob('lm','磁化電感',100,600,50,200,' μH'),knob('freq','開關頻率',50,250,25,100,' kHz')],
-      assumption:'理想隔離 Flyback、固定 Duty、定電流輸出、無漏感及寄生；VDS 只計理想反射電壓，不含 Spike 或 Clamp 動態。',
+      assumption:'理想隔離 Flyback、固定 Duty、定電流輸出；Gate 指令為 0/1（非 VGS），一次側磁化電壓和 VDS 各自顯示；忽略漏感 Spike、寄生與 Clamp 動態。',
       compute:function(v){var d=v.duty/100,L=v.lm*1e-6,fs=v.freq*1000,n=v.ratio,di=v.vin*d/(L*fs),bound=n*di*(1-d)/2,mode=v.io>bound+1e-9?'CCM':v.io<bound-1e-9?'DCM':'BCM';
         var vo=mode==='DCM'?v.vin*v.vin*d*d/(2*L*fs*v.io):v.vin*d/(n*(1-d)),fw=mode==='DCM'?v.vin*d/(n*vo):1-d,zero=clamp(1-d-fw,0,1),avg=v.io/(n*(1-d)),peak=mode==='CCM'?avg+di/2:di,valley=mode==='CCM'?Math.max(0,avg-di/2):0;
-        return result([metric('理想輸出 Vout',vo,' V'),metric('理想 OFF VDS',v.vin+n*vo,' V'),metric('磁化電流 Peak',peak,' A'),metric('BCM 輸出 Io',bound,' A')],
-          mode==='DCM'?'DCM：OFF 退磁結束後第三段零電流。':'ON 時激磁、OFF 時經二次側放能。',{mode:mode,stage:{on:d,freewheel:fw,zero:zero,kind:'flyback'},series:[trace('Primary Gate','V',function(t){return t<d?v.vin:0;}),trace('磁化電流','A',function(t){return t<d?valley+(peak-valley)*t/d:t<d+fw?peak-(peak-(mode==='CCM'?valley:0))*(t-d)/fw:(mode==='CCM'?valley:0);})]});}
+        return result([metric('理想輸出 Vout',vo,' V'),metric('理想 OFF VDS',v.vin+n*vo,' V'),metric('磁化電流 Peak',peak,' A'),metric('BCM 輸出 Io',bound,' A'),metric('零電流時間比例',zero*100,' %')],
+          mode==='DCM'?'DCM：OFF 退磁結束後第三段零電流。':'ON 時激磁、OFF 時經二次側放能。',{mode:mode,stage:{on:d,freewheel:fw,zero:zero,kind:'flyback'},series:[trace('Gate 指令','0/1',function(t){return (t>=1?0:t)<d?1:0;}),trace('一次側磁化電壓','V',function(t){t=t>=1?0:t;return t<d?v.vin:t<d+fw?-n*vo:0;}),trace('MOSFET VDS 理想值','V',function(t){t=t>=1?0:t;return t<d?0:t<d+fw?v.vin+n*vo:v.vin;}),trace('磁化電流','A',function(t){return t<d?valley+(peak-valley)*t/d:t<d+fw?peak-(peak-(mode==='CCM'?valley:0))*(t-d)/fw:(mode==='CCM'?valley:0);})]});}
     },
     core:{
       title:'伏秒、匝數與磁通密度擺幅',knobs:[knob('vin','一次側 ON 電壓',40,400,20,100,' V'),knob('duty','單次 ON Duty',10,50,5,40,' %'),knob('turns','一次側匝數',10,80,5,30,' 圈'),knob('area','Ae',50,300,25,150,' mm²'),knob('freq','頻率',25,250,25,100,' kHz')],
@@ -295,7 +295,7 @@
     assumption:'假設固定 N=30、Ae=150 mm²，線性理想磁芯；ON +Vin、OFF −Vreset，忽略拓樸的二極體壓降與飽和。累積偏磁需跨週期分析。',
     compute:function(v){var on=v.duty/100,offNeeded=v.vin*on/v.vreset,available=1-on,off=Math.min(offNeeded,available),margin=100*(available-offNeeded),den=30*150e-6*v.freq*1000,step=v.vin*on/den,end=Math.max(0,(v.vin*on-v.vreset*available)/den);
       return result([metric('剩餘去磁時間裕度',margin,' %'),metric('單次 ON ΔB',step,' T',3),metric('週期殘留 ΔB 風險',end,' T',3)],
-        margin<0?'去磁伏秒不足，可能發生 flux walking；不可視為穩態安全。':'OFF 時負伏秒足夠回復一次側磁通。',{warning:margin<0?'去磁失敗：OFF 有效伏秒小於 ON 伏秒，必須停止設計推導並重新檢查。':'',stage:{kind:'forward',on:on,freewheel:off,zero:Math.max(0,1-on-off)},series:[trace('一次側 Vp','V',function(t){return t<on?v.vin:t<on+off?-v.vreset:0;}),trace('相對 ΔB(t)','T',function(t){return t<on?v.vin*t/den:t<on+off?step-v.vreset*(t-on)/den:Math.max(0,step-v.vreset*off/den);})]});}
+        margin<0?'去磁伏秒不足，可能發生 flux walking；不可視為穩態安全。':'OFF 時負伏秒足夠回復一次側磁通。',{warning:margin<0?'去磁失敗：OFF 有效伏秒小於 ON 伏秒，必須停止設計推導並重新檢查。':'',stage:{kind:'forward',on:on,freewheel:off,zero:Math.max(0,1-on-off),resetIncomplete:margin<0},series:[trace('一次側 Vp','V',function(t){return t<on?v.vin:t<on+off?-v.vreset:0;}),trace('相對 ΔB(t)','T',function(t){return t<on?v.vin*t/den:t<on+off?step-v.vreset*(t-on)/den:Math.max(0,step-v.vreset*off/den);})]});}
   };
   M.converterFamily={
     title:'Ćuk、SEPIC、ZETA：極性與理想 CCM 增益',knobs:[knob('duty','Duty',10,80,5,40,' %'),knob('vin','輸入電壓',12,72,4,36,' V')],
@@ -358,17 +358,17 @@
     'mid-switching-lc':['lc','L 變大時，理想 LC 自然頻率怎麼變？','l'],
     'mid-resonance':['lc','阻尼降低（Q 增加）時，50 kHz 的幅值如何變化？','q',1],
     'mid-voltsecond':['buck','改變 Duty，ON 正伏秒與 OFF 負伏秒如何重新平衡？','duty'],
-    'mid-ccm-dcm':['buck','減小負載電流，IL 何時會出現第三段零電流？','io',1],
-    'mid-bcm':['buck','把 Io 逐步調到 BCM 臨界值，IL 谷值會如何變化？','io',1],
-    'mid-buck-dcm':['buck','進入 DCM 後，Vout 還等於 D×Vin 嗎？','io',1],
+    'mid-ccm-dcm':['buck','減小負載電流，IL 何時會出現第三段零電流？','io',4],
+    'mid-bcm':['buck','把 Io 逐步調到 BCM 臨界值，IL 谷值會如何變化？','io',2],
+    'mid-buck-dcm':['buck','進入 DCM 後，Vout 還等於 D×Vin 嗎？','io',0],
     'mid-boost-ccm':['boost','Boost 的 ON/OFF 區間各由誰供應負載？','duty'],
     'mid-boost-ripple':['boostCap','固定 Duty 時提高輸出電容，ON 放電壓降怎麼變？','cap'],
     'mid-boost-rl':['boostCopper','電感銅損存在時提高 Duty，輸出是否必定一直上升？','duty'],
     'mid-boost-efficiency':['boostCopper','增大電感等效電阻時，實際 CCM 平均輸出如何變化？','rl'],
     'mid-boost-parasitic':['switching','增大單次開關損耗，Boost 元件熱負擔如何改變？','energy'],
-    'mid-boost-dcm':['boost','減少負載後，Boost 何時離開 CCM？','io',1],
+    'mid-boost-dcm':['boost','減少負載後，Boost 何時離開 CCM？','io',4],
     'mid-buckboost-ccm':['buckboost','增加 Duty，反相輸出電壓與 IL 如何變化？','duty'],
-    'mid-buckboost-dcm':['buckboost','降低 Io 後，反相 Buck-Boost 的 DCM 比例如何改變？','io'],
+    'mid-buckboost-dcm':['buckboost','降低 Io 後，反相 Buck-Boost 的 DCM 比例如何改變？','io',3],
     'mid-sepic-zeta':['converterFamily','觀察同樣 Duty 下 Ćuk 的輸出極性與 SEPIC／ZETA 差異。','duty'],
     'mid-four-switch':['fourSwitch','改變輸入橋臂 Duty，四開關升降壓的平均增益如何變化？','dbuck'],
     'mid-bidirectional':['signed','反轉電流正負後，功率方向如何改變？','i'],
@@ -380,7 +380,7 @@
     'mid-isolation-feedback':['optocoupler','光耦 CTR 改變時，隔離傳遞的回授電流如何變化？','ctr'],
     'mid-multi-output':['transformer','單組輸入透過不同匝比得到多少理想二次電壓？','ratio'],
     'mid-flyback-ccm':['flyback','ON 時存入磁化電感的電流，OFF 時如何釋出？','duty'],
-    'mid-flyback-dcm':['flyback','減少 Io，退磁結束後會不會出現零電流區間？','io',2],
+    'mid-flyback-dcm':['flyback','減少 Io，退磁結束後會不會出現零電流區間？','io',4],
     'mid-forward-reset':['forward','提高 ON Duty 後，OFF 去磁時間還夠嗎？','duty'],
     'mid-double-forward':['core','增加匝數，理想正伏秒造成的 ΔB 如何降低？','turns'],
     'mid-half-full':['core','同樣一次側伏秒，磁芯截面增大如何影響 ΔB？','area'],
@@ -405,10 +405,10 @@
       return 'PWM ON：開關節點為高電位';
     }
     if(t<stage.on+(stage.freewheel||stage.off||0)-1e-8){
-      if(stage.kind==='buck')return 'OFF：L → Diode → Load 續流，電感放能';
+      if(stage.kind==='buck')return 'OFF 續流：GND → Diode → Switch Node → L → Load → GND；電感放能';
       if(stage.kind==='boost')return 'OFF：Vin＋L → Diode → 輸出，電感放能';
-      if(stage.kind==='flyback')return 'OFF：一次側關斷，二次側由變壓器放能';
-      if(stage.kind==='forward')return 'OFF：負重置伏秒，使磁通返回起始位置';
+      if(stage.kind==='flyback')return 'OFF：一次側關斷，磁化電感的能量經二次側二極體送往輸出';
+      if(stage.kind==='forward')return stage.resetIncomplete?'OFF：去磁伏秒不足，無法回到起始磁通，存在 flux walking 風險':'OFF：負重置伏秒，使磁通返回起始位置';
       if(stage.kind==='buckboost')return 'OFF：電感經二極體向反相輸出放能';
       return 'PWM OFF：開關節點為低電位';
     }
