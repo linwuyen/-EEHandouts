@@ -175,3 +175,11 @@ Node.js 22 開發環境：執行 `npm ci --ignore-scripts`，再安裝 Chromium�
 
 - Buck CCM Bode 不再只靠固定 220 個顯示點判斷交越，改為定位對數頻率增益局部極值，對有號變化的區間二分求出每個 0 dB 交越，保存各自 PM；遇多交越會顯示警告，而非以第一個 PM 宣稱穩定。Bode 圖以實際 log(f) 放置非等距的極值和交越樣本。
 - 72 節互動課的參數掃描要求數值有限且 `validity.scorable !== false`。磁性件固定 μ 超過 0.3 T 模型有效域與 ADC 超界時，將該區段斷開且不畫有效值標記。數學外插仍可依文字警示說明，但不可混入有效工程曲線。
+
+### F28004x 時序模型的硬體限制（2026/10/30）
+
+- 由 **SYSCLK → EPWMCLKDIV → HSPCLKDIV／CLKDIV → TBCLK** 推導計數時脈（F28004x 最大 100 MHz SYSCLK），不再讓使用者將 200 MHz TBCLK 假設成合法設定。TBPRD、CMPA 依衍生時脈量化，過小／不可能的設定顯示 `OUT_OF_DEVICE_DOMAIN`。
+- ADC 取樣窗由整數 **ACQPS** 計算：`tSH=(ACQPS+1)/SYSCLK`；依 TI F28004x 最新 datasheet 的 75 ns 下限（Rs≤50 Ω）和至少 1 ADCCLK 週期檢查。100 MHz SYSCLK 下最短整數可設定值為 80 ns；高源阻抗仍需更多 settling 時間，不能把下限當成足夠取樣保證。
+- `SAME_PWM_CYCLE` 代表 shadow load 位於當前 TBCTR ZERO–ZERO 週期，`NEXT_PWM_CYCLE` 代表下一個週期，不再誤把『早於下一次 SOCA』等同『同 PWM 週期』。CPU overrun 另依下一個 SOCA 判斷。
+- EOC／ADCINT／ISR 入口／WCET 與 shadow setup guard 仍為教學假設，不能當真實 F280049C 延遲 datasheet 或 register configuration generator。
+- 第一手來源：[TI F28004x Datasheet Rev. H](https://www.ti.com/lit/ds/symlink/tms320f280049c-q1.pdf)、[TI F28004x TRM](https://www.ti.com/lit/ug/sprui33c/sprui33c.pdf)。
