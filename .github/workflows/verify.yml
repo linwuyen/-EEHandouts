@@ -28,6 +28,8 @@ jobs:
         run: |
           npm ci --ignore-scripts --no-audit --no-fund
           npx playwright install --with-deps chromium
+      - name: Prepare SHA-512-verified local PDF.js assets
+        run: bash scripts/prepare-pdfjs.sh
       - name: Run static site locally
         run: |
           python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/eehandouts-server.log 2>&1 &

@@ -60,14 +60,15 @@
 
 在 **Settings → Pages → Build and deployment → Source** 選擇 **GitHub Actions**，Repository Variable `EEHANDOUTS_ACTIONS_PAGES=true` 啟用後，`.github/workflows/publish-verified.yml` 只會發布**通過 Verify EEHandouts 的 main SHA**。
 
-發布前會再次向 GitHub 查詢最新 `main` HEAD；若測試 SHA 已過時便略過發布，並在打包前、部署前各核對一次，降低舊版覆蓋新版的風險。部署與 CI 分開執行；已通過 CI 不代表 CI 能阻止直接 push 到 `main`。仍應設定 Rulesets 要求 PR 與必要狀態檢查。
+發布流程使用 `queue: max`（不取消正在執行的驗證版本部署），避免較早完成的 CI 事件取消新版部署。發布前會再次向 GitHub 查詢最新 `main` HEAD；若測試 SHA 已過時便略過發布，並在打包前、部署前各核對一次，降低舊版覆蓋新版的風險。部署與 CI 分開執行；已通過 CI 不代表 CI 能阻止直接 push 到 `main`。仍應設定 Rulesets 要求 PR 與必要狀態檢查。
 
 ### 本機與 CI 驗證
 
-測試依賴由 `package.json` 與 **`package-lock.json`** 固定。使用 Node.js 22（網站本身不需 npm）：
+測試依賴由 `package.json` 與 **`package-lock.json`** 固定。使用 Node.js 22（正式網站不需要 npm；本機 PDF 閱讀前需準備一次 PDF.js 資產）：
 
 ```bash
 npm ci --ignore-scripts
+bash scripts/prepare-pdfjs.sh  # PDF.js 4.10.38；檢查 npm tarball SHA-512 後產生 vendor/pdfjs/
 npx playwright install --with-deps chromium
 python3 -m http.server 4173
 # 另開終端機：
@@ -81,7 +82,7 @@ npm test
 1. 將你持有的《電力電子初級班講義（上）R2.pptx》以 PowerPoint 或 LibreOffice 匯出成 **107 頁 PDF**。
 2. 網站選 **完整 107 頁講義** → 任一頁 → **載入原始講義 PDF**。
 3. 網站會檢查實際頁數與首頁／第 24 頁的標題；驗證通過才可閱讀、儲存。本機檢視器真正渲染每頁影像（不是只改 PDF iframe 錨點）。
-4. PDF 在瀏覽器本機 IndexedDB 儲存，可按「清除這台裝置的 PDF」移除。瀏覽器需要連網載入固定版本 Mozilla PDF.js 的解析程式與 Worker（cdnjs 4.10.38）。不支援／無法讀取文字的掃描版 PDF 可能無法通過身分校驗。
+4. PDF 在瀏覽器本機 IndexedDB 儲存，可按「清除這台裝置的 PDF」移除。PDF.js 4.10.38 解析模組與 Worker 由建置時以 npm SHA-512 校驗後複製至同源 `vendor/pdfjs/`，瀏覽器讀取 PDF 不再依賴 PDF.js CDN；本機開發請先執行 `bash scripts/prepare-pdfjs.sh`（此建置步驟需要網路）。不支援／無法讀取文字的掃描版 PDF 可能無法通過身分校驗。
 
 網站不附帶原 PPTX/PDF 二進位檔，避免未經確認公開轉載講義；你在網站載入的檔案不會傳送到 GitHub。若瀏覽器禁止 IndexedDB，重新整理後可能需重新選取。
 
@@ -117,7 +118,7 @@ npm test
 - `labs.js`：七個互動實驗與數學模型
 - `interactive-lessons.js`：72 節的研究題、47 種可重用模型及同步波形（上冊／中冊共用）
 - `slide-text.js`：從使用者提供的 107 頁 PPTX 擷取的原文
-- `source-viewer.js`：PDF.js（動態 CDN 程式）解析及身分／頁數驗證、Canvas 繪製、IndexedDB 本機保存；不向網站後端上傳 PDF
+- `source-viewer.js`：同源固定 PDF.js 模組解析及身分／頁數驗證、Canvas 繪製、IndexedDB 本機保存；不向網站後端上傳 PDF
 - `tests/smoke.mjs`：Playwright 真實瀏覽器測試
 - `tests/interactive-smoke.mjs`：逐一操作上、下冊 72 節的預測、滑桿、時間游標、重設和手機版檢查
 - `tests/interactive-engineering.mjs`：獨立數值 fixture，驗證 CCM/DCM、Boost 適用域、反相 PI 相位、Gate/Vsw/VL、三相整流諧波與電容能量平衡、Push-Pull、Forward、Bridge、SCR、CTR、ADC 模型
@@ -133,3 +134,10 @@ Node.js 22 開發環境：執行 `npm ci --ignore-scripts`，再安裝 Chromium�
 ## 內容權利提示
 
 此 repository 是公開的，`slide-text.js` 含有從使用者提供之講義擷取的原文字。公開文字應取得適當使用／散布權限；程式與 PDF 私有載入機制本身無法替代權利確認。如果講義並非自己所有或可公開散布，請停止公開擷取原文並向權利人確認。**Git 歷史可能保留既有公開內容**，後續直接刪除檔案不一定等於刪除歷史。
+
+### 2026-10-30 Release / Browser Review
+
+- H-Bridge 的 VA、VB、VAB 是理想同步數位切換波形，切換點以垂直邊緣顯示；不代表有限上升／下降時間或 Dead Time。
+- `queue: max` 允許多個 CI 完成事件待部署，仍需經過雙重 SHA freshness guard；大量事件超過 GitHub concurrency queue 上限時可能被拒絕，不能視為完整的排隊保證。
+- 上／中冊 PDF.js 模組和 Worker 由 `scripts/prepare-pdfjs.sh` 於 CI 與發布時取得固定版號的 npm 發行包並驗證 SHA-512，再一起部署。這仍需要 CI runner 在建置時能存取 npm registry，但學員瀏覽器不需要 PDF.js CDN。
+- GitHub Repository Ruleset 必須由具備管理權限者於 Settings → Rules → Rulesets 設定；至少保護 `main`、要求 PR、`browser-regression` 等必要檢查、禁止 force-push。**未完成設定前不可宣稱 `main` 已受到強制保護。**

@@ -42,6 +42,9 @@ jobs:
           VERIFIED_SHA: ${{ github.event.workflow_run.head_sha }}
         shell: bash
         run: bash scripts/check-verified-head.sh
+      - name: Prepare SHA-512-verified local PDF.js assets
+        if: steps.freshness.outputs.current == 'true'
+        run: bash scripts/prepare-pdfjs.sh
       - name: Configure GitHub Pages
         if: steps.freshness.outputs.current == 'true'
         uses: actions/configure-pages@v6

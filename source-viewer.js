@@ -10,7 +10,7 @@
   var sourceLabel=CFG.label||'電力電子初級班講義（上）R2';
   var middle=pageCount===52;
   var referencePage=middle?37:24;
-  var CDN='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/';
+  var PDF_ASSET_BASE='./vendor/pdfjs/'; // Pinned, npm SHA-512-verified build assets on the site's own origin.
   var pdfLibraryPromise=null, documentProxy=null, selectedBlob=null, selectedName='';
   var currentPage=1, mountTarget=null, cacheAttempted=false, loadVersion=0, renderVersion=0, loadedFromCache=false;
   var storageQueue=Promise.resolve();
@@ -47,12 +47,12 @@
   }
   function pdfLibrary(){
     if(!pdfLibraryPromise){
-      pdfLibraryPromise=import(CDN+'pdf.min.mjs').then(function(lib){
-        lib.GlobalWorkerOptions.workerSrc=CDN+'pdf.worker.min.mjs';
+      pdfLibraryPromise=import(PDF_ASSET_BASE+'pdf.min.mjs').then(function(lib){
+        lib.GlobalWorkerOptions.workerSrc=PDF_ASSET_BASE+'pdf.worker.min.mjs';
         return lib;
       }).catch(function(err){
         pdfLibraryPromise=null;
-        throw new Error('PDF 解析元件無法載入（需要連上 cdnjs）：'+err.message);
+        throw new Error('本機 PDF 解析元件無法載入（需先建置 vendor/pdfjs 資產）：'+err.message);
       });
     }
     return pdfLibraryPromise;

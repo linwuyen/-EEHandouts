@@ -29,6 +29,8 @@ let desktop=await browser.newContext({viewport:{width:1440,height:900}});
 let page=await desktop.newPage();
 const pageErrors=[];
 page.on('pageerror',err=>pageErrors.push(err.message));
+// PDF.js must be self-hosted: block its former CDN to make a regression visible.
+await page.route('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/**',route=>route.abort());
 
 await run('首頁與 7 個主題卡片',async()=>{
   await navigate(page,'#home');
@@ -89,6 +91,10 @@ await run('實際 PDF 頁數與內容驗證，以及 canvas 逐頁呈現',async(
   const valid=await makeSourceFixture(107,true);
   await page.locator('#source-pdf-file').setInputFiles({name:'ee-source-107.pdf',mimeType:'application/pdf',buffer:valid});
   await waitSourceReady(page,24);
+  const localPdfAssets=await page.evaluate(async()=>Promise.all([
+    './vendor/pdfjs/pdf.min.mjs','./vendor/pdfjs/pdf.worker.min.mjs'
+  ].map(async url=>(await fetch(url)).ok)));
+  assertCheck('PDF.js module and worker are hosted locally',localPdfAssets.every(Boolean));
   const pixels24=await page.locator('#source-pdf-canvas').evaluate(c=>c.toDataURL());
   assertCheck('第24頁確實已渲染圖像',pixels24.length>1000);
   await page.screenshot({path:outDir+'/source-p24-desktop.png',fullPage:true});

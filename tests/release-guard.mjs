@@ -9,6 +9,15 @@ const publish=readFileSync('.github/workflows/publish-verified.yml','utf8');
 const smoke=readFileSync('tests/smoke.mjs','utf8');
 const pkg=JSON.parse(readFileSync('package.json','utf8'));
 const lock=JSON.parse(readFileSync('package-lock.json','utf8'));
+const sourceViewer=readFileSync('source-viewer.js','utf8');
+const pdfBuildScript=readFileSync('scripts/prepare-pdfjs.sh','utf8');
+assert.ok(sourceViewer.includes("'./vendor/pdfjs/'"),'PDF.js browser runtime must use local assets');
+assert.ok(!sourceViewer.includes('cdnjs.cloudflare.com'),'PDF.js must not run downloaded CDN code');
+assert.ok(pdfBuildScript.includes('openssl dgst -sha512 -binary'),'PDF.js release must have SHA-512 integrity verification');
+assert.ok(pdfBuildScript.includes('4.10.38'),'PDF.js version must remain pinned');
+assert.ok(verify.includes('run: bash scripts/prepare-pdfjs.sh'),'CI must prepare the same PDF.js artifacts that the deploy uses');
+assert.ok(publish.includes('run: bash scripts/prepare-pdfjs.sh'),'Pages must bundle verified PDF.js assets');
+
 assert.ok(pkg.scripts['test:browser'].includes('tests/middle-engineering.mjs'), 'Keep the newer middle-volume DCM engineering regression in the suite');
 
 const count=(hay,needle)=>hay.split(needle).length-1;
