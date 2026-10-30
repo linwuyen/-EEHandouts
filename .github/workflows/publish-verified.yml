@@ -50,7 +50,7 @@ jobs:
         env:
           VERIFIED_SHA: ${{ github.event.workflow_run.head_sha }}
         shell: bash
-        run: printf '%s\\n' "$VERIFIED_SHA" > release-sha.txt
+        run: echo "$VERIFIED_SHA" > release-sha.txt
       - name: Configure GitHub Pages
         if: steps.freshness.outputs.current == 'true'
         uses: actions/configure-pages@v6
