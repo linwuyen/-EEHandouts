@@ -312,6 +312,75 @@
         vo>v.vin?'此設定為升壓等效區；實際橋臂時序還需控制器決定。':vo<v.vin?'此設定為降壓等效區。':'理想等壓區。');}
   };
 
+
+  // Six-pulse bridge with a stiff DC current sink: distinct from a capacitor-input rectifier.
+  M.sixPulseHarmonics={
+    title:'三相六脈波線電流與特徵諧波',
+    knobs:[knob('idc','固定直流側電流',1,15,1,6,' A'),knob('order','觀察諧波次數',1,25,2,5,' 次')],
+    assumption:'三相對稱、理想二極體、無源側電感與換向重疊，DC 側有平滑電感保持電流 Idc 常數。最高相流入 +Idc、最低相流出 −Idc；不是大電容輸入整流模型。',
+    compute:function(v){
+      var N=720,ia=[],ib=[],ic=[],sum=0,sumSq=0,peak=0;
+      function currents(t){
+        var a=Math.sin(2*Math.PI*t),b=Math.sin(2*Math.PI*t-2*Math.PI/3),c=Math.sin(2*Math.PI*t+2*Math.PI/3);
+        var values=[a,b,c],hi=0,lo=0;
+        for(var j=1;j<3;j++){if(values[j]>values[hi])hi=j;if(values[j]<values[lo])lo=j;}
+        return [0,1,2].map(function(k){return k===hi?v.idc:k===lo?-v.idc:0;});
+      }
+      for(var k=0;k<N;k++){
+        var x=currents(k/N);ia.push(x[0]);ib.push(x[1]);ic.push(x[2]);sumSq+=x[0]*x[0];
+      }
+      function coeff(order){
+        var re=0,im=0;
+        for(var k=0;k<N;k++){var a=2*Math.PI*order*k/N;re+=ia[k]*Math.cos(a);im+=ia[k]*Math.sin(a);}
+        return [2*re/N,2*im/N];
+      }
+      var c1=coeff(1),cn=coeff(v.order),i1=Math.hypot(c1[0],c1[1])/Math.SQRT2,ih=Math.hypot(cn[0],cn[1])/Math.SQRT2;
+      var irms=Math.sqrt(sumSq/N),thd=100*Math.sqrt(Math.max(0,irms*irms-i1*i1))/i1;
+      return result([metric('第 '+v.order+' 次線電流 RMS',ih,' A',3),metric('線電流基波 RMS',i1,' A',3),metric('線電流總 RMS',irms,' A',3),metric('THDi',thd,' %')],
+        '理想 120° 導通相電流，只有 6n±1 次特徵諧波。負載換成大電容時，波形與諧波不再適用。',
+        {series:[trace('IA 線電流','A',function(t){return ia[Math.min(N-1,Math.floor((t>=1?0:t)*N))];},true),
+                 trace('IB 線電流','A',function(t){return ib[Math.min(N-1,Math.floor((t>=1?0:t)*N))];},true),
+                 trace('選定諧波分量','A',function(t){return cn[0]*Math.cos(2*Math.PI*v.order*t)+cn[1]*Math.sin(2*Math.PI*v.order*t);})]});
+    }
+  };
+
+  // Three-phase capacitor-input bridge with bounded source resistance and load current.
+  // This is an explicit switched diode/RC approximation, not a SPICE or ideal stiff current bridge.
+  M.threeBus={
+    title:'三相電容輸入整流：DC Bus、電流尖峰與 THD',
+    knobs:[knob('cap','輸出電容',220,2200,110,990,' μF'),knob('io','直流負載電流',0.5,6,0.5,2,' A'),
+           knob('rs','三相導通路徑合計電阻',0.5,4,0.5,1,' Ω'),knob('vphase','相電壓 RMS',100,220,10,120,' V')],
+    assumption:'50 Hz 對稱三相、六二極體橋、等效導通迴路電阻 Rs、固定電流負載與理想電容。當整流瞬時電壓高於 Vdc 時，充電電流=(Vrect−Vdc)/Rs；未模擬源側電感、二極體反向恢復、電容 ESR、浪湧或真實熱負荷。',
+    compute:function(v){
+      var N=1200,cycles=12,dt=1/(50*N),cap=v.cap*1e-6,pk=Math.SQRT2*v.vphase,vc=Math.sqrt(6)*v.vphase;
+      var bus=[],ia=[],ic=[],sourceP=0,loadP=0,rLoss=0,min=Infinity,max=-Infinity,total=0,ir2=0,ip=0;
+      for(var k=0;k<N*cycles;k++){
+        var t=(k%N)/N,ph=[pk*Math.sin(2*Math.PI*t),pk*Math.sin(2*Math.PI*t-2*Math.PI/3),pk*Math.sin(2*Math.PI*t+2*Math.PI/3)];
+        var hi=0,lo=0;
+        for(var j=1;j<3;j++){if(ph[j]>ph[hi])hi=j;if(ph[j]<ph[lo])lo=j;}
+        var vrect=ph[hi]-ph[lo],iCharge=Math.max(0,(vrect-vc)/v.rs),dc=vc+(iCharge-v.io)*dt/cap;
+        vc=Math.max(0,dc);
+        if(k<(cycles-1)*N)continue;
+        var phaseCurrent=hi===0?iCharge:lo===0?-iCharge:0;
+        bus.push(vc);ia.push(phaseCurrent);ic.push(iCharge);
+        min=Math.min(min,vc);max=Math.max(max,vc);total+=vc;ir2+=phaseCurrent*phaseCurrent;ip=Math.max(ip,Math.abs(phaseCurrent));
+        sourceP+=vrect*iCharge;loadP+=vc*v.io;rLoss+=v.rs*iCharge*iCharge;
+      }
+      var avg=total/N,rms=Math.sqrt(ir2/N),cos=0,sin=0;
+      for(var k=0;k<N;k++){var angle=2*Math.PI*k/N;cos+=ia[k]*Math.cos(angle);sin+=ia[k]*Math.sin(angle);}
+      var i1=Math.SQRT2*Math.hypot(cos,sin)/N;
+      var thd=i1>1e-9?100*Math.sqrt(Math.max(0,rms*rms-i1*i1))/i1:NaN;
+      function sample(series,t){return series[Math.min(N-1,Math.floor((t>=1?0:t)*N))];}
+      return result([metric('平均 DC Bus',avg,' V'),metric('DC Bus 漣波 p-p',max-min,' V'),metric('A 相線電流 RMS',rms,' A'),
+                     metric('A 相 Crest Factor',rms?ip/rms:NaN,'',3),metric('A 相 THDi',thd,' %')],
+        '電容、負載與來源阻抗會一起改變導通角、Bus 漣波及輸入電流尖峰，並非固定 DC 電流的六脈波諧波模型。',
+        {series:[trace('DC Bus','V',function(t){return sample(bus,t);}),trace('A 相線電流','A',function(t){return sample(ia,t);}),
+                 trace('二極體充電電流','A',function(t){return sample(ic,t);})],
+         balance:{pin:sourceP/N,pout:loadP/N,rloss:rLoss/N,deltaE:0},
+         warning:'Rs 是整條導通路徑的等效電阻；本近似不含 Lsource、di/dt、電感尖峰及啟動浪湧，不能作為實際元件額定值。'});
+    }
+  };
+
   /* Every published lesson resolves to a concrete model and an individual investigation. */
   var C={
     power:['signed','反轉參考電流時，瞬時功率方向如何改變？','i'],
@@ -343,9 +412,9 @@
     notching:['sourceL','換向電流斜率增加時，PCC 可能受到的電感壓降如何變化？','didt'],
     neutral:['neutral','提高三次零序諧波，平衡系統的中性線電流如何改變？','h3'],
     sixpulse:['threeRect','三相相位移動時，最大最小相的導通組合如何切換？','phase'],
-    harmonics:['threeRect','觀察理想六脈波 VDC 的週期性波動。','phase'],
+    harmonics:['sixPulseHarmonics','將觀察諧波由第 5 次改成第 7 次，輸入線電流分量如何變化？','order'],
     commutation:['sourceL','換向迴路 Ls 增大，對電流變換速度有何約束？','l'],
-    bus:['capRipple','DC Bus 電容越大，小漣波公式預測如何改變？','cap'],
+    bus:['threeBus','保持其他參數不變，增加 DC Bus 電容後，三相整流器輸出漣波如何改變？','cap',1],
     op:['op','反相增益增加時，輸出是否可能碰到供電限制？','gain'],
     diff:['diff','差動輸入增加時，理想差動輸出會如何變化？','vdiff'],
     filter:['filter','電阻增大時，一階 RC 截止頻率如何改變？','r'],
