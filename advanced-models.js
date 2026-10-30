@@ -130,7 +130,7 @@
         y=next;
       }
     }
-    function close(a){return a.concat(a[0]);}
+    function close(a,last){return a.concat(last===undefined?a[0]:last);}
     var vpCos=0,vpSin=0,ir2=0,im2=0;
     for(var i=0;i<N;i++){
       var a=2*PI*i/N;
@@ -145,24 +145,40 @@
       real=rac*wlm*wlm/(rac*rac+wlm*wlm),angle=Math.atan2(imag,real)*180/PI,
       energyDrift=((lr*y[0]*y[0]+cr*y[1]*y[1]+lm*y[2]*y[2])/2-trace.energy[0])/T;
     var residual=avgIn-avgLoss-energyDrift;
-    var validity=Math.abs(residual)<Math.max(3,0.08*Math.abs(avgIn))&&vo>0;
-    return valid({mode:angle>=0?'INDUCTIVE':'CAPACITIVE',validity:validity,
+    // Pin-Pload = dE/dt is also true during transients. Verify all state
+    // variables close over the switching cycle before claiming steady state.
+    var maxAbs=function(arr,min){return Math.max(min,Math.max.apply(null,arr.map(Math.abs)));},
+      closeIr=Math.abs(y[0]-trace.ir[0])/maxAbs(trace.ir,0.05),
+      closeCr=Math.abs(y[1]-trace.vcr[0])/maxAbs(trace.vcr,0.5),
+      closeIm=Math.abs(y[2]-trace.im[0])/maxAbs(trace.im,0.05),
+      periodicityError=Math.max(closeIr,closeCr,closeIm),
+      lastEnergy=(lr*y[0]*y[0]+cr*y[1]*y[1]+lm*y[2]*y[2])/2,
+      energyCycleError=Math.abs(lastEnergy-trace.energy[0])/Math.max(lastEnergy,trace.energy[0],1e-9);
+    var validity=periodicityError<=0.02&&energyCycleError<=0.02&&avgIn>0&&avgLoss>0&&vo>0&&
+      Math.abs(residual)<=Math.max(0.1,0.02*avgIn);
+    return valid({mode:validity?(angle>=0?'INDUCTIVE':'CAPACITIVE'):'UNSETTLED',validity:validity,
       assumptions:'半橋 ±Vin/2 方波激勵，串聯 Lr、Cr，並聯 Lm 與 FHA 等效電阻 Rac=8n²Rdc/π²；隱式梯形積分取最後一週期，忽略真實二極體換向、Coss、Dead Time、磁芯非線性。',
       note:'開關頻率相對於串聯共振 f0，以及輸入阻抗相位，決定所見電感性／電容性；時間波形是 FHA 負載近似下的切換方波響應。',
-      warning:!validity?'數值週期尚未充分收斂或能量平衡不良；此工作點不可當有效預測。':'此 R_ac 線性時域模型也消耗高次諧波：FHA 基波換算功率不等於 R_ac 全頻帶耗散，不能視為實際 DC 功率／效率。阻抗呈電感性不代表已 ZVS。',
-      metrics:[m('串聯共振 f0',f0/1000,'kHz'),m('fSW/f0',fs/f0,'',3),m('FHA 估計輸出 DC',vo,'V'),
-        m('一次側諧振電流 RMS',Math.sqrt(ir2),'A',3),m('磁化電流 RMS',Math.sqrt(im2),'A',3),
-        m('基波輸入阻抗相位',angle,'°',2),m('FHA 基波換算功率',fhaPower,'W'),m('Rac 含諧波等效耗散',avgLoss,'W'),m('等效回路能量殘差',residual,'W',3)],
+      warning:!validity?'LLC 週期未充分收斂、輸入功率異常或儲能漂移：目前波形不可當穩態輸出。請調整 Lr／Cr／Lm、負載或頻率。':'此 R_ac 線性時域模型也消耗高次諧波：FHA 基波換算功率不等於 R_ac 全頻帶耗散，不能視為實際 DC 功率／效率。阻抗呈電感性不代表已 ZVS。',
+      metrics:[m('串聯共振 f0',f0/1000,'kHz'),m('fSW/f0',fs/f0,'',3),m('FHA 估計輸出 DC',validity?vo:NaN,'V'),
+        m('一次側諧振電流 RMS',validity?Math.sqrt(ir2):NaN,'A',3),
+        m('磁化電流 RMS',validity?Math.sqrt(im2):NaN,'A',3),
+        m('基波輸入阻抗相位',angle,'°',2),
+        m('FHA 基波換算功率',validity?fhaPower:NaN,'W'),
+        m('Rac 含諧波等效耗散',validity?avgLoss:NaN,'W'),
+        m('週期狀態閉合誤差',periodicityError*100,'%',2),
+        m('週期儲能漂移',energyCycleError*100,'%',2),
+        m('等效回路能量殘差',residual,'W',3)],
       stages:[{id:'POSITIVE',label:'半橋正向激勵：Lr/Cr/Lm 儲放能',start:0,end:.5},
         {id:'NEGATIVE',label:'半橋反向激勵：諧振電流可能跨零與回灌',start:.5,end:1}],
       traces:[{key:'drive',label:'半橋驅動電壓',unit:'V',values:close(trace.drive),step:true},
-        {key:'ir',label:'諧振電流 iLr',unit:'A',values:close(trace.ir),step:false},
-        {key:'im',label:'磁化電流 iLm',unit:'A',values:close(trace.im),step:false},
-        {key:'vcr',label:'諧振電容電壓',unit:'V',values:close(trace.vcr),step:false},
-        {key:'vp',label:'一次側等效負載電壓',unit:'V',values:close(trace.vp),step:false},
-        {key:'energy',label:'諧振槽總儲能',unit:'mJ',values:close(trace.energy.map(function(e){return e*1000;})),step:false}],
+        {key:'ir',label:'諧振電流 iLr',unit:'A',values:close(trace.ir,y[0]),step:false},
+        {key:'im',label:'磁化電流 iLm',unit:'A',values:close(trace.im,y[2]),step:false},
+        {key:'vcr',label:'諧振電容電壓',unit:'V',values:close(trace.vcr,y[1]),step:false},
+        {key:'vp',label:'一次側等效負載電壓',unit:'V',values:close(trace.vp,rac*(y[0]-y[2])),step:false},
+        {key:'energy',label:'諧振槽總儲能',unit:'mJ',values:close(trace.energy.map(function(e){return e*1000;}),lastEnergy*1000),step:false}],
       data:{fs:fs,f0:f0,rac:rac,vo:vo,avgIn:avgIn,avgLoad:avgLoss,energyDrift:energyDrift,energyResidual:residual,fhaPower:fhaPower,angle:angle,
-        startEnergy:trace.energy[0],endEnergy:(lr*y[0]*y[0]+cr*y[1]*y[1]+lm*y[2]*y[2])/2}});
+        startEnergy:trace.energy[0],endEnergy:lastEnergy,periodicityError:periodicityError,energyCycleError:energyCycleError}});
   }
 
   function c(re,im){return {re:re,im:im||0};}
@@ -205,8 +221,8 @@
         !primary?'掃描頻段找不到 0 dB 交越，不能報告相位裕度。':
         (cross.length>1?'出現多個 0 dB 交越，不可只依第一個 PM 斷定穩定。':
         primary.f>fs/10?'交越頻率超過 fs/10 教學準則，需以取樣／離散模型再驗證。':'相位裕度只是線性模型指標，不能替代功率級實機閉迴路驗證。'),
-      metrics:[m('0 dB 首次交越頻率',primary?primary.f:NaN,'Hz'),m('首次交越相位裕度',ccm?pm:NaN,'°'),
-        m('增益裕度（第一 −180° 交越）',ccm?gm:NaN,'dB'),m('0 dB 交越次數',cross.length,'',0),
+      metrics:[m('0 dB 首次交越頻率',ccm&&primary?primary.f:NaN,'Hz'),m('首次交越相位裕度',ccm?pm:NaN,'°'),
+        m('增益裕度（第一 −180° 交越）',ccm?gm:NaN,'dB'),m('0 dB 交越次數',ccm?cross.length:NaN,'',0),
         m('LC 自然頻率',1/(2*PI*Math.sqrt(L*C)),'Hz'),m('BCM 臨界 Io',ripple/2,'A')],
       stages:[],traces:[{key:'gain',label:'開迴路增益',unit:'dB',values:points.map(function(p){return p.db;}),x:points.map(function(p){return p.f;}),step:false},
         {key:'phase',label:'開迴路相位',unit:'°',values:points.map(function(p){return p.phase;}),x:points.map(function(p){return p.f;}),step:false}],
