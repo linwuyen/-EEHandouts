@@ -133,3 +133,10 @@ html[data-theme="dark"]{color-scheme:dark;--bg:#0b1220;--paper:#121e30;--paper-2
   .interactive-knob strong{white-space:normal;text-align:right}
   .interactive-chart{contain:layout}
 }
+
+
+/* Grid-item min-content fix: long KaTeX equations may scroll locally, not widen the mobile page. */
+.formula-panel{min-width:0;max-width:100%;width:100%}
+.formula-panel > div:last-child{min-width:0;max-width:100%;overflow:hidden}
+.formula-panel .equation-list,.formula-panel .equation-row{min-width:0;max-width:100%}
+.formula-panel .equation-math{width:100%;max-width:100%;overflow-x:auto}
