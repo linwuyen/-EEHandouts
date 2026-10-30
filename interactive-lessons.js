@@ -137,7 +137,10 @@
       title:'整流後電容漣波近似',knobs:[knob('cap','輸出電容',220,2200,110,1650,' μF'),knob('load','負載電流',0.1,3,0.1,1,' A')],
       assumption:'50 Hz 全波、固定電流負載、Vpeak=24√2 V。ΔV≈I/(2fC) 只適用小漣波近似，非充電尖峰電流精確模擬。',
       compute:function(v){var dv=v.load/(100*v.cap*1e-6),pk=24*Math.SQRT2,valid=dv/pk<=0.2;
-        return result([metric('有效小漣波估計 ΔV',valid?dv:NaN,' V'),metric('ΔV／Vpeak',100*dv/pk,' %'),metric('輸入峰值',pk,' V'),metric('超域公式外插（不可用於設計）',valid?NaN:dv,' V')],
+        var values=[metric('有效小漣波估計 ΔV',valid?dv:NaN,' V'),
+          metric('ΔV／Vpeak',100*dv/pk,' %'),metric('輸入峰值',pk,' V')];
+        if(!valid)values.push(metric('超域公式外插（不可用於設計）',dv,' V'));
+        return result(values,
           valid?'此處小漣波近似可作教學估算。':'超出教學近似門檻，勿將估計當成實際 DC 電壓。',{validity:{scorable:valid,status:valid?'IN_DOMAIN':'OUT_OF_DOMAIN'},warning:valid?'':'ΔV／Vpeak > 20%；超出本站小漣波教學模型，不能把外插值當成有效漣波估值或預測正確的依據。'});}
     },
     sourceL:{
