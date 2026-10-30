@@ -475,24 +475,24 @@
     threephase:['phases','改變觀察相位，瞬時線電壓如何變化？','phase'],
     fourier:['harmonics','增加三次諧波會如何改變總 THD？','h3'],
     thd:['harmonics','增加第三諧波，RMS 與失真率如何變化？','h3'],
-    ampere:['magnetic','氣隙增大時，同樣 NI 能維持相同 B 嗎？','gap'],
+    ampere:['magnetic','氣隙增大時，同樣 NI 能維持相同 B 嗎？','gap',1],
     bh:['magnetic','線性磁路模型的 B 是否能直接當作飽和判定？','amps',1],
     reluctance:['magnetic','增加氣隙使磁阻變大時，L 如何改變？','gap'],
     faraday:['faraday','B(t) 變化更快時，感應電壓峰值如何改變？','freq'],
     inductor:['magnetic','匝數改變時，線性模型的 L 如何改變？','turns'],
     transformer:['transformer','提高一次／二次匝比，次級電壓如何改變？','ratio'],
-    blocks:['efficiency','效率降低時，固定輸出功率需要多大的輸入功率？','eta'],
-    linear:['efficiency','同樣 Pout 下，轉換效率改變對熱損有何影響？','eta'],
+    blocks:['efficiency','效率降低時，固定輸出功率需要多大的輸入功率？','eta',1],
+    linear:['linearRegulator','在 Vout、Io 固定時增加 Vin，線性串聯穩壓器的發熱如何變化？','vin'],
     pwm:['pwm','延長 PWM 導通比例，平均開關節點電壓怎麼變？','duty'],
     timing:['timing','控制路徑延遲增加時，佔週期比例會怎麼變？','delay'],
     diodes:['diode','正向電流上升，簡化導通損耗如何變化？','i'],
     legacy:['scr','延後 SCR 觸發角，平均輸出如何改變？','alpha'],
     mosfet:['semiconductor','通電電流提高時，MOSFET I²R 損耗如何變化？','current'],
     switchloss:['switching','單次 Eon/Eoff 變大時，總切換損耗如何變化？','energy'],
-    igbt:['semiconductor','同樣電流下 IGBT 與 MOSFET 的導通損耗差怎麼變？','current'],
+    igbt:['semiconductor','同樣電流下 IGBT 與 MOSFET 的導通損耗差怎麼變？','current',2],
     wbg:['switching','降低單次切換能量時，固定頻率的切換損耗如何變化？','energy'],
     half:['rectifier','半波整流的電壓平均值由哪段波形貢獻？','vac'],
-    bridge:['rectifier','全波相較半波，輸出正半週如何變化？','full'],
+    bridge:['rectifier','切換全波與半波，輸出正半週平均電壓會改變嗎？','full',2],
     overlap:['sourceL','源側電感變大，指定 di/dt 所需的電感壓降如何變化？','l'],
     capacitor:['capRipple','電容增加時，小漣波公式預測 ΔV 如何改變？','cap'],
     notching:['sourceL','換向電流斜率增加時，PCC 可能受到的電感壓降如何變化？','didt'],
@@ -516,7 +516,7 @@
     'mid-ccm-dcm':['buck','減小負載電流，IL 何時會出現第三段零電流？','io',4],
     'mid-bcm':['buck','把 Io 逐步調到 BCM 臨界值，IL 谷值會如何變化？','io',2],
     'mid-buck-dcm':['buck','進入 DCM 後，Vout 還等於 D×Vin 嗎？','io',0],
-    'mid-boost-ccm':['boost','Boost 的 ON/OFF 區間各由誰供應負載？','duty'],
+    'mid-boost-ccm':['boost','提高 Boost Duty 時理想 CCM 輸出電壓如何變化？並觀察 ON/OFF 能量流。','duty'],
     'mid-boost-ripple':['boostCap','固定 Duty 時提高輸出電容，ON 放電壓降怎麼變？','cap'],
     'mid-boost-rl':['boostCopper','電感銅損存在時提高 Duty，輸出是否必定一直上升？','duty'],
     'mid-boost-efficiency':['boostCopper','增大電感等效電阻時，實際 CCM 平均輸出如何變化？','rl'],
@@ -524,17 +524,17 @@
     'mid-boost-dcm':['boost','減少負載後，Boost 何時離開 CCM？','io',4],
     'mid-buckboost-ccm':['buckboost','增加 Duty，反相輸出電壓與 IL 如何變化？','duty'],
     'mid-buckboost-dcm':['buckboost','降低 Io 後，反相 Buck-Boost 的 DCM 比例如何改變？','io',3],
-    'mid-sepic-zeta':['converterFamily','觀察同樣 Duty 下 Ćuk 的輸出極性與 SEPIC／ZETA 差異。','duty'],
+    'mid-sepic-zeta':['converterFamily','提高 Duty，SEPIC／ZETA 輸出增益如何變化？並比較反相 Ćuk。','duty'],
     'mid-four-switch':['fourSwitch','改變輸入橋臂 Duty，四開關升降壓的平均增益如何變化？','dbuck'],
     'mid-bidirectional':['signed','反轉電流正負後，功率方向如何改變？','i'],
     'mid-quadrants':['bridge','維持 VAB 為正、反轉 IAB，平均功率方向會如何切換？','i',1],
     'mid-motor-hbridge':['bridge','改變 A/B 橋臂 Duty，平均負載電壓如何變化？','da'],
     'mid-bipolar':['bridge','切換瞬時互補模式後，週期後段的 VAB 如何改變？','bipolar',3],
-    'mid-unipolar':['bridge','單極性橋臂 Duty 改變時，VAB 的零狀態如何改變？','da'],
+    'mid-unipolar':['bridge','增加 A 臂 Duty，單極性 VAB 的零電壓時間比例如何改變？','da',4],
     'mid-isolated-types':['transformer','匝比增加時，隔離變壓器的理想二次電壓如何變化？','ratio'],
     'mid-isolation-feedback':['optocoupler','光耦 CTR 改變時，隔離傳遞的回授電流如何變化？','ctr'],
     'mid-multi-output':['multiSecondary','當第二組次級匝比增加時，該組輸出電壓如何變化？','r2',1],
-    'mid-flyback-ccm':['flyback','ON 時存入磁化電感的電流，OFF 時如何釋出？','duty'],
+    'mid-flyback-ccm':['flyback','提高 Flyback Duty 時理想 CCM 輸出電壓如何變化？並觀察 ON/OFF 磁化電流。','duty'],
     'mid-flyback-dcm':['flyback','減少 Io，退磁結束後會不會出現零電流區間？','io',4],
     'mid-forward-reset':['forward','提高 ON Duty 後，OFF 去磁時間還夠嗎？','duty'],
     'mid-double-forward':['core','增加匝數，理想正伏秒造成的 ΔB 如何降低？','turns'],
@@ -544,10 +544,21 @@
     'mid-coreloss':['coreLoss','固定磁通擺幅 ΔB，將頻率提高一格後，假設材料的相對鐵損如何改變？','freq']
   };
 
+  // Per-lesson starting points may differ from reusable model defaults. This
+  // preserves each lesson's physics without mutating shared model definitions.
+  var lessonInitialValues={
+    half:{full:0},
+    op:{gain:5.5,vin:2},
+    'mid-boost-rl':{duty:55,rl:2,load:10}
+  };
   // Lesson-specific comparisons must match the investigation's requested
   // direction and cross the relevant mode or power-flow boundary when needed.
   // All targets are on the published knob's step grid.
   var comparisonTargets={
+    power:-2,
+    blocks:80,
+    op:7,
+    'mid-boost-rl':70,
     wbg:45,
     'mid-bidirectional':-2,
     'mid-quadrants':-2,
@@ -559,14 +570,18 @@
     'mid-flyback-dcm':0.1
   };
   function comparisonTarget(lessonId,knob) {
+    var initial=lessonInitialValues[lessonId]||{};
+    var baseline=Object.prototype.hasOwnProperty.call(initial,knob.key)?initial[knob.key]:knob.value;
     var specified=Object.prototype.hasOwnProperty.call(comparisonTargets,lessonId);
     var value=specified?comparisonTargets[lessonId]:
-      (knob.value<knob.max?Math.min(knob.max,Number((knob.value+knob.step).toFixed(8))):
-        Math.max(knob.min,Number((knob.value-knob.step).toFixed(8))));
-    var grid=(value-knob.min)/knob.step;
-    if(!Number.isFinite(value)||Math.abs(value-knob.value)<1e-9||
+      (baseline<knob.max?Math.min(knob.max,Number((baseline+knob.step).toFixed(8))):
+        Math.max(knob.min,Number((baseline-knob.step).toFixed(8))));
+    var grid=(value-knob.min)/knob.step,baseGrid=(baseline-knob.min)/knob.step;
+    if(!Number.isFinite(value)||!Number.isFinite(baseline)||Math.abs(value-baseline)<1e-9||
+       baseline<knob.min-1e-9||baseline>knob.max+1e-9||
        value<knob.min-1e-9||value>knob.max+1e-9||
-       Math.abs(grid-Math.round(grid))>1e-7) {
+       Math.abs(grid-Math.round(grid))>1e-7||
+       Math.abs(baseGrid-Math.round(baseGrid))>1e-7) {
       throw Error('Invalid lesson target: '+lessonId+'/'+knob.key);
     }
     return value;
