@@ -118,10 +118,33 @@ for(const options of [
 const schedule=calculate('timing');near(schedule.data.tbprd,500,0,'TBPRD 100MHz/100kHz updown');
 near(schedule.data.T,10,1e-12,'PWM period 100kHz');
 near(schedule.data.soc,1.75,1e-12,'CMPA UP trigger');
-near(schedule.data.eoc,2.175,1e-9,'ADC EOC');
+near(schedule.data.eoc,2.18,1e-9,'ADC EOC using 13 SYSCLK acquisition cycles');
 near(schedule.data.load,10,1e-12,'Next ZERO load');
 assert.ok(schedule.data.load>schedule.data.finish);
 assert.equal(calculate('timing',{soca:'ZERO',shadow:'ZERO',fs:200,isr:30000}).mode,'CPU_OVERRUN');
+ // Current F28004x datasheet: SYSCLK <=100MHz; 75ns minimum sample window
+ // with <=50-ohm source, quantized by (ACQPS+1)/SYSCLK (80ns at 100MHz).
+assert.equal(schedule.mode,'NEXT_PWM_CYCLE','Sample at 1.75us cannot load until next ZERO at 10us');
+assert.equal(schedule.data.samePwm,false,'PWM cycle classification must use TBCTR ZERO, not next SOCA');
+near(schedule.data.tbclk,100,1e-12,'Derived ePWM TBCLK');
+near(schedule.data.tSH,130,1e-12,'ACQPS=12 yields 13 SYSCLK cycles');
+near(schedule.data.adclk,50,1e-12,'ADCCLK prescale default /2');
+assert.equal(calculate('timing',{sysclk:200}).mode,'OUT_OF_DEVICE_DOMAIN','F28004x 200MHz SYSCLK is impossible');
+assert.equal(calculate('timing',{acqps:5}).mode,'OUT_OF_DEVICE_DOMAIN','60ns sample at 100MHz violates 75ns min');
+assert.equal(calculate('timing',{acqps:7}).validity,true,'80ns ACQPS sample is allowable at 100MHz');
+assert.equal(calculate('timing',{tbclk:200}).mode,'OUT_OF_DEVICE_DOMAIN','Do not silently ignore legacy arbitrary TBCLK');
+const prescaled=calculate('timing',{epwmdiv:'2',hspdiv:'2'});
+near(prescaled.data.tbclk,25,1e-12,'EPWMCLK /2 and HSPCLKDIV /2');
+near(prescaled.data.tbprd,125,0,'TBPRD derives from actual clock tree');
+const earlierLoad=calculate('timing',{soca:'ZERO',shadow:'PERIOD'});
+assert.equal(earlierLoad.mode,'SAME_PWM_CYCLE','ZERO sample, PERIOD load is within current TBCTR cycle');
+near(earlierLoad.data.load,earlierLoad.data.T/2,1e-12,'Shadow loads at PERIOD');
+const quantizedSlow=calculate('timing',{sysclk:50,acqps:3});
+near(quantizedSlow.data.tSH,80,1e-12,'50MHz 4 SYSCLK acquisition cycles');
+assert.equal(quantizedSlow.validity,true,'Device min ADC sample quantization must allow 80ns');
+const noTbprd=calculate('timing',{sysclk:50,epwmdiv:'2',hspdiv:'14',clkdiv:'128',fs:200});
+assert.equal(noTbprd.mode,'OUT_OF_DEVICE_DOMAIN','Too small TBPRD invalid after prescaling');
+
 const buck=calculate('nonideal'),ideal=calculate('nonideal',{rh:0,rl:0,dcr:0,dead:0,esr:0,esum:0});
 assert.ok(buck.data.vo<buck.data.ideal);assert.ok(buck.data.ripple>0&&buck.data.rV>0);
 near(buck.data.energyError,0,1e-9,'Nonideal loss and input/output energy');
