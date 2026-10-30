@@ -185,48 +185,79 @@
   function mul(a,b){return c(a.re*b.re-a.im*b.im,a.re*b.im+a.im*b.re);}
   function div(a,b){var x=b.re*b.re+b.im*b.im;return c((a.re*b.re+a.im*b.im)/x,(a.im*b.re-a.re*b.im)/x);}
   function loop(v){
-    var L=v.l*1e-6,C=v.c*1e-6,R=v.r,esr=v.esr/1000,vin=v.vin,fs=v.fs*1000,
-      kp=v.kp,fz=v.fz,fp=v.fp,delay=v.delay*1e-6;
-    var fo=vin/2,io=fo/R,ripple=(vin-fo)*.5/(L*fs),ccm=io>ripple/2;
-    var points=[],N=220,fmin=10,fmax=fs*.45,prev=null,cross=[],pcross=[];
+    var L=v.l*1e-6,C=v.c*1e-6,R=v.r,esr=v.esr/1000,vin=v.vin,fs=v.fs*1000,kp=v.kp,
+      fz=v.fz,fp=v.fp,delay=v.delay*1e-6,fo=vin/2,io=fo/R,
+      ripple=(vin-fo)*.5/(L*fs),ccm=io>ripple/2;
+    var fmin=10,fmax=fs*.45,low=Math.log(fmin),high=Math.log(fmax),N=220,cross=[],pcross=[];
     function transfer(f){
       var w=2*PI*f,plant=div(c(vin,w*vin*esr*C),c(1-w*w*L*C*(1+esr/R),w*(L/R+esr*C))),
-        comp=div(c(kp,-kp*2*PI*fz/w),c(1,w/(2*PI*fp))),
-        L0=mul(plant,comp);L0=mul(L0,c(Math.cos(w*delay),-Math.sin(w*delay)));
-      L0.re/=v.ramp;L0.im/=v.ramp;
-      return {db:20*Math.log10(Math.hypot(L0.re,L0.im)),raw:Math.atan2(L0.im,L0.re)*180/PI};
+        comp=div(c(kp,-kp*2*PI*fz/w),c(1,w/(2*PI*fp))),z=mul(plant,comp);
+      z=mul(z,c(Math.cos(w*delay),-Math.sin(w*delay)));
+      z.re/=v.ramp;z.im/=v.ramp;
+      return {db:20*Math.log10(Math.hypot(z.re,z.im)),raw:Math.atan2(z.im,z.re)*180/PI};
     }
-    for(var i=0;i<N;i++){
-      var f=fmin*Math.pow(fmax/fmin,i/(N-1)),z=transfer(f),phase=z.raw;
-      if(prev){while(phase-prev.phase>180)phase-=360;while(phase-prev.phase< -180)phase+=360;}
-      var q={t:i/(N-1),f:f,db:z.db,phase:phase};
-      if(prev){
-        if((prev.db>=0&&q.db<0)||(prev.db<=0&&q.db>0)){
-          var u=(0-prev.db)/(q.db-prev.db);
-          cross.push({f:Math.exp(Math.log(prev.f)+u*(Math.log(q.f)-Math.log(prev.f))),phase:prev.phase+u*(phase-prev.phase)});
-        }
-        if(prev.phase>-180&&phase<=-180){
-          var t=(-180-prev.phase)/(phase-prev.phase);
-          pcross.push({f:Math.exp(Math.log(prev.f)+t*(Math.log(q.f)-Math.log(prev.f))),db:prev.db+t*(q.db-prev.db)});
-        }
+    // An LC resonance can go above AND below 0 dB inside a single coarse
+    // plotting segment. Find log-gain extrema before searching for roots.
+    function slope(x){var h=1e-5;return (transfer(Math.exp(x+h)).db-transfer(Math.exp(x-h)).db)/(2*h);}
+    function bisect(fn,a,b){
+      var va=fn(a),vb=fn(b);if(!Number.isFinite(va)||!Number.isFinite(vb)||va*vb>0)return null;
+      for(var j=0;j<55;j++){var mid=(a+b)/2,vm=fn(mid);if(!Number.isFinite(vm))return null;
+        if(va*vm>0){a=mid;va=vm;}else{b=mid;vb=vm;}}
+      return (a+b)/2;
+    }
+    var xs=[];for(var i=0;i<N;i++)xs.push(low+(high-low)*i/(N-1));
+    [1/(2*PI*Math.sqrt(L*C)),fz,fp,esr?1/(2*PI*esr*C):NaN].forEach(function(f){
+      if(f>fmin&&f<fmax)xs.push(Math.log(f));
+    });
+    xs.sort(function(a,b){return a-b;});
+    xs=xs.filter(function(v,i,a){return i===0||v-a[i-1]>1e-9;});
+    var extrema=[];
+    for(var i=1;i<xs.length;i++){
+      var a=xs[i-1],b=xs[i];
+      if(slope(a)*slope(b)<0){var root=bisect(slope,a,b);if(root!==null)extrema.push(root);}
+    }
+    xs=xs.concat(extrema).sort(function(a,b){return a-b;}).filter(function(v,i,a){return i===0||v-a[i-1]>1e-9;});
+    function unwrap(p,last){while(p-last>180)p-=360;while(p-last< -180)p+=360;return p;}
+    var points=xs.map(function(x){var f=Math.exp(x),z=transfer(f);
+      return {f:f,db:z.db,phase:z.raw,logf:x,t:(x-low)/(high-low)};});
+    for(var i=1;i<points.length;i++)points[i].phase=unwrap(points[i].phase,points[i-1].phase);
+    function appendUnique(list,item){if(!list.length||Math.abs(Math.log(list[list.length-1].f/item.f))>1e-7)list.push(item);}
+    for(var i=1;i<points.length;i++){
+      var left=points[i-1],right=points[i];
+      if(left.db*right.db<=0&&left.db!==right.db){
+        var at=bisect(function(x){return transfer(Math.exp(x)).db;},left.logf,right.logf);
+        if(at!==null){var f=Math.exp(at),z=transfer(f),phase=unwrap(z.raw,left.phase);
+          appendUnique(cross,{f:f,phase:phase,pm:180+phase});}
       }
-      points.push(q);prev=q;
+      if(left.phase> -180&&right.phase<= -180){
+        var at=bisect(function(x){return unwrap(transfer(Math.exp(x)).raw,left.phase)+180;},left.logf,right.logf);
+        if(at!==null){var f=Math.exp(at);appendUnique(pcross,{f:f,db:transfer(f).db});}
+      }
     }
-    var primary=cross.length?cross[0]:null,pm=primary?180+primary.phase:NaN,
+    // Render actual peak and crossing points. The viewer positions these
+    // nonuniform samples by log(f), not array-index spacing.
+    var plot=points.concat(cross.map(function(p){var z=transfer(p.f);
+      return {f:p.f,db:z.db,phase:p.phase,logf:Math.log(p.f),t:(Math.log(p.f)-low)/(high-low)};}))
+      .sort(function(a,b){return a.f-b.f;})
+      .filter(function(p,i,a){return i===0||Math.abs(Math.log(p.f/a[i-1].f))>1e-9;});
+    for(var i=1;i<plot.length;i++)plot[i].phase=unwrap(plot[i].phase,plot[i-1].phase);
+    var first=cross.length?cross[0]:null,pm=first?first.pm:NaN,
+      minPm=cross.length?Math.min.apply(null,cross.map(function(q){return q.pm;})):NaN,
       gm=pcross.length?-pcross[0].db:NaN;
-    return valid({mode:!ccm?'OUT_OF_DOMAIN':!primary?'NO_CROSSOVER':pm<=0?'UNSTABLE_MARGIN':'LINEAR_MODEL',
+    return valid({mode:!ccm?'OUT_OF_DOMAIN':!first?'NO_CROSSOVER':cross.length>1?'MULTIPLE_CROSSOVERS':pm<=0?'UNSTABLE_MARGIN':'LINEAR_MODEL',
       validity:ccm,assumptions:'固定 CCM 電壓模式 Buck 小訊號 Gvd；負載純電阻、包含輸出電容 ESR 零點；連續時間 PI + 高頻單極點 + 固定取樣到 PWM 延遲。未包含 ZOH 完整離散化、電流內迴路、限幅及非線性。',
-      note:'Bode 曲線為複數頻率響應；用 0 dB 交越附近開迴路相位估計相位裕度，若有多重交越需全部檢視。',
+      note:'Bode 曲線為複數頻率響應，先找對數頻率增益極值，再對 0 dB 交越精確求根。各交越有獨立 PM；有多個交越時不可只看第一個 PM 判斷穩定。',
       warning:!ccm?'初始工作點落入 DCM：此 CCM 植物模型不適用，請調整負載／L／fs。':
-        !primary?'掃描頻段找不到 0 dB 交越，不能報告相位裕度。':
-        (cross.length>1?'出現多個 0 dB 交越，不可只依第一個 PM 斷定穩定。':
-        primary.f>fs/10?'交越頻率超過 fs/10 教學準則，需以取樣／離散模型再驗證。':'相位裕度只是線性模型指標，不能替代功率級實機閉迴路驗證。'),
-      metrics:[m('0 dB 首次交越頻率',ccm&&primary?primary.f:NaN,'Hz'),m('首次交越相位裕度',ccm?pm:NaN,'°'),
-        m('增益裕度（第一 −180° 交越）',ccm?gm:NaN,'dB'),m('0 dB 交越次數',ccm?cross.length:NaN,'',0),
-        m('LC 自然頻率',1/(2*PI*Math.sqrt(L*C)),'Hz'),m('BCM 臨界 Io',ripple/2,'A')],
-      stages:[],traces:[{key:'gain',label:'開迴路增益',unit:'dB',values:points.map(function(p){return p.db;}),x:points.map(function(p){return p.f;}),step:false},
-        {key:'phase',label:'開迴路相位',unit:'°',values:points.map(function(p){return p.phase;}),x:points.map(function(p){return p.f;}),step:false}],
-      data:{crossovers:cross,phaseCrossings:pcross,fc:primary?primary.f:NaN,pm:pm,gm:gm,ccm:ccm,fs:fs,points:points}});
+        !first?'頻段內及局部極值均未發現 0 dB 交越，不能報告相位裕度。':
+        cross.length>1?'存在多個 0 dB 交越，需逐一檢視各 PM，不能僅依第一個判斷穩定。':
+        first.f>fs/10?'交越頻率超過 fs/10 教學準則，需以離散模型再驗證。':'相位裕度只是線性模型指標，不能替代實機閉迴路驗證。',
+      metrics:[m('0 dB 首次交越頻率',ccm&&first?first.f:NaN,'Hz'),
+        m('首次交越相位裕度',ccm?pm:NaN,'°'),m('增益裕度（第一 −180° 交越）',ccm?gm:NaN,'dB'),
+        m('0 dB 交越次數',ccm?cross.length:NaN,'',0),m('LC 自然頻率',1/(2*PI*Math.sqrt(L*C)),'Hz'),
+        m('BCM 臨界 Io',ripple/2,'A'),m('全部交越最小 PM',ccm?minPm:NaN,'°')],
+      stages:[],traces:[{key:'gain',label:'開迴路增益',unit:'dB',values:plot.map(function(p){return p.db;}),x:plot.map(function(p){return p.f;}),step:false},
+        {key:'phase',label:'開迴路相位',unit:'°',values:plot.map(function(p){return p.phase;}),x:plot.map(function(p){return p.f;}),step:false}],
+      data:{crossovers:cross,phaseCrossings:pcross,fc:first?first.f:NaN,pm:pm,minPm:minPm,gm:gm,ccm:ccm,fs:fs,points:plot}});
   }
 
   function timing(v){
