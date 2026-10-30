@@ -122,3 +122,14 @@ html[data-theme="dark"]{color-scheme:dark;--bg:#0b1220;--paper:#121e30;--paper-2
 @media(prefers-reduced-motion:reduce){
   .interactive-lesson *{scroll-behavior:auto;transition:none!important;animation:none!important}
 }
+
+
+/* Keep wide SVG plots in their own scroll region, not in the page's min-content width. */
+.lesson-layout,.reading-block,.interactive-lesson,.interactive-knobs,.interactive-metrics,.interactive-chart{min-width:0;max-width:100%}
+.interactive-lesson{width:100%;overflow:hidden}
+.interactive-chart{width:100%;overflow-x:auto;overscroll-behavior-x:contain}
+.interactive-knob strong,.interactive-metric strong{overflow-wrap:anywhere;word-break:break-word}
+@media(max-width:610px){
+  .interactive-knob strong{white-space:normal;text-align:right}
+  .interactive-chart{contain:layout}
+}
