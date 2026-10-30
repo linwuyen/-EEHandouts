@@ -89,6 +89,14 @@ try{
     await page.goto(BASE+'/'+file+'#lesson/'+chapter+'/'+lesson);
     await page.locator('#lesson-interactive .interactive-svg').waitFor({timeout:10000});
     const size=await page.evaluate(()=>({client:document.documentElement.clientWidth,scroll:document.documentElement.scrollWidth}));
+    if(size.scroll>size.client+2){
+      const offenders=await page.evaluate(()=>Array.from(document.querySelectorAll('body *')).filter(n=>{
+        const b=n.getBoundingClientRect();
+        const cs=getComputedStyle(n);
+        return b.right>document.documentElement.clientWidth+3 && cs.position!=='fixed' && cs.position!=='absolute';
+      }).slice(0,15).map(n=>({tag:n.tagName,cls:n.className?.baseVal||n.className,width:Math.round(n.getBoundingClientRect().width),right:Math.round(n.getBoundingClientRect().right),scroll:n.scrollWidth,client:n.clientWidth})));
+      console.error('MOBILE_OVERFLOW',file,lesson,size,offenders);
+    }
     assert.ok(size.scroll<=size.client+2,file+' '+lesson+' mobile no viewport overflow '+JSON.stringify(size));
     await page.locator('#lesson-interactive [data-knob]').first().evaluate(el=>{
       el.value=el.max;
