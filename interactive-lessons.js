@@ -699,8 +699,9 @@
       var y=computed.metrics[metricIndex].value;
       // Preserve the original x index. An invalid sample creates a visible
       // gap: joining the adjacent valid samples would misrepresent the model.
-      samples.push(Number.isFinite(y)?y:null);
-      if(Number.isFinite(y))ys.push(y);
+      var usable=Number.isFinite(y)&&(!computed.validity||computed.validity.scorable!==false);
+      samples.push(usable?y:null);
+      if(usable)ys.push(y);
     }
     if(!ys.length)return '<div role="status">模型超出數值有效範圍。</div>';
     var w=700,lo=Math.min.apply(null,ys),hi=Math.max.apply(null,ys),pad=Math.max((hi-lo)*0.12,1e-8),range=hi-lo+2*pad;
@@ -709,12 +710,13 @@
       var cmd=i>0&&samples[i-1]!==null?'L':'M';
       return cmd+(50+i*7.7).toFixed(1)+' '+(184-(y-(lo-pad))/range*149).toFixed(1);
     }).filter(Boolean).join(' ');
+    var current=spec.compute(v),usableNow=Number.isFinite(mainValue)&&(!current.validity||current.validity.scorable!==false);
     var xmark=50+616*(v[kn.key]-kn.min)/(kn.max-kn.min),ymark=184-(mainValue-(lo-pad))/range*149;
     return '<svg class="interactive-svg" viewBox="0 0 700 222" role="img" aria-label="'+esc(kn.label)+' 對 '+esc(spec.title)+' 模型主要輸出影響曲線">'+
       '<rect x="46" y="28" width="622" height="164" rx="6" fill="currentColor" fill-opacity=".035"/>'+
       '<path d="'+points+'" fill="none" stroke="#159c81" stroke-width="3" stroke-linejoin="round"/>'+
       '<line x1="'+xmark.toFixed(1)+'" y1="28" x2="'+xmark.toFixed(1)+'" y2="192" stroke="#d49231" stroke-width="1.5" stroke-dasharray="5 4"/>'+
-      (Number.isFinite(ymark)?'<circle cx="'+xmark.toFixed(1)+'" cy="'+ymark.toFixed(1)+'" r="5" fill="#d49231"/>':'')+
+      (usableNow&&Number.isFinite(ymark)?'<circle cx="'+xmark.toFixed(1)+'" cy="'+ymark.toFixed(1)+'" r="5" fill="#d49231"/>':'')+
       '<text x="46" y="18" font-size="12" fill="currentColor">'+esc(spec.title)+' · '+esc(spec.compute(v).metrics[metricIndex].label)+'</text>'+
       '<text x="46" y="210" font-size="12" fill="currentColor">'+esc(fmt(kn.min))+' '+esc(kn.unit)+'</text>'+
       '<text x="668" y="210" text-anchor="end" font-size="12" fill="currentColor">'+esc(fmt(kn.max))+' '+esc(kn.unit)+'</text>'+
