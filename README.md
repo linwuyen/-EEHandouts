@@ -39,7 +39,7 @@
 ## 功能
 - 首頁主題卡片、側欄章節切換、課節導航與全文關鍵字搜尋
 - 每個課節有白話解說、重要公式、例題、常見誤解與自我測驗
-- 全部可數學排版的重點公式使用 **KaTeX 0.19.1**（固定版號與 SRI 完整性校驗），上冊／中冊共 71 節、119 條公式；每條獨立標示適用場景，分數與上下標依數學格式排版。另有一節純文字選型觀念維持原文。
+- 全部可數學排版的重點公式使用 **KaTeX 0.19.1**（固定版號與 SRI 完整性校驗），上冊／中冊共 71 節、120 條公式；每條獨立標示適用場景，分數與上下標依數學格式排版。另有一節純文字選型觀念維持原文。
 - KaTeX CSS/JS 由 jsDelivr 載入；若 KaTeX JavaScript 或 CSS 任一資產無法載入，保留原本的文字公式作為可閱讀備援，不影響章節導覽與測驗。
 - 長公式在手機僅於公式區域水平捲動，不造成整頁橫向溢位。
 - 每個主題提供一個可調參數的工程小實驗
@@ -183,3 +183,10 @@ Node.js 22 開發環境：執行 `npm ci --ignore-scripts`，再安裝 Chromium�
 - `SAME_PWM_CYCLE` 代表 shadow load 位於當前 TBCTR ZERO–ZERO 週期，`NEXT_PWM_CYCLE` 代表下一個週期，不再誤把『早於下一次 SOCA』等同『同 PWM 週期』。CPU overrun 另依下一個 SOCA 判斷。
 - EOC／ADCINT／ISR 入口／WCET 與 shadow setup guard 仍為教學假設，不能當真實 F280049C 延遲 datasheet 或 register configuration generator。
 - 第一手來源：[TI F28004x Datasheet Rev. H](https://www.ti.com/lit/ds/symlink/tms320f280049c-q1.pdf)、[TI F28004x TRM](https://www.ti.com/lit/ug/sprui33c/sprui33c.pdf)。
+
+### 品質與正式站版本驗收（2026/10/30）
+
+- `tests/content-contracts.mjs` 直接比對 38＋34 節、107＋52 頁、71 節 KaTeX／120 條公式及 README 數量；避免文件和教材資料悄悄漂移。
+- `tests/accessibility-smoke.mjs` 檢查上／中／進階的語意標籤、skip link、鍵盤第一焦點、可見表單名稱、SVG 無障礙名稱及重複 ID；這只是 smoke test，不能宣稱完整 WCAG、螢幕閱讀器、色彩對比或真實手機驗收。
+- Pages 部署時將已通過 CI 的 exact SHA 另寫入 `release-sha.txt`（由部署環境生成，非原始 Repo 檔案），部署後對公開網址做限時重試，確認該 SHA 與三個課程入口和 `advanced-models.js` 皆可取得。若 GitHub Pages 邊緣快取延遲或站點未發佈，發布 workflow 會顯示失敗，不會把 skipped 誤判成成功。
+- GitHub Ruleset 的 Require conversation resolution 與 Require branch up to date 需具備管理權限的維護者在 GitHub UI 開啟；教材擷取文字的公開散布權利也仍需權利人核可，不會因 CI PASS 自動視為合法授權。

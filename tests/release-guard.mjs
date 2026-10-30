@@ -7,6 +7,8 @@ import { spawnSync } from 'node:child_process';
 const verify=readFileSync('.github/workflows/verify.yml','utf8');
 const publish=readFileSync('.github/workflows/publish-verified.yml','utf8');
 const smoke=readFileSync('tests/smoke.mjs','utf8');
+assert.ok(readFileSync('package.json','utf8').includes('tests/content-contracts.mjs'),'Course content count must be regression checked');
+assert.ok(readFileSync('package.json','utf8').includes('tests/accessibility-smoke.mjs'),'Accessibility keyboard/labels smoke must run in CI');
 const pkg=JSON.parse(readFileSync('package.json','utf8'));
 const lock=JSON.parse(readFileSync('package-lock.json','utf8'));
 const upperHtml=readFileSync('index.html','utf8');
@@ -54,6 +56,9 @@ assert.match(publish,/^\s*queue:\s*max\s*$/m,'Keep all out-of-order verified dep
 assert.match(publish,/^\s*cancel-in-progress:\s*false\s*$/m,'Older CI completions must not cancel newer deployment');
 assert.ok(publish.includes("head_repository.full_name == github.repository"),'Reject foreign workflow runs');
 assert.ok(publish.includes("head_branch == 'main'"),'Publish only main');
+assert.ok(publish.includes("release-sha.txt"),'Publish must stamp exact verified SHA into the Pages artifact');
+assert.ok(publish.includes("bash scripts/check-published-head.sh"),'Verify public website exact SHA after deploy');
+assert.ok(publish.includes("steps.deployment.outcome == 'success'"),'Only verify hosted SHA after an actual successful deployment');
 assert.ok(publish.includes("if: steps.final_freshness.outputs.current == 'true'"),'Deploy missing freshness guard');
 assert.equal(count(publish,'run: bash scripts/check-verified-head.sh'),2,'Freshness guard must run twice');
 assert.equal(lock.lockfileVersion,3);
@@ -99,4 +104,30 @@ printf '%s\\n' "$MOCK_REMOTE_SHA"
   assert.notEqual(unavailable.result.status,0,'API failure must prevent deployment');
   assert.doesNotMatch(unavailable.txt,/current=true/);
 }finally{rmSync(directory,{recursive:true,force:true})}
+// Post-deploy verifier must reject stale/nonexistent public SHA.
+const publicationScript=readFileSync('scripts/check-published-head.sh','utf8');
+assert.ok(publicationScript.includes('release-sha.txt'),'Public artifact SHA marker required');
+const publicationTemp=mkdtempSync(join(tmpdir(),'eehandouts-publication-guard-'));
+try{
+  const mockCurl=join(publicationTemp,'curl');
+  writeFileSync(mockCurl,`#!/usr/bin/env bash
+set -euo pipefail
+for arg in "$@"; do
+  if [[ "$arg" == *"release-sha.txt"* ]]; then printf '%s\\n' "${MOCK_PUBLISHED_SHA}"; exit 0; fi
+done
+exit 0
+`);
+  chmodSync(mockCurl,0o755);
+  const verified='c'.repeat(40);
+  function checkPublic(returned){
+    return spawnSync('bash',['scripts/check-published-head.sh'],{encoding:'utf8',env:{
+      ...process.env,PATH:publicationTemp+delimiter+process.env.PATH,
+      PAGES_URL:'https://example.invalid/handouts/',VERIFIED_SHA:verified,
+      MOCK_PUBLISHED_SHA:returned,VERIFY_ATTEMPTS:'1',VERIFY_DELAY_SECONDS:'0'
+    }});
+  }
+  assert.equal(checkPublic(verified).status,0,'Correct hosted exact SHA must pass');
+  assert.notEqual(checkPublic('d'.repeat(40)).status,0,'Stale hosted SHA must fail');
+  assert.notEqual(checkPublic('').status,0,'Empty hosted SHA must fail');
+}finally{rmSync(publicationTemp,{recursive:true,force:true})}
 console.log('PASS release safety regression: current / stale / API unavailable; action versions, lockfile, duplicate tests');

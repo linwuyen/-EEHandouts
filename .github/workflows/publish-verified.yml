@@ -45,6 +45,12 @@ jobs:
       - name: Prepare SHA-512-verified local PDF.js assets
         if: steps.freshness.outputs.current == 'true'
         run: bash scripts/prepare-pdfjs.sh
+      - name: Stamp exact verified SHA into the Pages artifact
+        if: steps.freshness.outputs.current == 'true'
+        env:
+          VERIFIED_SHA: ${{ github.event.workflow_run.head_sha }}
+        shell: bash
+        run: printf '%s\\n' "$VERIFIED_SHA" > release-sha.txt
       - name: Configure GitHub Pages
         if: steps.freshness.outputs.current == 'true'
         uses: actions/configure-pages@v6
@@ -65,3 +71,10 @@ jobs:
         id: deployment
         if: steps.final_freshness.outputs.current == 'true'
         uses: actions/deploy-pages@v5
+      - name: Verify hosted release SHA and all three entry pages
+        if: steps.deployment.outcome == 'success'
+        env:
+          VERIFIED_SHA: ${{ github.event.workflow_run.head_sha }}
+          PAGES_URL: ${{ steps.deployment.outputs.page_url }}
+        shell: bash
+        run: bash scripts/check-published-head.sh
