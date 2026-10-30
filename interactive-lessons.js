@@ -277,18 +277,35 @@
         '低頻近似微分，中高頻被輸入與回授 RC 限制；不可以當成無限放大高頻雜訊。');}
   };
   M.boostCopper={
-    title:'含電感銅損的 Boost CCM 平均模型',knobs:[knob('duty','Duty',10,80,5,50,' %'),knob('rl','電感等效電阻',0,2,0.1,0.5,' Ω'),knob('load','負載電阻',10,100,5,40,' Ω'),knob('vin','Vin',24,72,4,48,' V')],
-    assumption:'理想開關、二極體、電容，電感串聯 rL，純電阻負載；只使用 CCM 穩態平均模型，未檢查 CCM 邊界、熱與電流限制。',
-    compute:function(v){var d=v.duty/100,one=1-d,vo=v.vin*one/(one*one+v.rl/v.load),ideal=v.vin/one,il=vo/(v.load*one),loss=il*il*v.rl;
-      return result([metric('含 rL 的 Vout',vo,' V'),metric('理想 CCM Vout',ideal,' V'),metric('電感銅損',loss,' W'),metric('平均 IL',il,' A')],
-        '高 Duty 下，電感銅損可能抵銷理想 Boost 增益。');}
+    title:'含電感銅損的 Boost CCM 平均模型',
+    knobs:[knob('duty','Duty',10,80,5,50,' %'),knob('rl','電感等效電阻',0,2,0.1,0.5,' Ω'),
+           knob('load','負載電阻',10,100,5,40,' Ω'),knob('vin','Vin',24,72,4,48,' V'),
+           knob('l','電感',40,300,20,100,' μH'),knob('freq','開關頻率',50,250,25,100,' kHz')],
+    assumption:'理想開關、二極體、電容；電感串聯電阻 rL、純電阻負載。CCM 平均 Vout=Vin(1−D)/((1−D)²+rL/R)，以 ON 電流斜率估算 IL 谷值以核對 CCM。低於 BCM 時不顯示有效 CCM 電壓；不等於完整 DCM 或熱模型。',
+    compute:function(v){
+      var d=v.duty/100,q=1-d,vo=v.vin*q/(q*q+v.rl/v.load),ideal=v.vin/q,il=vo/(v.load*q);
+      var ripple=(v.vin-v.rl*il)*d/(v.l*1e-6*v.freq*1000),valley=il-ripple/2,valid=valley>1e-9&&ripple>0;
+      return result([metric('CCM 有效 Vout',valid?vo:NaN,' V'),metric('理想無損 CCM Vout',valid?ideal:NaN,' V'),
+                     metric('電感銅損（僅 CCM）',valid?il*il*v.rl:NaN,' W'),metric('CCM IL 谷值估算',valley,' A')],
+        valid?'高 Duty 下，電感銅損可能抵銷理想 Boost 增益。':'CCM 假設不成立，請改用分段 DCM 模型或調整 L、fs、負載。',
+        {mode:valid?'CCM':'OUT_OF_DOMAIN',warning:valid?'':'計算得到非正 IL 谷值或不合理斜率；CCM 平均模型失效，Vout 與銅損不顯示為有效設計值。'});
+    }
   };
   M.boostCap={
-    title:'Boost：輸出電容漣波（CCM 近似）',knobs:[knob('cap','輸出電容',47,470,47,235,' μF'),knob('io','輸出平均電流',0.2,5,0.2,2,' A'),knob('duty','Duty',10,75,5,50,' %'),knob('freq','頻率',50,250,25,100,' kHz')],
-    assumption:'理想 CCM、小漣波、電容供電 ON 區間估算 ΔV≈Io×D/(Cfs)；忽略 ESR、ESL、OFF 電流梯形充電峰值、DCM 與負載暫態。',
-    compute:function(v){var delta=v.io*(v.duty/100)/(v.cap*1e-6*v.freq*1000);
-      return result([metric('ON 期間電容放電 ΔV',delta,' V',4),metric('估計 ON 放電電荷',v.io*(v.duty/100)/(v.freq*1000)*1e6,' μC',3)],
-        '更大的 C 通常減少 ON 放電造成的電壓下降；完整峰峰值需積分整週期 iC。');}
+    title:'Boost：輸出電容 ON 放電近似',
+    knobs:[knob('cap','輸出電容',47,470,47,235,' μF'),knob('io','輸出平均電流',0.2,5,0.2,2,' A'),
+           knob('duty','Duty',10,75,5,50,' %'),knob('freq','頻率',50,250,25,100,' kHz'),
+           knob('vin','Vin',12,72,4,48,' V'),knob('l','電感',40,300,20,100,' μH')],
+    assumption:'理想非同步 Boost、固定定電流輸出，ON 時二極體截止、電容供應負載，因此 ΔV_ON≈Io·D/(Cfs)。此值僅是 ON 期間的放電幅度，並非自動等於整週期 Vpp；BCM/DCM 時完整漣波要積分 iC=iD−Io。',
+    compute:function(v){
+      var d=v.duty/100,delta=v.io*d/(v.cap*1e-6*v.freq*1000);
+      var threshold=v.vin*d*(1-d)/(2*v.l*1e-6*v.freq*1000),mode=v.io>threshold+1e-9?'CCM':v.io<threshold-1e-9?'DCM':'BCM';
+      return result([metric('ON 期間電容放電 ΔV',delta,' V',4),
+                     metric('ON 放電電荷',v.io*d/(v.freq*1000)*1e6,' μC',3),
+                     metric('BCM 輸出電流門檻',threshold,' A',3)],
+        '更大的 C 通常減少 ON 放電幅度；完整峰峰漣波還受 OFF 充電波形與 ESR 影響。',
+        {mode:mode,warning:mode!=='CCM'?mode+'：ON 放電 ΔV 仍可計算，但不可當作整週期輸出電容 Vpp。':''});
+    }
   };
   M.forward={
     title:'Forward：ON 伏秒與 OFF 去磁',knobs:[knob('duty','主開關 ON Duty',10,70,5,35,' %'),knob('vin','ON 一次側電壓',40,200,10,100,' V'),knob('vreset','OFF 重置電壓幅值',40,200,10,100,' V'),knob('freq','頻率',25,200,25,100,' kHz')],
