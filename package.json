@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Pinned browser regression dependencies for EEHandouts (static HTML site)",
   "scripts": {
-    "test:ci": "node tests/release-guard.mjs",
+    "test:ci": "node tests/release-guard.mjs && node tests/interactive-engineering.mjs",
     "test:browser": "node tests/smoke.mjs && node tests/middle-smoke.mjs && node tests/middle-engineering.mjs && node tests/math-smoke.mjs && node tests/interactive-smoke.mjs",
     "test": "npm run test:ci && npm run test:browser"
   },
