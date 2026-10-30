@@ -18,10 +18,10 @@
   function metric(label,value,unit,digits) {
     return {label:label,value:value,unit:unit||'',digits:digits===undefined?2:digits};
   }
-  function trace(label,unit,fn) {
+  function trace(label,unit,fn,step) {
     var points=[];
     for(var i=0;i<=100;i++) points.push(fn(i/100));
-    return {label:label,unit:unit,points:points};
+    return {label:label,unit:unit,points:points,step:Boolean(step)};
   }
   function result(metrics,note,extra) {
     var output={metrics:metrics,primary:metrics[0].value,note:note||''};
@@ -97,7 +97,7 @@
       assumption:'理想 0/24 V 開關節點、固定占空比；平均值不是實際有載轉換器的瞬態輸出。',
       compute:function(v){var d=v.duty/100;
         return result([metric('PWM 平均電壓',24*d,' V'),metric('ON 時間',1000*d/v.freq,' μs',3),metric('週期',1000/v.freq,' μs',3)],
-          '增加 Duty 會延長 ON 區間。',{series:[trace('PWM','V',function(t){return t<d?24:0;}),trace('理想平均','V',function(){return 24*d;})],stage:{on:d,off:1-d,kind:'pwm'}});}
+          '增加 Duty 會延長 ON 區間。',{series:[trace('Vsw 開關節點','V',function(t){return (t>=1?0:t)<d?24:0;},true),trace('理想平均','V',function(){return 24*d;})],stage:{on:d,off:1-d,kind:'pwm'}});}
     },
     timing:{
       title:'取樣與控制時序預算',knobs:[knob('delay','從觸發到生效延遲',0,25,0.5,2,' μs'),knob('freq','控制頻率',20,200,10,100,' kHz')],
@@ -179,11 +179,11 @@
           '輸入頻率接近 fc 時，增益約 −3 dB。');}
     },
     pi:{
-      title:'PI 補償器頻率響應',knobs:[knob('kp','Kp',0.1,5,0.1,1,''),knob('ki','Ki',10,3000,10,600,' s⁻¹'),knob('f','分析頻率',10,2000,10,100,' Hz')],
-      assumption:'連續時間 Gc(s)=Kp+Ki/s、Kp 無量綱；只計算補償器，不包含功率級、ADC、PWM 延遲或閉迴路穩定性。',
+      title:'反相 PI 補償器頻率響應',knobs:[knob('kp','Kp',0.1,5,0.1,1,''),knob('ki','Ki',10,3000,10,600,' s⁻¹'),knob('f','分析頻率',10,2000,10,100,' Hz')],
+      assumption:'連續時間反相補償器 G(s)=−(Kp+Ki/s)，相位使用補償器輸入到輸出的參考定義；只計算補償器，不包含功率級、ADC、PWM 或閉迴路穩定性。',
       compute:function(v){var b=v.ki/(2*Math.PI*v.f),mag=Math.hypot(v.kp,b);
-        return result([metric('PI 幅值',mag,' V/V',3),metric('PI 相位',-Math.atan2(b,v.kp)*180/Math.PI,' °'),metric('PI 零點頻率',v.ki/(2*Math.PI*v.kp),' Hz')],
-          '降低頻率會增加積分項影響；不能只看這張圖判斷迴路穩定。');}
+        return result([metric('PI 幅值',mag,' V/V',3),metric('反相 PI 相位',180-Math.atan2(b,v.kp)*180/Math.PI,' °'),metric('PI 零點頻率',v.ki/(2*Math.PI*v.kp),' Hz')],
+          '反相 PI 的相位採 +90° 至 +180° 分支；若重新定義誤差極性，需一併更新傳遞函數符號。');}
     },
     adc:{
       title:'Shunt、偏壓與 ADC 量化',knobs:[knob('i','待量測電流',-30,30,1,10,' A'),knob('gain','差動放大增益',5,20,1,10,'')],
@@ -207,20 +207,20 @@
     },
     buck:{
       title:'Buck：PWM／CCM／BCM／DCM',knobs:[knob('io','輸出定電流負載',0.05,5,0.05,0.5,' A'),knob('duty','Duty',10,90,5,50,' %'),knob('vin','Vin',12,60,4,24,' V'),knob('l','電感',20,300,20,100,' μH'),knob('freq','開關頻率',25,250,25,100,' kHz')],
-      assumption:'理想非同步 Buck、固定 Duty、定電流負載之穩態三區間模型；忽略寄生、電容漣波、閉迴路暫態及同步整流負電流。',
+      assumption:'理想非同步 Buck、固定 Duty、定電流負載之穩態三區間模型。Gate 指令為 0/1（非 VGS），Vsw 是開關節點對地電壓；忽略寄生、電容漣波、暫態與同步整流負電流。',
       compute:function(v){var d=v.duty/100,L=v.l*1e-6,fs=v.freq*1000,voC=v.vin*d,diC=v.vin*d*(1-d)/(L*fs),bound=diC/2,mode=v.io>bound+1e-9?'CCM':v.io<bound-1e-9?'DCM':'BCM';
         var vo=mode==='DCM'?v.vin/(1+2*L*fs*v.io/(v.vin*d*d)):voC,di=(v.vin-vo)*d/(L*fs),peak=mode==='CCM'?v.io+di/2:di,valley=mode==='CCM'?Math.max(0,v.io-di/2):0;
         var fw=mode==='DCM'?d*(v.vin/vo-1):1-d,zero=clamp(1-d-fw,0,1),tt=function(t){return t<d?valley+(peak-valley)*t/d:t<d+fw?peak-(peak-(mode==='CCM'?valley:0))*(t-d)/fw:(mode==='CCM'?valley:0);};
-        return result([metric('理想 Vout',vo,' V'),metric('IL Peak',peak,' A'),metric('BCM 臨界 Io',bound,' A'),metric('零電流時間比例',zero*100,' %')],
-          mode==='DCM'?'DCM：電流歸零後第三區間不再續流，Vout≠D·Vin。':mode==='BCM'?'BCM：谷值恰為零，為 CCM 與 DCM 分界。':'CCM：電感電流不歸零。',{mode:mode,stage:{on:d,freewheel:fw,zero:zero,kind:'buck'},series:[trace('PWM','V',function(t){return t<d?v.vin:0;}),trace('VL','V',function(t){return t<d?v.vin-vo:t<d+fw?-vo:0;}),trace('IL','A',tt)]});}
+        return result([metric('理想 Vout',vo,' V'),metric('IL Peak',peak,' A'),metric('IL Valley',valley,' A'),metric('BCM 臨界 Io',bound,' A'),metric('零電流時間比例',zero*100,' %')],
+          mode==='DCM'?'DCM：電流歸零後第三區間不再續流，Vout≠D·Vin。':mode==='BCM'?'BCM：谷值恰為零，為 CCM 與 DCM 分界。':'CCM：電感電流不歸零。',{mode:mode,stage:{on:d,freewheel:fw,zero:zero,kind:'buck'},series:[trace('Gate 指令','0/1',function(t){return (t>=1?0:t)<d?1:0;},true),trace('Vsw 開關節點','V',function(t){t=t>=1?0:t;return t<d?v.vin:t<d+fw?0:vo;},true),trace('VL 電感兩端','V',function(t){t=t>=1?0:t;return t<d?v.vin-vo:t<d+fw?-vo:0;},true),trace('IL','A',tt)]});}
     },
     boost:{
       title:'Boost：能量、工作模式與電壓增益',knobs:[knob('io','輸出定電流負載',0.2,5,0.2,0.8,' A'),knob('duty','Duty',10,80,5,50,' %'),knob('vin','Vin',12,72,4,48,' V'),knob('l','電感',40,300,20,100,' μH'),knob('freq','開關頻率',50,250,25,100,' kHz')],
-      assumption:'理想非同步 Boost、固定 Duty、定電流負載；小漣波與動態未納入，不等於實測效率或元件安全裕度。',
+      assumption:'理想非同步 Boost、固定 Duty、定電流負載；Gate 指令為 0/1（非 VGS），Vsw 為 MOSFET Drain 開關節點，DCM 歸零區忽略寄生振鈴；小漣波與動態未納入。',
       compute:function(v){var d=v.duty/100,L=v.l*1e-6,fs=v.freq*1000,di=v.vin*d/(L*fs),iinC=v.io/(1-d),mode=iinC>di/2+1e-9?'CCM':iinC<di/2-1e-9?'DCM':'BCM',vo=mode==='DCM'?v.vin+v.vin*v.vin*d*d/(2*L*fs*v.io):v.vin/(1-d);
         var peak=mode==='CCM'?iinC+di/2:di,valley=mode==='CCM'?Math.max(0,iinC-di/2):0,fw=mode==='DCM'?v.vin*d/(vo-v.vin):1-d,zero=clamp(1-d-fw,0,1),IL=function(t){return t<d?valley+(peak-valley)*t/d:t<d+fw?peak-(peak-(mode==='CCM'?valley:0))*(t-d)/fw:(mode==='CCM'?valley:0);};
-        return result([metric('理想 Vout',vo,' V'),metric('IL Peak',peak,' A'),metric('BCM 輸出 Io',.5*di*(1-d),' A'),metric('零電流時間比例',zero*100,' %')],
-          mode==='DCM'?'DCM：不可沿用 CCM 的 1/(1−D) 增益。':'ON 儲能、OFF 由輸入與電感一起向輸出送能。',{mode:mode,stage:{on:d,freewheel:fw,zero:zero,kind:'boost'},series:[trace('PWM','V',function(t){return t<d?v.vin:0;}),trace('VL','V',function(t){return t<d?v.vin:t<d+fw?v.vin-vo:0;}),trace('IL','A',IL)]});}
+        return result([metric('理想 Vout',vo,' V'),metric('IL Peak',peak,' A'),metric('IL Valley',valley,' A'),metric('BCM 輸出 Io',.5*di*(1-d),' A'),metric('零電流時間比例',zero*100,' %')],
+          mode==='DCM'?'DCM：不可沿用 CCM 的 1/(1−D) 增益。':'ON 儲能、OFF 由輸入與電感一起向輸出送能。',{mode:mode,stage:{on:d,freewheel:fw,zero:zero,kind:'boost'},series:[trace('Gate 指令','0/1',function(t){return (t>=1?0:t)<d?1:0;},true),trace('Vsw 開關節點','V',function(t){t=t>=1?0:t;return t<d?0:t<d+fw?vo:v.vin;},true),trace('VL 電感兩端','V',function(t){t=t>=1?0:t;return t<d?v.vin:t<d+fw?v.vin-vo:0;},true),trace('IL','A',IL)]});}
     },
     buckboost:{
       title:'反相 Buck-Boost：CCM／DCM',knobs:[knob('io','輸出定電流負載',0.1,4,0.1,0.5,' A'),knob('duty','Duty',10,80,5,40,' %'),knob('vin','Vin',12,60,4,24,' V'),knob('l','電感',40,300,20,100,' μH'),knob('freq','開關頻率',50,250,25,100,' kHz')],
@@ -228,7 +228,7 @@
       compute:function(v){var d=v.duty/100,L=v.l*1e-6,fs=v.freq*1000,di=v.vin*d/(L*fs),bound=v.vin*d*(1-d)/(2*L*fs),mode=v.io>bound+1e-9?'CCM':v.io<bound-1e-9?'DCM':'BCM',mag=mode==='DCM'?v.vin*v.vin*d*d/(2*L*fs*v.io):v.vin*d/(1-d);
         var fw=mode==='DCM'?v.vin*d/mag:1-d,zero=clamp(1-d-fw,0,1),avg=v.io/(1-d),peak=mode==='CCM'?avg+di/2:di,valley=mode==='CCM'?Math.max(0,avg-di/2):0;
         return result([metric('反相輸出 Vout',-mag,' V'),metric('IL Peak',peak,' A'),metric('BCM 輸出 Io',bound,' A'),metric('零電流時間比例',zero*100,' %')],
-          mode==='DCM'?'DCM：需要第三段零電流時間，電壓不服從 CCM 轉壓比。':'輸出極性與輸入相反。',{mode:mode,stage:{on:d,freewheel:fw,zero:zero,kind:'buckboost'},series:[trace('PWM','V',function(t){return t<d?v.vin:0;}),trace('IL','A',function(t){return t<d?valley+(peak-valley)*t/d:t<d+fw?peak-(peak-(mode==='CCM'?valley:0))*(t-d)/fw:(mode==='CCM'?valley:0);})]});}
+          mode==='DCM'?'DCM：需要第三段零電流時間，電壓不服從 CCM 轉壓比。':'輸出極性與輸入相反。',{mode:mode,stage:{on:d,freewheel:fw,zero:zero,kind:'buckboost'},series:[trace('Gate 指令','0/1',function(t){return (t>=1?0:t)<d?1:0;},true),trace('VL 電感兩端','V',function(t){t=t>=1?0:t;return t<d?v.vin:t<d+fw?-mag:0;},true),trace('IL','A',function(t){return t<d?valley+(peak-valley)*t/d:t<d+fw?peak-(peak-(mode==='CCM'?valley:0))*(t-d)/fw:(mode==='CCM'?valley:0);})]});}
     },
     bridge:{
       title:'H-Bridge：橋臂、PWM 與四象限',knobs:[knob('da','A 臂高電位 Duty',0,100,5,75,' %'),knob('db','B 臂高電位 Duty',0,100,5,25,' %'),knob('i','IAB 電流',-10,10,1,2,' A'),knob('bipolar','雙極性互補模式',0,1,1,0,'')],
@@ -239,11 +239,11 @@
     },
     flyback:{
       title:'Flyback：激磁、放能與工作模式',knobs:[knob('io','輸出定電流負載',0.1,4,0.1,1.5,' A'),knob('duty','Duty',10,70,5,40,' %'),knob('vin','Vin',24,240,12,96,' V'),knob('ratio','Np／Ns',1,6,0.5,2,''),knob('lm','磁化電感',100,600,50,200,' μH'),knob('freq','開關頻率',50,250,25,100,' kHz')],
-      assumption:'理想隔離 Flyback、固定 Duty、定電流輸出、無漏感及寄生；VDS 只計理想反射電壓，不含 Spike 或 Clamp 動態。',
+      assumption:'理想隔離 Flyback、固定 Duty、定電流輸出；Gate 指令為 0/1（非 VGS），一次側磁化電壓和 VDS 各自顯示；忽略漏感 Spike、寄生與 Clamp 動態。',
       compute:function(v){var d=v.duty/100,L=v.lm*1e-6,fs=v.freq*1000,n=v.ratio,di=v.vin*d/(L*fs),bound=n*di*(1-d)/2,mode=v.io>bound+1e-9?'CCM':v.io<bound-1e-9?'DCM':'BCM';
         var vo=mode==='DCM'?v.vin*v.vin*d*d/(2*L*fs*v.io):v.vin*d/(n*(1-d)),fw=mode==='DCM'?v.vin*d/(n*vo):1-d,zero=clamp(1-d-fw,0,1),avg=v.io/(n*(1-d)),peak=mode==='CCM'?avg+di/2:di,valley=mode==='CCM'?Math.max(0,avg-di/2):0;
-        return result([metric('理想輸出 Vout',vo,' V'),metric('理想 OFF VDS',v.vin+n*vo,' V'),metric('磁化電流 Peak',peak,' A'),metric('BCM 輸出 Io',bound,' A')],
-          mode==='DCM'?'DCM：OFF 退磁結束後第三段零電流。':'ON 時激磁、OFF 時經二次側放能。',{mode:mode,stage:{on:d,freewheel:fw,zero:zero,kind:'flyback'},series:[trace('Primary Gate','V',function(t){return t<d?v.vin:0;}),trace('磁化電流','A',function(t){return t<d?valley+(peak-valley)*t/d:t<d+fw?peak-(peak-(mode==='CCM'?valley:0))*(t-d)/fw:(mode==='CCM'?valley:0);})]});}
+        return result([metric('理想輸出 Vout',vo,' V'),metric('理想 OFF VDS',v.vin+n*vo,' V'),metric('磁化電流 Peak',peak,' A'),metric('BCM 輸出 Io',bound,' A'),metric('零電流時間比例',zero*100,' %')],
+          mode==='DCM'?'DCM：OFF 退磁結束後第三段零電流。':'ON 時激磁、OFF 時經二次側放能。',{mode:mode,stage:{on:d,freewheel:fw,zero:zero,kind:'flyback'},series:[trace('Gate 指令','0/1',function(t){return (t>=1?0:t)<d?1:0;},true),trace('一次側磁化電壓','V',function(t){t=t>=1?0:t;return t<d?v.vin:t<d+fw?-n*vo:0;},true),trace('MOSFET VDS 理想值','V',function(t){t=t>=1?0:t;return t<d?0:t<d+fw?v.vin+n*vo:v.vin;},true),trace('磁化電流','A',function(t){return t<d?valley+(peak-valley)*t/d:t<d+fw?peak-(peak-(mode==='CCM'?valley:0))*(t-d)/fw:(mode==='CCM'?valley:0);})]});}
     },
     core:{
       title:'伏秒、匝數與磁通密度擺幅',knobs:[knob('vin','一次側 ON 電壓',40,400,20,100,' V'),knob('duty','單次 ON Duty',10,50,5,40,' %'),knob('turns','一次側匝數',10,80,5,30,' 圈'),knob('area','Ae',50,300,25,150,' mm²'),knob('freq','頻率',25,250,25,100,' kHz')],
@@ -277,25 +277,42 @@
         '低頻近似微分，中高頻被輸入與回授 RC 限制；不可以當成無限放大高頻雜訊。');}
   };
   M.boostCopper={
-    title:'含電感銅損的 Boost CCM 平均模型',knobs:[knob('duty','Duty',10,80,5,50,' %'),knob('rl','電感等效電阻',0,2,0.1,0.5,' Ω'),knob('load','負載電阻',10,100,5,40,' Ω'),knob('vin','Vin',24,72,4,48,' V')],
-    assumption:'理想開關、二極體、電容，電感串聯 rL，純電阻負載；只使用 CCM 穩態平均模型，未檢查 CCM 邊界、熱與電流限制。',
-    compute:function(v){var d=v.duty/100,one=1-d,vo=v.vin*one/(one*one+v.rl/v.load),ideal=v.vin/one,il=vo/(v.load*one),loss=il*il*v.rl;
-      return result([metric('含 rL 的 Vout',vo,' V'),metric('理想 CCM Vout',ideal,' V'),metric('電感銅損',loss,' W'),metric('平均 IL',il,' A')],
-        '高 Duty 下，電感銅損可能抵銷理想 Boost 增益。');}
+    title:'含電感銅損的 Boost CCM 平均模型',
+    knobs:[knob('duty','Duty',10,80,5,50,' %'),knob('rl','電感等效電阻',0,2,0.1,0.5,' Ω'),
+           knob('load','負載電阻',10,100,5,40,' Ω'),knob('vin','Vin',24,72,4,48,' V'),
+           knob('l','電感',40,300,20,100,' μH'),knob('freq','開關頻率',50,250,25,100,' kHz')],
+    assumption:'理想開關、二極體、電容；電感串聯電阻 rL、純電阻負載。CCM 平均 Vout=Vin(1−D)/((1−D)²+rL/R)，以 ON 電流斜率估算 IL 谷值以核對 CCM。低於 BCM 時不顯示有效 CCM 電壓；不等於完整 DCM 或熱模型。',
+    compute:function(v){
+      var d=v.duty/100,q=1-d,vo=v.vin*q/(q*q+v.rl/v.load),ideal=v.vin/q,il=vo/(v.load*q);
+      var ripple=(v.vin-v.rl*il)*d/(v.l*1e-6*v.freq*1000),valley=il-ripple/2,valid=valley>1e-9&&ripple>0;
+      return result([metric('CCM 有效 Vout',valid?vo:NaN,' V'),metric('理想無損 CCM Vout',valid?ideal:NaN,' V'),
+                     metric('電感銅損（僅 CCM）',valid?il*il*v.rl:NaN,' W'),metric('CCM IL 谷值估算',valley,' A')],
+        valid?'高 Duty 下，電感銅損可能抵銷理想 Boost 增益。':'CCM 假設不成立，請改用分段 DCM 模型或調整 L、fs、負載。',
+        {mode:valid?'CCM':'OUT_OF_DOMAIN',warning:valid?'':'計算得到非正 IL 谷值或不合理斜率；CCM 平均模型失效，Vout 與銅損不顯示為有效設計值。'});
+    }
   };
   M.boostCap={
-    title:'Boost：輸出電容漣波（CCM 近似）',knobs:[knob('cap','輸出電容',47,470,47,235,' μF'),knob('io','輸出平均電流',0.2,5,0.2,2,' A'),knob('duty','Duty',10,75,5,50,' %'),knob('freq','頻率',50,250,25,100,' kHz')],
-    assumption:'理想 CCM、小漣波、電容供電 ON 區間估算 ΔV≈Io×D/(Cfs)；忽略 ESR、ESL、OFF 電流梯形充電峰值、DCM 與負載暫態。',
-    compute:function(v){var delta=v.io*(v.duty/100)/(v.cap*1e-6*v.freq*1000);
-      return result([metric('ON 期間電容放電 ΔV',delta,' V',4),metric('估計 ON 放電電荷',v.io*(v.duty/100)/(v.freq*1000)*1e6,' μC',3)],
-        '更大的 C 通常減少 ON 放電造成的電壓下降；完整峰峰值需積分整週期 iC。');}
+    title:'Boost：輸出電容 ON 放電近似',
+    knobs:[knob('cap','輸出電容',47,470,47,235,' μF'),knob('io','輸出平均電流',0.2,5,0.2,2,' A'),
+           knob('duty','Duty',10,75,5,50,' %'),knob('freq','頻率',50,250,25,100,' kHz'),
+           knob('vin','Vin',12,72,4,48,' V'),knob('l','電感',40,300,20,100,' μH')],
+    assumption:'理想非同步 Boost、固定定電流輸出，ON 時二極體截止、電容供應負載，因此 ΔV_ON≈Io·D/(Cfs)。此值僅是 ON 期間的放電幅度，並非自動等於整週期 Vpp；BCM/DCM 時完整漣波要積分 iC=iD−Io。',
+    compute:function(v){
+      var d=v.duty/100,delta=v.io*d/(v.cap*1e-6*v.freq*1000);
+      var threshold=v.vin*d*(1-d)/(2*v.l*1e-6*v.freq*1000),mode=v.io>threshold+1e-9?'CCM':v.io<threshold-1e-9?'DCM':'BCM';
+      return result([metric('ON 期間電容放電 ΔV',delta,' V',4),
+                     metric('ON 放電電荷',v.io*d/(v.freq*1000)*1e6,' μC',3),
+                     metric('BCM 輸出電流門檻',threshold,' A',3)],
+        '更大的 C 通常減少 ON 放電幅度；完整峰峰漣波還受 OFF 充電波形與 ESR 影響。',
+        {mode:mode,warning:mode!=='CCM'?mode+'：ON 放電 ΔV 仍可計算，但不可當作整週期輸出電容 Vpp。':''});
+    }
   };
   M.forward={
     title:'Forward：ON 伏秒與 OFF 去磁',knobs:[knob('duty','主開關 ON Duty',10,70,5,35,' %'),knob('vin','ON 一次側電壓',40,200,10,100,' V'),knob('vreset','OFF 重置電壓幅值',40,200,10,100,' V'),knob('freq','頻率',25,200,25,100,' kHz')],
     assumption:'假設固定 N=30、Ae=150 mm²，線性理想磁芯；ON +Vin、OFF −Vreset，忽略拓樸的二極體壓降與飽和。累積偏磁需跨週期分析。',
     compute:function(v){var on=v.duty/100,offNeeded=v.vin*on/v.vreset,available=1-on,off=Math.min(offNeeded,available),margin=100*(available-offNeeded),den=30*150e-6*v.freq*1000,step=v.vin*on/den,end=Math.max(0,(v.vin*on-v.vreset*available)/den);
       return result([metric('剩餘去磁時間裕度',margin,' %'),metric('單次 ON ΔB',step,' T',3),metric('週期殘留 ΔB 風險',end,' T',3)],
-        margin<0?'去磁伏秒不足，可能發生 flux walking；不可視為穩態安全。':'OFF 時負伏秒足夠回復一次側磁通。',{warning:margin<0?'去磁失敗：OFF 有效伏秒小於 ON 伏秒，必須停止設計推導並重新檢查。':'',stage:{kind:'forward',on:on,freewheel:off,zero:Math.max(0,1-on-off)},series:[trace('一次側 Vp','V',function(t){return t<on?v.vin:t<on+off?-v.vreset:0;}),trace('相對 ΔB(t)','T',function(t){return t<on?v.vin*t/den:t<on+off?step-v.vreset*(t-on)/den:Math.max(0,step-v.vreset*off/den);})]});}
+        margin<0?'去磁伏秒不足，可能發生 flux walking；不可視為穩態安全。':'OFF 時負伏秒足夠回復一次側磁通。',{warning:margin<0?'去磁失敗：OFF 有效伏秒小於 ON 伏秒，必須停止設計推導並重新檢查。':'',stage:{kind:'forward',on:on,freewheel:off,zero:Math.max(0,1-on-off),resetIncomplete:margin<0},series:[trace('一次側 Vp','V',function(t){return t<on?v.vin:t<on+off?-v.vreset:0;}),trace('相對 ΔB(t)','T',function(t){return t<on?v.vin*t/den:t<on+off?step-v.vreset*(t-on)/den:Math.max(0,step-v.vreset*off/den);})]});}
   };
   M.converterFamily={
     title:'Ćuk、SEPIC、ZETA：極性與理想 CCM 增益',knobs:[knob('duty','Duty',10,80,5,40,' %'),knob('vin','輸入電壓',12,72,4,36,' V')],
@@ -310,6 +327,129 @@
     compute:function(v){var g=v.dbuck/100/(1-v.dboost/100),vo=g*v.vin;
       return result([metric('理想平均 Vout',vo,' V'),metric('相對 Vin 增益',g,'',3)],
         vo>v.vin?'此設定為升壓等效區；實際橋臂時序還需控制器決定。':vo<v.vin?'此設定為降壓等效區。':'理想等壓區。');}
+  };
+
+
+  // Six-pulse bridge with a stiff DC current sink: distinct from a capacitor-input rectifier.
+  M.sixPulseHarmonics={
+    title:'三相六脈波線電流與特徵諧波',
+    knobs:[knob('idc','固定直流側電流',1,15,1,6,' A'),knob('order','觀察諧波次數',1,25,2,5,' 次')],
+    assumption:'三相對稱、理想二極體、無源側電感與換向重疊，DC 側有平滑電感保持電流 Idc 常數。最高相流入 +Idc、最低相流出 −Idc；不是大電容輸入整流模型。',
+    compute:function(v){
+      var N=720,ia=[],ib=[],ic=[],sum=0,sumSq=0,peak=0;
+      function currents(t){
+        var a=Math.sin(2*Math.PI*t),b=Math.sin(2*Math.PI*t-2*Math.PI/3),c=Math.sin(2*Math.PI*t+2*Math.PI/3);
+        var values=[a,b,c],hi=0,lo=0;
+        for(var j=1;j<3;j++){if(values[j]>values[hi])hi=j;if(values[j]<values[lo])lo=j;}
+        return [0,1,2].map(function(k){return k===hi?v.idc:k===lo?-v.idc:0;});
+      }
+      for(var k=0;k<N;k++){
+        var x=currents(k/N);ia.push(x[0]);ib.push(x[1]);ic.push(x[2]);sumSq+=x[0]*x[0];
+      }
+      function coeff(order){
+        var re=0,im=0;
+        for(var k=0;k<N;k++){var a=2*Math.PI*order*k/N;re+=ia[k]*Math.cos(a);im+=ia[k]*Math.sin(a);}
+        return [2*re/N,2*im/N];
+      }
+      var c1=coeff(1),cn=coeff(v.order),i1=Math.hypot(c1[0],c1[1])/Math.SQRT2,ih=Math.hypot(cn[0],cn[1])/Math.SQRT2;
+      var irms=Math.sqrt(sumSq/N),thd=100*Math.sqrt(Math.max(0,irms*irms-i1*i1))/i1;
+      return result([metric('第 '+v.order+' 次線電流 RMS',ih,' A',3),metric('線電流基波 RMS',i1,' A',3),metric('線電流總 RMS',irms,' A',3),metric('THDi',thd,' %')],
+        '理想 120° 導通相電流，只有 6n±1 次特徵諧波。負載換成大電容時，波形與諧波不再適用。',
+        {series:[trace('IA 線電流','A',function(t){return ia[Math.min(N-1,Math.floor((t>=1?0:t)*N))];},true),
+                 trace('IB 線電流','A',function(t){return ib[Math.min(N-1,Math.floor((t>=1?0:t)*N))];},true),
+                 trace('選定諧波分量','A',function(t){return cn[0]*Math.cos(2*Math.PI*v.order*t)+cn[1]*Math.sin(2*Math.PI*v.order*t);})]});
+    }
+  };
+
+  // Three-phase capacitor-input bridge with bounded source resistance and load current.
+  // This is an explicit switched diode/RC approximation, not a SPICE or ideal stiff current bridge.
+  M.threeBus={
+    title:'三相電容輸入整流：DC Bus、電流尖峰與 THD',
+    knobs:[knob('cap','輸出電容',220,2200,110,990,' μF'),knob('io','直流負載電流',0.5,6,0.5,2,' A'),
+           knob('rs','三相導通路徑合計電阻',0.5,4,0.5,1,' Ω'),knob('vphase','相電壓 RMS',100,220,10,120,' V')],
+    assumption:'50 Hz 對稱三相、六二極體橋、等效導通迴路電阻 Rs、固定電流負載與理想電容。當整流瞬時電壓高於 Vdc 時，充電電流=(Vrect−Vdc)/Rs；未模擬源側電感、二極體反向恢復、電容 ESR、浪湧或真實熱負荷。',
+    compute:function(v){
+      var N=1200,cycles=12,dt=1/(50*N),cap=v.cap*1e-6,pk=Math.SQRT2*v.vphase,vc=Math.sqrt(6)*v.vphase;
+      var bus=[],ia=[],ic=[],sourceP=0,loadP=0,rLoss=0,min=Infinity,max=-Infinity,total=0,ir2=0,ip=0;
+      for(var k=0;k<N*cycles;k++){
+        var t=(k%N)/N,ph=[pk*Math.sin(2*Math.PI*t),pk*Math.sin(2*Math.PI*t-2*Math.PI/3),pk*Math.sin(2*Math.PI*t+2*Math.PI/3)];
+        var hi=0,lo=0;
+        for(var j=1;j<3;j++){if(ph[j]>ph[hi])hi=j;if(ph[j]<ph[lo])lo=j;}
+        var vrect=ph[hi]-ph[lo],iCharge=Math.max(0,(vrect-vc)/v.rs),dc=vc+(iCharge-v.io)*dt/cap;
+        vc=Math.max(0,dc);
+        if(k<(cycles-1)*N)continue;
+        var phaseCurrent=hi===0?iCharge:lo===0?-iCharge:0;
+        bus.push(vc);ia.push(phaseCurrent);ic.push(iCharge);
+        min=Math.min(min,vc);max=Math.max(max,vc);total+=vc;ir2+=phaseCurrent*phaseCurrent;ip=Math.max(ip,Math.abs(phaseCurrent));
+        sourceP+=vrect*iCharge;loadP+=vc*v.io;rLoss+=v.rs*iCharge*iCharge;
+      }
+      var avg=total/N,rms=Math.sqrt(ir2/N),cos=0,sin=0;
+      for(var k=0;k<N;k++){var angle=2*Math.PI*k/N;cos+=ia[k]*Math.cos(angle);sin+=ia[k]*Math.sin(angle);}
+      var i1=Math.SQRT2*Math.hypot(cos,sin)/N;
+      var thd=i1>1e-9?100*Math.sqrt(Math.max(0,rms*rms-i1*i1))/i1:NaN;
+      function sample(series,t){return series[Math.min(N-1,Math.floor((t>=1?0:t)*N))];}
+      return result([metric('平均 DC Bus',avg,' V'),metric('DC Bus 漣波 p-p',max-min,' V'),metric('A 相線電流 RMS',rms,' A'),
+                     metric('A 相 Crest Factor',rms?ip/rms:NaN,'',3),metric('A 相 THDi',thd,' %')],
+        '電容、負載與來源阻抗會一起改變導通角、Bus 漣波及輸入電流尖峰，並非固定 DC 電流的六脈波諧波模型。',
+        {series:[trace('DC Bus','V',function(t){return sample(bus,t);}),trace('A 相線電流','A',function(t){return sample(ia,t);}),
+                 trace('二極體充電電流','A',function(t){return sample(ic,t);})],
+         balance:{pin:sourceP/N,pout:loadP/N,rloss:rLoss/N,deltaE:0},
+         warning:'Rs 是整條導通路徑的等效電阻；本近似不含 Lsource、di/dt、電感尖峰及啟動浪湧，不能作為實際元件額定值。'});
+    }
+  };
+
+
+  // Normalized core-loss comparison. No absolute material loss is inferred.
+  M.coreLoss={
+    title:'磁芯損耗：頻率與磁通擺幅的相對影響',
+    knobs:[knob('freq','磁通激磁頻率',25,250,25,100,' kHz'),knob('b','磁通擺幅 ΔB',0.02,0.3,0.02,0.1,' T'),
+           knob('alpha','材料頻率指數 α',1,2.5,0.25,1.5,''),knob('beta','材料磁通指數 β',1.5,3.5,0.25,2.5,'')],
+    assumption:'示範 Steinmetz 類型的相對損耗比 P/P_ref=(f/100kHz)^α(ΔB/0.1T)^β，假定 ΔB 為獨立控制且磁芯材料、激磁波形及溫度不變。α、β 是教學假設，不是任何實際磁材參數；不計算 W 或 W/m³。',
+    compute:function(v){
+      var ratio=Math.pow(v.freq/100,v.alpha)*Math.pow(v.b/.1,v.beta);
+      return result([metric('相對參考損耗 P/P_ref',ratio,'',3),metric('相對參考頻率',v.freq/100,'',3),metric('相對參考 ΔB',v.b/.1,'',3)],
+        '固定 ΔB 提高頻率通常使相對損耗升高。若固定輸入伏秒條件，ΔB 也可能隨頻率改變，須另外聯立分析。',
+        {warning:'僅為歸一化比例模型；任何絕對鐵損、溫升與飽和都需磁材資料和實測。'});
+    }
+  };
+  M.pushPullBalance={
+    title:'Push-Pull：雙側激磁伏秒與 Flux Walking',
+    knobs:[knob('vin','一次側半繞組施加電壓',40,240,20,100,' V'),
+           knob('da','A 開關 ON Duty',10,45,5,30,' %'),knob('db','B 開關 ON Duty',10,45,5,30,' %'),
+           knob('turns','每半繞組匝數',10,80,10,30,' 圈'),knob('area','Ae',50,300,25,150,' mm²'),knob('freq','PWM 週期頻率',50,250,25,100,' kHz')],
+    assumption:'理想中心抽頭 Push-Pull，A 在 0–Da、B 在 0.5–0.5+Db 對磁芯施加大小相同、方向相反的電壓；每個半繞組匝數 N 相同，零區間 Vp=0。不含 B-H 非線性、磁化電流、寄生或電流平衡控制；B(t) 是相對單週期變化。',
+    compute:function(v){
+      var a=v.da/100,b=v.db/100,scale=v.vin/(v.turns*v.area*1e-6*v.freq*1000),net=scale*(a-b),plus=scale*a,minus=scale*b;
+      return result([metric('單週期殘留 ΔB',net,' T',4),metric('A 正向 ΔB',plus,' T',4),metric('B 反向 |ΔB|',minus,' T',4)],
+        Math.abs(net)>1e-9?'正負伏秒不相等，多週期可能累積偏磁；須檢查電流平衡與保護。':'正負伏秒平衡，但仍須確認初始偏磁、材料及驅動時序。',
+        {series:[trace('一次側等效磁化電壓','V',function(t){return t<a?v.vin:t>=0.5&&t<0.5+b?-v.vin:0;},true),
+                 trace('相對磁通密度變化','T',function(t){return t<a?scale*t:t<0.5?plus:t<0.5+b?plus-scale*(t-0.5):net;})],
+         warning:Math.abs(net)>1e-9?'每週期淨伏秒非零：flux walking 風險，不可用單次 ΔB 判斷設計安全。':''});
+    }
+  };
+  M.bridgeFamily={
+    title:'Half-Bridge 與 Full-Bridge 的理想輸出比較',
+    knobs:[knob('vin','輸入 DC Bus',50,450,50,300,' V'),knob('ratio','Ns/Np 匝數比',0.1,1,0.1,0.5,''),
+           knob('duty','每次主開關 Duty',10,45,5,30,' %')],
+    assumption:'使用講義的 0<D<0.5 定義：兩個對稱脈波，每次 ON 持續 D×Ts；Half-Bridge 一次側施加 ±Vin/2，Full-Bridge 施加 ±Vin，理想全波整流、CCM、無死區或壓降。其他 Duty 定義不一定能套用。',
+    compute:function(v){
+      var d=v.duty/100,half=v.ratio*v.vin*d,full=2*v.ratio*v.vin*d;
+      return result([metric('Half-Bridge 理想 Vo',half,' V'),metric('Full-Bridge 理想 Vo',full,' V'),
+                     metric('HB 一次側脈波幅值',v.vin/2,' V'),metric('FB 一次側脈波幅值',v.vin,' V')],
+        '在相同一次側匝數、開關定義及整流方式下，全橋一次側脈波幅值是半橋兩倍。');
+    }
+  };
+  M.multiSecondary={
+    title:'多繞組隔離變壓器：輸出電壓與交叉調節限制',
+    knobs:[knob('vp','一次側理想 RMS 電壓',24,240,12,96,' V'),
+           knob('r1','Np/Ns1',1,8,0.5,2,''),knob('r2','Np/Ns2',1,8,0.5,4,'')],
+    assumption:'理想變壓器，固定二次側 RMS 電流 I1=1A、I2=0.5A；Vp/Vs=Np/Ns。僅呈現多組繞組，未計漏感、繞組電阻、二極體壓降、負載互擾及 Cross Regulation。',
+    compute:function(v){
+      var a=v.vp/v.r1,b=v.vp/v.r2;
+      return result([metric('次級 1 理想 RMS',a,' V'),metric('次級 2 理想 RMS',b,' V'),
+                     metric('總次級視在功率',a+0.5*b,' VA'),metric('理想一次側電流',(1/v.r1+0.5/v.r2),' A')],
+        '不同匝比可提供多組輸出；真實多路穩壓需考慮負載交互影響。');
+    }
   };
 
   /* Every published lesson resolves to a concrete model and an individual investigation. */
@@ -343,9 +483,9 @@
     notching:['sourceL','換向電流斜率增加時，PCC 可能受到的電感壓降如何變化？','didt'],
     neutral:['neutral','提高三次零序諧波，平衡系統的中性線電流如何改變？','h3'],
     sixpulse:['threeRect','三相相位移動時，最大最小相的導通組合如何切換？','phase'],
-    harmonics:['threeRect','觀察理想六脈波 VDC 的週期性波動。','phase'],
+    harmonics:['sixPulseHarmonics','將觀察諧波由第 5 次改成第 7 次，輸入線電流分量如何變化？','order'],
     commutation:['sourceL','換向迴路 Ls 增大，對電流變換速度有何約束？','l'],
-    bus:['capRipple','DC Bus 電容越大，小漣波公式預測如何改變？','cap'],
+    bus:['threeBus','保持其他參數不變，增加 DC Bus 電容後，三相整流器輸出漣波如何改變？','cap',1],
     op:['op','反相增益增加時，輸出是否可能碰到供電限制？','gain'],
     diff:['diff','差動輸入增加時，理想差動輸出會如何變化？','vdiff'],
     filter:['filter','電阻增大時，一階 RC 截止頻率如何改變？','r'],
@@ -358,17 +498,17 @@
     'mid-switching-lc':['lc','L 變大時，理想 LC 自然頻率怎麼變？','l'],
     'mid-resonance':['lc','阻尼降低（Q 增加）時，50 kHz 的幅值如何變化？','q',1],
     'mid-voltsecond':['buck','改變 Duty，ON 正伏秒與 OFF 負伏秒如何重新平衡？','duty'],
-    'mid-ccm-dcm':['buck','減小負載電流，IL 何時會出現第三段零電流？','io',1],
-    'mid-bcm':['buck','把 Io 逐步調到 BCM 臨界值，IL 谷值會如何變化？','io',1],
-    'mid-buck-dcm':['buck','進入 DCM 後，Vout 還等於 D×Vin 嗎？','io',1],
+    'mid-ccm-dcm':['buck','減小負載電流，IL 何時會出現第三段零電流？','io',4],
+    'mid-bcm':['buck','把 Io 逐步調到 BCM 臨界值，IL 谷值會如何變化？','io',2],
+    'mid-buck-dcm':['buck','進入 DCM 後，Vout 還等於 D×Vin 嗎？','io',0],
     'mid-boost-ccm':['boost','Boost 的 ON/OFF 區間各由誰供應負載？','duty'],
     'mid-boost-ripple':['boostCap','固定 Duty 時提高輸出電容，ON 放電壓降怎麼變？','cap'],
     'mid-boost-rl':['boostCopper','電感銅損存在時提高 Duty，輸出是否必定一直上升？','duty'],
     'mid-boost-efficiency':['boostCopper','增大電感等效電阻時，實際 CCM 平均輸出如何變化？','rl'],
     'mid-boost-parasitic':['switching','增大單次開關損耗，Boost 元件熱負擔如何改變？','energy'],
-    'mid-boost-dcm':['boost','減少負載後，Boost 何時離開 CCM？','io',1],
+    'mid-boost-dcm':['boost','減少負載後，Boost 何時離開 CCM？','io',4],
     'mid-buckboost-ccm':['buckboost','增加 Duty，反相輸出電壓與 IL 如何變化？','duty'],
-    'mid-buckboost-dcm':['buckboost','降低 Io 後，反相 Buck-Boost 的 DCM 比例如何改變？','io'],
+    'mid-buckboost-dcm':['buckboost','降低 Io 後，反相 Buck-Boost 的 DCM 比例如何改變？','io',3],
     'mid-sepic-zeta':['converterFamily','觀察同樣 Duty 下 Ćuk 的輸出極性與 SEPIC／ZETA 差異。','duty'],
     'mid-four-switch':['fourSwitch','改變輸入橋臂 Duty，四開關升降壓的平均增益如何變化？','dbuck'],
     'mid-bidirectional':['signed','反轉電流正負後，功率方向如何改變？','i'],
@@ -378,16 +518,44 @@
     'mid-unipolar':['bridge','單極性橋臂 Duty 改變時，VAB 的零狀態如何改變？','da'],
     'mid-isolated-types':['transformer','匝比增加時，隔離變壓器的理想二次電壓如何變化？','ratio'],
     'mid-isolation-feedback':['optocoupler','光耦 CTR 改變時，隔離傳遞的回授電流如何變化？','ctr'],
-    'mid-multi-output':['transformer','單組輸入透過不同匝比得到多少理想二次電壓？','ratio'],
+    'mid-multi-output':['multiSecondary','當第二組次級匝比增加時，該組輸出電壓如何變化？','r2',1],
     'mid-flyback-ccm':['flyback','ON 時存入磁化電感的電流，OFF 時如何釋出？','duty'],
-    'mid-flyback-dcm':['flyback','減少 Io，退磁結束後會不會出現零電流區間？','io',2],
+    'mid-flyback-dcm':['flyback','減少 Io，退磁結束後會不會出現零電流區間？','io',4],
     'mid-forward-reset':['forward','提高 ON Duty 後，OFF 去磁時間還夠嗎？','duty'],
     'mid-double-forward':['core','增加匝數，理想正伏秒造成的 ΔB 如何降低？','turns'],
-    'mid-half-full':['core','同樣一次側伏秒，磁芯截面增大如何影響 ΔB？','area'],
-    'mid-pushpull':['core','兩側磁通不平衡可能累積偏磁：單次 ΔB 如何受電壓影響？','vin'],
+    'mid-half-full':['bridgeFamily','提高兩橋式的相同 Duty，全橋理想輸出電壓會如何變化？','duty',1],
+    'mid-pushpull':['pushPullBalance','保持 A 側 Duty 不變，增加 B 側 Duty，每週期淨磁通偏移如何改變？','db'],
     'mid-magnetization':['core','改變 ON Duty，單次磁通擺幅如何改變？','duty'],
-    'mid-coreloss':['core','提高頻率時，單次 ΔB 估計如何改變？它能直接代表鐵損嗎？','freq']
+    'mid-coreloss':['coreLoss','固定磁通擺幅 ΔB，將頻率提高一格後，假設材料的相對鐵損如何改變？','freq']
   };
+
+  // Lesson-specific comparisons must match the investigation's requested
+  // direction and cross the relevant mode or power-flow boundary when needed.
+  // All targets are on the published knob's step grid.
+  var comparisonTargets={
+    wbg:45,
+    'mid-bidirectional':-2,
+    'mid-quadrants':-2,
+    'mid-ccm-dcm':0.1,
+    'mid-bcm':0.3,
+    'mid-buck-dcm':0.1,
+    'mid-boost-dcm':0.2,
+    'mid-buckboost-dcm':0.1,
+    'mid-flyback-dcm':0.1
+  };
+  function comparisonTarget(lessonId,knob) {
+    var specified=Object.prototype.hasOwnProperty.call(comparisonTargets,lessonId);
+    var value=specified?comparisonTargets[lessonId]:
+      (knob.value<knob.max?Math.min(knob.max,Number((knob.value+knob.step).toFixed(8))):
+        Math.max(knob.min,Number((knob.value-knob.step).toFixed(8))));
+    var grid=(value-knob.min)/knob.step;
+    if(!Number.isFinite(value)||Math.abs(value-knob.value)<1e-9||
+       value<knob.min-1e-9||value>knob.max+1e-9||
+       Math.abs(grid-Math.round(grid))>1e-7) {
+      throw Error('Invalid lesson target: '+lessonId+'/'+knob.key);
+    }
+    return value;
+  }
 
   function phaseLabel(stage,t) {
     if(!stage)return '';
@@ -405,10 +573,10 @@
       return 'PWM ON：開關節點為高電位';
     }
     if(t<stage.on+(stage.freewheel||stage.off||0)-1e-8){
-      if(stage.kind==='buck')return 'OFF：L → Diode → Load 續流，電感放能';
+      if(stage.kind==='buck')return 'OFF 續流：GND → Diode → Switch Node → L → Load → GND；電感放能';
       if(stage.kind==='boost')return 'OFF：Vin＋L → Diode → 輸出，電感放能';
-      if(stage.kind==='flyback')return 'OFF：一次側關斷，二次側由變壓器放能';
-      if(stage.kind==='forward')return 'OFF：負重置伏秒，使磁通返回起始位置';
+      if(stage.kind==='flyback')return 'OFF：一次側關斷，磁化電感的能量經二次側二極體送往輸出';
+      if(stage.kind==='forward')return stage.resetIncomplete?'OFF：去磁伏秒不足，無法回到起始磁通，存在 flux walking 風險':'OFF：負重置伏秒，使磁通返回起始位置';
       if(stage.kind==='buckboost')return 'OFF：電感經二極體向反相輸出放能';
       return 'PWM OFF：開關節點為低電位';
     }
@@ -429,6 +597,11 @@
       var y=idx*115,lo=Math.min.apply(null,s.points),hi=Math.max.apply(null,s.points),pad=Math.max((hi-lo)*.1,.001);
       lo-=pad;hi+=pad;
       var plot=svgLine(s.points,w,104,lo,hi).replace(/(M|L)([\d.]+) ([\d.]+)/g,function(_,cmd,x,v){return cmd+x+' '+(Number(v)+y);});
+       if(s.step){
+         var ordinate=function(val){return (y+22+50*(hi-val)/(hi-lo||1)).toFixed(1);};
+         plot='M50 '+ordinate(s.points[0]);
+         for(var j=1;j<s.points.length;j++)plot+=' H'+(50+622*j/(s.points.length-1)).toFixed(1)+' V'+ordinate(s.points[j]);
+       }
       var at=s.points[Math.min(100,Math.round(cursor*100))];
       markup+='<rect x="45" y="'+(y+18)+'" width="632" height="62" rx="5" fill="currentColor" fill-opacity=".035"/>'+
         '<line x1="45" x2="677" y1="'+(y+80)+'" y2="'+(y+80)+'" stroke="currentColor" stroke-opacity=".12"/>'+
@@ -443,17 +616,23 @@
   }
   function sweepChart(spec,v,focus,mainValue,metricIndex) {
     var kn=spec.knobs.find(function(k){return k.key===focus;})||spec.knobs[0];
-    var xs=[],ys=[];
+    var samples=[],ys=[];
     for(var i=0;i<=80;i++){
       var copy=Object.assign({},v);copy[kn.key]=kn.min+(kn.max-kn.min)*i/80;
       var computed=spec.compute(copy);
       var y=computed.metrics[metricIndex].value;
-      if(Number.isFinite(y)){xs.push(i);ys.push(y);}
+      // Preserve the original x index. An invalid sample creates a visible
+      // gap: joining the adjacent valid samples would misrepresent the model.
+      samples.push(Number.isFinite(y)?y:null);
+      if(Number.isFinite(y))ys.push(y);
     }
     if(!ys.length)return '<div role="status">模型超出數值有效範圍。</div>';
-    var w=700,lo=Math.min.apply(null,ys),hi=Math.max.apply(null,ys),pad=Math.max((hi-lo)*0.12,1e-8),range=hi-lo+2*pad,points=xs.map(function(x,i){
-      return (i?'L':'M')+(50+x*7.7).toFixed(1)+' '+(184-(ys[i]-(lo-pad))/range*149).toFixed(1);
-    }).join(' ');
+    var w=700,lo=Math.min.apply(null,ys),hi=Math.max.apply(null,ys),pad=Math.max((hi-lo)*0.12,1e-8),range=hi-lo+2*pad;
+    var points=samples.map(function(y,i){
+      if(y===null)return '';
+      var cmd=i>0&&samples[i-1]!==null?'L':'M';
+      return cmd+(50+i*7.7).toFixed(1)+' '+(184-(y-(lo-pad))/range*149).toFixed(1);
+    }).filter(Boolean).join(' ');
     var xmark=50+616*(v[kn.key]-kn.min)/(kn.max-kn.min),ymark=184-(mainValue-(lo-pad))/range*149;
     return '<svg class="interactive-svg" viewBox="0 0 700 222" role="img" aria-label="'+esc(kn.label)+' 對 '+esc(spec.title)+' 模型主要輸出影響曲線">'+
       '<rect x="46" y="28" width="622" height="164" rx="6" fill="currentColor" fill-opacity=".035"/>'+
@@ -475,13 +654,15 @@
     var spec=M[entry[0]],focus=entry[2],knobs=spec.knobs.slice(),first=knobs.find(function(k){return k.key===focus;});
     if(!first){host.textContent='互動參數設定錯誤';return;}
     var v={};knobs.forEach(function(k){v[k.key]=k.value;});
-    var metricIndex=entry[3]||0,baseline=spec.compute(v).metrics[metricIndex].value,guess=null,changed=false,cursor=.25;
+    var metricIndex=entry[3]||0,baseline=spec.compute(v).metrics[metricIndex].value,guess=null,cursor=.25;
+    var target=comparisonTarget(lesson.id,first);
+    var targetDirection=target>first.value?'增加':'降低';
     host.innerHTML='<div class="interactive-head"><span class="pill">ACTIVE LEARNING</span><h3>'+esc(spec.title)+'</h3>'+
       '<p>'+esc(entry[1])+'</p></div>'+
-      '<div class="interactive-prediction"><strong>先預測：調整「'+esc(first.label)+'」後，「'+esc(spec.compute(v).metrics[metricIndex].label)+'」會？</strong>'+
+      '<div class="interactive-prediction"><strong>先預測：其他參數不變，將「'+esc(first.label)+'」由 '+fmt(first.value)+' '+esc(first.unit)+' '+targetDirection+'至 '+fmt(target)+' '+esc(first.unit)+' 後，「'+esc(spec.compute(v).metrics[metricIndex].label)+'」會？</strong>'+
       '<div class="interactive-choices"><button type="button" class="btn btn-muted" data-predict="up">增加</button>'+
       '<button type="button" class="btn btn-muted" data-predict="down">減少</button><button type="button" class="btn btn-muted" data-predict="same">不變</button></div>'+
-      '<p class="interactive-feedback" aria-live="polite">選擇預測，再拖曳對應參數驗證。</p></div>'+
+      '<button type="button" class="btn btn-muted" data-verify-target>套用指定變更並驗證</button><p class="interactive-feedback" aria-live="polite">先預測，再套用指定變更。其他參數須保持初始值。</p></div>'+
       '<div class="interactive-knobs">'+knobs.map(function(k){return '<label class="interactive-knob"><span>'+esc(k.label)+'</span><strong data-knob-value="'+esc(k.key)+'">'+esc(fmt(k.value))+' '+esc(k.unit)+'</strong>'+
         '<input type="range" min="'+k.min+'" max="'+k.max+'" step="'+k.step+'" value="'+k.value+'" data-knob="'+esc(k.key)+'" aria-label="'+esc(k.label)+'"></label>';}).join('')+'</div>'+
       '<div class="interactive-metrics" aria-live="polite"></div><div class="interactive-chart"></div>'+
@@ -503,18 +684,30 @@
       host.querySelector('.interactive-stage').textContent=r.stage?phaseLabel(r.stage,cursor):'';
       host.querySelector('.interactive-note').textContent=r.note||'';
       var warn=host.querySelector('.interactive-warning');warn.hidden=!r.warning;warn.textContent=r.warning||'';
-      if(changed&&guess){
-        var selectedValue=r.metrics[metricIndex].value,tolerance=Math.max(1e-7,Math.abs(baseline)*1e-7),delta=selectedValue-baseline,observed=delta>tolerance?'up':delta< -tolerance?'down':'same';
+      if(spec===M.bridge){
+        var bipolar=Boolean(v.bipolar),bControl=host.querySelector('[data-knob="db"]');
+        bControl.disabled=bipolar;
+        bControl.value=String(bipolar?100-v.da:v.db);
+        host.querySelector('[data-knob-value="db"]').textContent=fmt(bipolar?100-v.da:v.db)+' %'+(bipolar?'（互補推導，不可調）':'');
+      }
+      var changed=Math.abs(v[focus]-first.value)>1e-9,atTarget=Math.abs(v[focus]-target)<=1e-9;
+      var isolated=knobs.every(function(k){return k.key===focus||Math.abs(v[k.key]-k.value)<=1e-9;});
+      var selectedValue=r.metrics[metricIndex].value;
+      if(!isolated)prediction.textContent='已同時變更其他參數，無法比較單一變數；請重設後只改指定參數。';
+      else if(guess&&atTarget&&Number.isFinite(baseline)&&Number.isFinite(selectedValue)){
+        var tolerance=Math.max(1e-7,Math.abs(baseline)*1e-7),delta=selectedValue-baseline,observed=delta>tolerance?'up':delta< -tolerance?'down':'same';
         var textValue={up:'增加',down:'減少',same:'不變'};
         prediction.textContent=(guess===observed?'符合預測。':'與預測不同，重新觀察。')+
-          '基準 '+fmt(baseline,3)+' → 現在 '+fmt(selectedValue,3)+'；觀察結果：'+textValue[observed]+'。';
-      }else if(changed)prediction.textContent='已調整參數；先選擇預測，或重設實驗再預測。';
-      else prediction.textContent=guess?'預測已記錄。請拖曳「'+first.label+'」觀察結果。':'選擇預測，再拖曳對應參數驗證。';
+          '基準 '+fmt(baseline,3)+' → 指定變更後 '+fmt(selectedValue,3)+'；觀察結果：'+textValue[observed]+'。';
+      }else if(guess&&atTarget)prediction.textContent='指定變更超出模型有效範圍，不能對物理結果評分。';
+      else if(guess&&changed)prediction.textContent='已調整參數，但尚未到指定比較值 '+fmt(target)+' '+first.unit+'；此時不評分。';
+      else if(changed)prediction.textContent='請先選擇預測，再套用指定比較值。';
+      else prediction.textContent=guess?'預測已記錄，按「套用指定變更並驗證」進行單一變數比較。':'先選擇預測，再套用指定變更。其他參數須保持初始值。';
     }
-    host.querySelectorAll('[data-knob]').forEach(function(input){
+        host.querySelectorAll('[data-knob]').forEach(function(input){
       input.addEventListener('input',function(){
+        if(input.disabled)return;
         v[input.dataset.knob]=Number(input.value);
-        if(input.dataset.knob===focus && v[focus]!==first.value)changed=true;
         refresh();
       });
     });
@@ -525,6 +718,11 @@
         refresh();
       });
     });
+    host.querySelector('[data-verify-target]').addEventListener('click',function(){
+      v[focus]=target;
+      host.querySelector('[data-knob="'+focus+'"]').value=String(target);
+      refresh();
+    });
     host.querySelector('[data-time]').addEventListener('input',function(ev){
       cursor=Number(ev.target.value)/100;
       host.querySelector('[data-cursor-value]').textContent=Math.round(cursor*100)+'%';
@@ -532,7 +730,7 @@
     });
     host.querySelector('.interactive-reset').addEventListener('click',function(){
       knobs.forEach(function(k){v[k.key]=k.value;host.querySelector('[data-knob="'+k.key+'"]').value=String(k.value);});
-      guess=null;changed=false;cursor=.25;
+      guess=null;cursor=.25;
       host.querySelector('[data-time]').value='25';
       host.querySelector('[data-cursor-value]').textContent='25%';
       host.querySelectorAll('[data-predict]').forEach(function(node){node.setAttribute('aria-pressed','false');});
@@ -540,5 +738,5 @@
     });
     refresh();
   }
-  window.EE_INTERACTIVE={mount:mount,catalog:C,models:M};
+  window.EE_INTERACTIVE={mount:mount,catalog:C,models:M,comparisonTarget:comparisonTarget};
 })();

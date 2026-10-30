@@ -43,8 +43,8 @@
 - KaTeX CSS/JS 由 jsDelivr 載入；若 KaTeX JavaScript 或 CSS 任一資產無法載入，保留原本的文字公式作為可閱讀備援，不影響章節導覽與測驗。
 - 長公式在手機僅於公式區域水平捲動，不造成整頁橫向溢位。
 - 每個主題提供一個可調參數的工程小實驗
-- **上冊 38 節＋中冊 34 節，共 72 節都有獨立研究問題和即時互動操作**。`interactive-lessons.js` 提供 40 種明確標示適用條件的工程模型，以「預測 → 調參數 → 觀察 → 比對」流程操作；每節有滑桿、數值輸出、曲線／同步波形和重設。
-- Buck、Boost、反相 Buck-Boost、Flyback、Forward 等提供同步 PWM／電感或磁化波形；時間游標對齊 ON／OFF／ZERO 區間。
+- **上冊 38 節＋中冊 34 節，共 72 節都有獨立研究問題和即時互動操作**。`interactive-lessons.js` 提供 46 種明確標示適用條件的工程模型，以「預測指定單一參數變更 → 套用比較值 → 觀察 → 比對」流程操作；每節有滑桿、數值輸出、曲線／同步波形和重設。
+- Buck、Boost、反相 Buck-Boost、Flyback、Forward 等提供同步 Gate **邏輯指令（0/1）**、開關節點／繞組電壓、電感或磁化電流；時間游標對齊 ON／OFF／ZERO 區間。指令不是 MOSFET 的實際 VGS，也不是開關節點電壓。
 - SCR 觸發角、Boost 串聯銅損、輸出電容近似、光耦 CTR、帶限微分器、四開關升降壓、H-Bridge 單極性／互補波形、ADC 超界等使用專題模型。這些是**教學用理想或簡化模型**，不是 SPICE、元件選型或實機測量。
 - **全部 107 頁**可搜尋的標題與原講義文字索引（含封面、課程安排與結語）
 - 每頁皆可在瀏覽器**載入本機原講義 PDF**。使用 PDF.js 解析，先驗證 **107 頁**與首頁／第 24 頁的講義標題，再將真正的 PDF 頁面渲染為 Canvas；PDF 位元組儲存於本機 IndexedDB，不會上傳到伺服器
@@ -86,9 +86,12 @@ npm test
 網站不附帶原 PPTX/PDF 二進位檔，避免未經確認公開轉載講義；你在網站載入的檔案不會傳送到 GitHub。若瀏覽器禁止 IndexedDB，重新整理後可能需重新選取。
 
 ## 新增互動研究範圍
+- 三相六脈波線電流使用固定 DC 電流、120° 導通模型；三相電容輸入整流使用含等效來源電阻的逐時充放電模型。兩者**不可混用**，後者省略源側電感、二極體與 ESR 等寄生。
+- 磁芯損耗只做固定磁通擺幅的歸一化相對比較，不推算材料實際 W；Push-Pull 以 A/B 伏秒差顯示 flux walking 風險。
+- Half/Full-Bridge 的輸出比僅使用講義約定的 `0<D<0.5` 兩個對稱脈波定義，其他 PWM 定義不可直接代入。
 - 72 節都有可調模型；**不是全部 159 張原投影片都能逐像素操作**。原始 PDF 仍由使用者本機載入對照。
-- 模型有適用條件，例如 Sallen-Key 章先用一階 RC 基礎對照、Boost 銅損只示範 CCM 平均穩態、Forward 只計伏秒，不能推定硬體安全或迴路穩定。
-- 預測功能比較基準與當次參數結果；非單調曲線需針對實際操作方向解讀。
+- 模型有適用條件，例如 Sallen-Key 章先用一階 RC 基礎對照、Boost 銅損只示範已驗證 CCM 的平均穩態、Forward 只計伏秒，不能推定硬體安全或迴路穩定。
+- 預測功能固定其他參數，指定一個滑桿變更方向與比較值；超出模型範圍或同時修改其他參數時不會宣稱預測成功。非單調曲線只比較該次指定變更，不預設全範圍單調。
 
 ## 範圍與限制
 - 文字搜尋支援「25」「P.25」「第25頁」「頁碼 25」。抽取結果只有頁碼的圖形型投影片會提示必須查看原始 PDF。
@@ -106,12 +109,12 @@ npm test
 - `app.js`：導航、搜尋、測驗、學習進度和 KaTeX 公式插入
 - `formula-math.js`：上冊／中冊經人工編寫並分段呈現的數學式資料
 - `labs.js`：七個互動實驗與數學模型
-- `interactive-lessons.js`：72 節的研究題、40 種可重用模型及同步波形（上冊／中冊共用）
+- `interactive-lessons.js`：72 節的研究題、46 種可重用模型及同步波形（上冊／中冊共用）
 - `slide-text.js`：從使用者提供的 107 頁 PPTX 擷取的原文
 - `source-viewer.js`：PDF.js（動態 CDN 程式）解析及身分／頁數驗證、Canvas 繪製、IndexedDB 本機保存；不向網站後端上傳 PDF
 - `tests/smoke.mjs`：Playwright 真實瀏覽器測試
 - `tests/interactive-smoke.mjs`：逐一操作上、下冊 72 節的預測、滑桿、時間游標、重設和手機版檢查
-- `tests/interactive-engineering.mjs`：獨立數值 fixture，驗證 CCM/DCM、Forward、Bridge、SCR、CTR、ADC 模型
+- `tests/interactive-engineering.mjs`：獨立數值 fixture，驗證 CCM/DCM、Boost 適用域、反相 PI 相位、Gate/Vsw/VL、三相整流諧波與電容能量平衡、Push-Pull、Forward、Bridge、SCR、CTR、ADC 模型
 - `tests/middle-engineering.mjs`：七個中冊互動模型、Buck CCM／BCM／DCM 公式與實際模型電流波形的獨立預期值測試
 - `.github/workflows/verify.yml`：每次推送執行桌機／手機及數學邊界回歸測試
 - `.nojekyll`：GitHub Pages 靜態資產處理

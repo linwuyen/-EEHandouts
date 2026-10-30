@@ -39,16 +39,21 @@ async function inspect(file,expectedCount,width) {
       const start=await control.evaluate(el=>Number(el.value));
       const max=await control.evaluate(el=>Number(el.max));
       const min=await control.evaluate(el=>Number(el.min));
-      const end=start<max?max:min;
+      const step=await control.evaluate(el=>Number(el.step));
+      const end=await page.evaluate(id=>{
+        const [model,,key]=window.EE_INTERACTIVE.catalog[id];
+        const knob=window.EE_INTERACTIVE.models[model].knobs.find(k=>k.key===key);
+        return window.EE_INTERACTIVE.comparisonTarget(id,knob);
+      },x.id);
+      assert.ok(end>=min&&end<=max&&Math.abs((end-min)/step-Math.round((end-min)/step))<1e-7,
+        x.id+' comparison must land on a valid slider step');
       const original=await host.locator('.interactive-metric strong').first().innerText();
       await host.locator('[data-predict="up"]').click();
-      await control.evaluate((el,n)=>{
-        el.value=String(n);
-        el.dispatchEvent(new Event('input',{bubbles:true}));
-      },end);
+      await host.locator('[data-verify-target]').click();
+      assert.ok(Math.abs((await control.evaluate(el=>Number(el.value)))-end)<1e-8,x.id+' target application');
       const current=await host.locator('.interactive-metric strong').first().innerText();
       const feedback=await host.locator('.interactive-feedback').innerText();
-      assert.ok(feedback.includes('觀察結果'),x.id+' prediction feedback');
+      assert.ok(feedback.includes('觀察結果'),x.id+' isolated prediction feedback');
       const hasBad=await host.evaluate(node=>/NaN|Infinity|undefined/.test(
         node.querySelector('.interactive-metrics').innerText+' '+
         node.querySelector('.interactive-stage').innerText));
@@ -105,7 +110,54 @@ try{
     assert.ok(await page.locator('#lesson-interactive .interactive-metric').count()>0);
     if(lesson==='mid-buck-dcm')
       await page.screenshot({path:'tests/screenshots/interactive-buck-mobile.png',fullPage:true});
+    if(lesson==='mid-bipolar'){
+      const host=page.locator('#lesson-interactive');
+      await host.locator('[data-knob="bipolar"]').evaluate(el=>{el.value='1';el.dispatchEvent(new Event('input',{bubbles:true}));});
+      assert.ok(await host.locator('[data-knob="db"]').isDisabled(),'B duty must be disabled in bipolar mode');
+      assert.ok((await host.locator('[data-knob-value="db"]').innerText()).includes('互補推導'));
+      await host.locator('[data-knob="bipolar"]').evaluate(el=>{el.value='0';el.dispatchEvent(new Event('input',{bubbles:true}));});
+      assert.ok(await host.locator('[data-knob="db"]').isEnabled(),'B duty must be restored in unipolar mode');
+      assert.equal(await host.locator('[data-knob="db"]').evaluate(el=>Number(el.value)),25,'Restored independent B duty must remain 25%');
+    }
   }
+
+  await page.goto(BASE+'/index.html#home');
+  await page.locator('.subject-card').first().waitFor({timeout:10000});
+  // Resolve lesson hash from the actual curriculum, never assume chapter IDs.
+  const pqsRoute=await page.evaluate(()=>{
+    const c=window.EE_DATA.chapters.find(c=>c.lessons.some(l=>l.id==='pqs'));
+    return '#lesson/'+c.id+'/pqs';
+  });
+  await page.evaluate(target=>{location.hash=target},pqsRoute);
+  const pqsHost=page.locator('#lesson-interactive');
+  await pqsHost.locator('[data-knob="angle"]').waitFor({timeout:10000});
+  await pqsHost.locator('[data-predict="up"]').click();
+  await pqsHost.locator('[data-knob="thd"]').evaluate(el=>{
+    el.value=String(Number(el.value)+Number(el.step));
+    el.dispatchEvent(new Event('input',{bubbles:true}));
+  });
+  await pqsHost.locator('[data-verify-target]').click();
+  assert.ok((await pqsHost.locator('.interactive-feedback').innerText()).includes('同時變更其他參數'),
+    'Changing a second parameter must invalidate causal prediction grading');
+  await pqsHost.locator('.interactive-reset').click();
+  assert.ok((await pqsHost.locator('.interactive-feedback').innerText()).includes('先選擇預測'),'Reset clears causal invalidation');
+  await page.goto(BASE+'/middle.html#home');
+  await page.locator('.subject-card').first().waitFor({timeout:10000});
+  const boostRoute=await page.evaluate(()=>{
+    const c=window.EE_DATA.chapters.find(c=>c.lessons.some(l=>l.id==='mid-boost-rl'));
+    return '#lesson/'+c.id+'/mid-boost-rl';
+  });
+  await page.evaluate(target=>{location.hash=target},boostRoute);
+  const boostHost=page.locator('#lesson-interactive');
+  await boostHost.locator('[data-knob="l"]').waitFor({timeout:10000});
+  for(const [knob,value] of [['l',40],['freq',50]]){
+    await boostHost.locator('[data-knob="'+knob+'"]').evaluate((el,n)=>{
+      el.value=String(n);el.dispatchEvent(new Event('input',{bubbles:true}));
+    },value);
+  }
+  const sweepPath=await boostHost.locator('.interactive-chart path[stroke="#159c81"]').getAttribute('d');
+  assert.ok((sweepPath.match(/M/g)||[]).length>=2,
+    'Invalid Boost CCM duty ranges must create separate SVG subpaths without bridging the gap');
   await ctx.close();
 }finally{await browser.close();}
 assert.deepEqual(errors,[],'No uncaught page JavaScript errors');
