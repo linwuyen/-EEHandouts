@@ -68,8 +68,8 @@
       title:'匝數、氣隙、磁阻與電感',knobs:[knob('gap','氣隙長度',0,2,0.1,0.5,' mm'),knob('turns','匝數',40,160,10,100,' 圈'),knob('amps','電流',0.2,3,0.2,1,' A')],
       assumption:'固定磁芯路長 0.1 m、截面 1 cm²、相對導磁係數 1500，線性定 μ；不代表真實 B-H、飽和或邊緣磁通。',
       compute:function(v){var mu=4*Math.PI*1e-7,r=.1/(mu*1500*1e-4)+v.gap/1000/(mu*1e-4),L=v.turns*v.turns/r,B=v.turns*v.amps/(r*1e-4);
-        return result([metric('電感量 L',L*1e3,' mH',3),metric('磁通密度 B',B,' T',3),metric('儲能 ½LI²',.5*L*v.amps*v.amps*1000,' mJ',3)],
-          '增加氣隙會增大磁阻；固定匝數時 L 通常下降。',{warning:B>0.3?'B 高於 0.3 T 教學提醒值，實際飽和須查磁材資料。':''});}
+        return result([metric('線性模型 L',L*1e3,' mH',3),metric('線性模型 B',B,' T',3),metric('線性模型儲能 ½LI²',.5*L*v.amps*v.amps*1000,' mJ',3)],
+          '增加氣隙會增大磁阻；固定匝數時 L 通常下降。超過 0.3 T 時數值僅是固定導磁率的數學外插。',{validity:{scorable:B<=0.3,status:B<=0.3?'IN_DOMAIN':'LINEAR_EXTRAPOLATION'},warning:B>0.3?'固定 μ 模型外插（B > 0.3 T 教學門檻）：此 B、L 與儲能非實際磁芯工作點，禁止用於有效預測評分或磁芯選型。':''});}
     },
     faraday:{
       title:'磁通變化與感應電壓',knobs:[knob('freq','磁通頻率',10,300,10,60,' Hz'),knob('b','磁通密度峰值',0.02,0.3,0.02,0.1,' T')],
@@ -130,15 +130,15 @@
       title:'半波與全波整流',knobs:[knob('vac','輸入電壓 RMS',12,228,6,48,' V'),knob('full','全波模式 0=半波 1=全波',0,1,1,1,'')],
       assumption:'理想二極體、純電阻負載、無濾波電容；輸出平均值不等於加電容後的 DC Bus。',
       compute:function(v){var pk=v.vac*Math.SQRT2,full=Boolean(v.full),f=full?2:1;
-        return result([metric('平均整流電壓',pk*f/Math.PI,' V'),metric('輸入峰值',pk,' V')],
+        return result([metric('平均整流電壓',pk*f/Math.PI,' V'),metric('輸入峰值',pk,' V'),metric('正半週平均輸出',2*pk/Math.PI,' V'),metric('負半週平均輸出',full?2*pk/Math.PI:0,' V')],
           full?'全波每個半週都有脈動。':'半波只有正半週供電。',{series:[trace('輸入 AC','V',function(t){return pk*sin(t);}),trace('負載電壓','V',function(t){var a=pk*sin(t);return full?Math.abs(a):Math.max(a,0);})]});}
     },
     capRipple:{
-      title:'整流後電容漣波近似',knobs:[knob('cap','輸出電容',220,2200,110,990,' μF'),knob('load','負載電流',0.1,3,0.1,1,' A')],
+      title:'整流後電容漣波近似',knobs:[knob('cap','輸出電容',220,2200,110,1650,' μF'),knob('load','負載電流',0.1,3,0.1,1,' A')],
       assumption:'50 Hz 全波、固定電流負載、Vpeak=24√2 V。ΔV≈I/(2fC) 只適用小漣波近似，非充電尖峰電流精確模擬。',
       compute:function(v){var dv=v.load/(100*v.cap*1e-6),pk=24*Math.SQRT2,valid=dv/pk<=0.2;
-        return result([metric('小漣波估計 ΔV',dv,' V'),metric('ΔV／Vpeak',100*dv/pk,' %'),metric('輸入峰值',pk,' V')],
-          valid?'此處小漣波近似可作教學估算。':'超出教學近似門檻，勿將估計當成實際 DC 電壓。',{warning:valid?'':'ΔV／Vpeak > 20%；模型不再用於宣稱實際輸出平均電壓。'});}
+        return result([metric('有效小漣波估計 ΔV',valid?dv:NaN,' V'),metric('ΔV／Vpeak',100*dv/pk,' %'),metric('輸入峰值',pk,' V'),metric('超域公式外插（不可用於設計）',valid?NaN:dv,' V')],
+          valid?'此處小漣波近似可作教學估算。':'超出教學近似門檻，勿將估計當成實際 DC 電壓。',{validity:{scorable:valid,status:valid?'IN_DOMAIN':'OUT_OF_DOMAIN'},warning:valid?'':'ΔV／Vpeak > 20%；超出本站小漣波教學模型，不能把外插值當成有效漣波估值或預測正確的依據。'});}
     },
     sourceL:{
       title:'交流源電感與換向壓降',knobs:[knob('l','源側電感',1,196,5,26,' μH'),knob('didt','電流變化率',0.1,15,0.1,2,' A/μs')],
@@ -149,8 +149,9 @@
       title:'理想三相六脈波整流',knobs:[knob('phase','觀察電角度',0,360,10,30,' °'),knob('vrms','相電壓 RMS',100,240,10,220,' V')],
       assumption:'理想三相平衡、無源側電感、無導通壓降、無儲能電容；VDC=max(VA,VB,VC)−min(VA,VB,VC)。',
       compute:function(v){var a=v.phase*Math.PI/180,pk=v.vrms*Math.SQRT2,ph=function(t){return [pk*sin(t,a),pk*sin(t,a-2*Math.PI/3),pk*sin(t,a+2*Math.PI/3)];},p=ph(0);
+        var hi=p.indexOf(Math.max.apply(null,p)),lo=p.indexOf(Math.min.apply(null,p)),names=['A','B','C'];
         return result([metric('當下 DC 輸出',Math.max.apply(null,p)-Math.min.apply(null,p),' V'),metric('平均 DC 輸出',3*Math.sqrt(6)/Math.PI*v.vrms,' V')],
-          '每 60° 改變最大／最小相的二極體配對。',{series:[trace('VA','V',function(t){return ph(t)[0];}),trace('VB','V',function(t){return ph(t)[1];}),trace('VDC','V',function(t){var x=ph(t);return Math.max.apply(null,x)-Math.min.apply(null,x);})]});}
+          '當下上橋二極體：'+names[hi]+' 相；下橋二極體：'+names[lo]+' 相。每 60° 切換導通配對（理想無換向重疊）。',{series:[trace('VA','V',function(t){return ph(t)[0];}),trace('VB','V',function(t){return ph(t)[1];}),trace('VDC','V',function(t){var x=ph(t);return Math.max.apply(null,x)-Math.min.apply(null,x);})]});}
     },
     neutral:{
       title:'三相三次諧波與中性線電流',knobs:[knob('h3','每相 3 次諧波／基波',0,60,5,15,' %'),knob('i1','每相基波 RMS',1,20,1,5,' A')],
@@ -162,7 +163,7 @@
       title:'反相放大器與線性工作範圍',knobs:[knob('gain','理想反相增益絕對值',1,10,0.5,3,''),knob('vin','輸入電壓',-2,2,0.1,0.5,' V')],
       assumption:'理想負回授反相放大器；假設輸出供電軌 ±12 V 並用理想裁切示意超界，非特定 OP 的實際擺幅規格。',
       compute:function(v){var y=-v.gain*v.vin,limited=clamp(y,-12,12);
-        return result([metric('輸出電壓（示意）',limited,' V'),metric('理想未限制輸出',y,' V')],
+        return result([metric('輸出電壓（示意）',limited,' V'),metric('理想未限制輸出',y,' V'),metric('理想裁切狀態',y!==limited?1:0,' 0/1',0)],
           '輸入極性反相；超過供電軌時理想線性公式失效。',{warning:y!==limited?'超出假設供電軌，輸出已用示意裁切，實際需查 datasheet。':''});}
     },
     diff:{
@@ -187,8 +188,8 @@
     },
     adc:{
       title:'Shunt、偏壓與 ADC 量化',knobs:[knob('i','待量測電流',-30,30,1,10,' A'),knob('gain','差動放大增益',5,20,1,10,'')],
-      assumption:'Rshunt=5 mΩ、偏壓=1.5 V、12-bit ADC、理想 0–3 V 輸入。超界不輸出有效 ADC code；不代表硬體腳位已受保護。',
-      compute:function(v){var vad=1.5+.005*v.i*v.gain,valid=vad>=0&&vad<=3,code=valid?Math.round(vad/3*4095):NaN;
+      assumption:'Rshunt=5 mΩ、偏壓=1.5 V、12-bit ADC、理想 0–3 V 輸入；假設 4096 等間距量化區間，Code=floor(4096×Vadc/3)，最高輸入端點限制為 4095，非指定 MCU 的 ADCRESULT 轉移曲線。超界不輸出有效 ADC code；不代表硬體腳位已受保護。',
+      compute:function(v){var vad=1.5+.005*v.i*v.gain,valid=vad>=0&&vad<=3,code=valid?Math.min(4095,Math.floor(vad/3*4096)):NaN;
         return result([metric('ADC 腳電壓',vad,' V',3),metric('理想有效 Code',code,' count',0)],
           valid?'符合模型設定的 ADC 輸入範圍。':'ADC 超出輸入範圍，不可將理論轉換碼當成有效資料。',{warning:valid?'':'輸入超出 0–3 V；需額外確認前端保護及絕對最大額定值。'});}
     },
@@ -234,7 +235,7 @@
       title:'H-Bridge：橋臂、PWM 與四象限',knobs:[knob('da','A 臂高電位 Duty',0,100,5,75,' %'),knob('db','B 臂高電位 Duty',0,100,5,25,' %'),knob('i','IAB 電流',-10,10,1,2,' A'),knob('bipolar','雙極性互補模式',0,1,1,0,'')],
       assumption:'理想同步前緣 PWM，單極性同載波比較或雙極性 A/B 瞬時互補；忽略死區、二極體續流、換向瞬態與 Bus 回生吸收限制。',
       compute:function(v){var a=v.da/100,b=v.bipolar?1-a:v.db/100,avg=v.bipolar?(2*a-1)*100:(a-b)*100,p=avg*v.i,mode=v.bipolar?'雙極性互補':'同載波單極性';
-        return result([metric('平均差動 VAB',avg,' V'),metric('平均輸出功率',p,' W'),metric('A 臂平均電壓',a*100,' V'),metric('0.9T 的 VAB',(0.9<a?100:0)-((v.bipolar?0.9>=a:0.9<b)?100:0),' V')],
+        return result([metric('平均差動 VAB',avg,' V'),metric('平均輸出功率',p,' W'),metric('A 臂平均電壓',a*100,' V'),metric('0.9T 的 VAB',(0.9<a?100:0)-((v.bipolar?0.9>=a:0.9<b)?100:0),' V'),metric('VAB 零電壓比例',v.bipolar?0:100*(1-Math.abs(a-b)),' %')],
           mode+'；'+(p<0?'負載回送能量，DC Bus 必須可吸收。':'平均功率方向由 VAB 與 IAB 共同決定。'),{series:[trace('VA','V',function(t){return t<a?100:0;}),trace('VB','V',function(t){return (v.bipolar?t>=a:t<b)?100:0;}),trace('VAB','V',function(t){return (t<a?100:0)-((v.bipolar?t>=a:t<b)?100:0);})],stage:{kind:'bridge',on:a,b:b,bipolar:Boolean(v.bipolar),mode:mode}});}
     },
     flyback:{
@@ -288,7 +289,7 @@
       return result([metric('CCM 有效 Vout',valid?vo:NaN,' V'),metric('理想無損 CCM Vout',valid?ideal:NaN,' V'),
                      metric('電感銅損（僅 CCM）',valid?il*il*v.rl:NaN,' W'),metric('CCM IL 谷值估算',valley,' A')],
         valid?'高 Duty 下，電感銅損可能抵銷理想 Boost 增益。':'CCM 假設不成立，請改用分段 DCM 模型或調整 L、fs、負載。',
-        {mode:valid?'CCM':'OUT_OF_DOMAIN',warning:valid?'':'計算得到非正 IL 谷值或不合理斜率；CCM 平均模型失效，Vout 與銅損不顯示為有效設計值。'});
+        {mode:valid?'CCM':'OUT_OF_DOMAIN',validity:{scorable:valid,status:valid?'IN_DOMAIN':'OUT_OF_DOMAIN'},warning:valid?'':'計算得到非正 IL 谷值或不合理斜率；CCM 平均模型失效，Vout 與銅損不顯示為有效設計值。'});
     }
   };
   M.boostCap={
@@ -443,12 +444,26 @@
     title:'多繞組隔離變壓器：輸出電壓與交叉調節限制',
     knobs:[knob('vp','一次側理想 RMS 電壓',24,240,12,96,' V'),
            knob('r1','Np/Ns1',1,8,0.5,2,''),knob('r2','Np/Ns2',1,8,0.5,4,'')],
-    assumption:'理想變壓器，固定二次側 RMS 電流 I1=1A、I2=0.5A；Vp/Vs=Np/Ns。僅呈現多組繞組，未計漏感、繞組電阻、二極體壓降、負載互擾及 Cross Regulation。',
+    assumption:'理想變壓器，固定兩組二次側純電阻負載，同相電流 I1=1A、I2=0.5A，且一次側極性定義一致；Vp/Vs=Np/Ns。僅呈現多組繞組，未計漏感、繞組電阻、二極體壓降、負載互擾及 Cross Regulation。',
     compute:function(v){
       var a=v.vp/v.r1,b=v.vp/v.r2;
       return result([metric('次級 1 理想 RMS',a,' V'),metric('次級 2 理想 RMS',b,' V'),
                      metric('總次級視在功率',a+0.5*b,' VA'),metric('理想一次側電流',(1/v.r1+0.5/v.r2),' A')],
-        '不同匝比可提供多組輸出；真實多路穩壓需考慮負載交互影響。');
+        '二次側電流同相時，折算到一次側可以代數相加；若有不同 PF、相位或極性，必須相量相加。');
+    }
+  };
+
+  M.linearRegulator={
+    title:'線性串聯穩壓器：壓差、熱損與效率',
+    knobs:[knob('vin','輸入電壓',8,36,1,12,' V'),knob('vout','設定輸出電壓',1,12,1,5,' V'),knob('io','輸出電流',0.5,10,0.5,2,' A')],
+    assumption:'理想串聯線性穩壓器，假設輸入高於輸出、Iq=0、未考慮 Dropout、SOA、瞬態、熱阻及負載限制；Ppass=(Vin−Vout)Io 只對穩壓成功的條件有效。',
+    compute:function(v){
+      var ok=v.vin>v.vout,heat=ok?(v.vin-v.vout)*v.io:NaN,eff=ok?100*v.vout/v.vin:NaN;
+      return result([metric('Pass 元件耗散功率',heat,' W'),metric('輸出功率',ok?v.vout*v.io:NaN,' W'),
+                     metric('輸入功率',ok?v.vin*v.io:NaN,' W'),metric('理想效率',eff,' %')],
+        '在 Vout、Io 固定時，Vin 越高，線性串聯元件的熱損越大。',
+        {validity:{scorable:ok,status:ok?'IN_DOMAIN':'OUT_OF_DOMAIN'},
+         warning:ok?'':'Vin <= Vout：不符合此串聯線性調節器的穩壓條件，不能宣稱負載輸出或 Pass 損耗有效。'});
     }
   };
 
