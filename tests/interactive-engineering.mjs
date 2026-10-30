@@ -30,6 +30,37 @@ for(const [id,[model,key,focus,index]] of Object.entries(catalog)){
     assert.ok(aligned(knob.value)&&aligned(knob.max),'Range input default/max not on step grid '+id+':'+knob.key);
   }
 }
+// The target must follow the lesson's question, not simply increase every slider.
+for(const [id,[modelName,,focus]] of Object.entries(catalog)){
+  const k=models[modelName].knobs.find(k=>k.key===focus);
+  const target=window.EE_INTERACTIVE.comparisonTarget(id,k);
+  assert.ok(Number.isFinite(target)&&target>=k.min-1e-9&&target<=k.max+1e-9,
+    id+' target within physical UI range');
+  assert.ok(Math.abs((target-k.min)/k.step-Math.round((target-k.min)/k.step))<1e-7,
+    id+' target on slider grid');
+  assert.notEqual(target,k.value,id+' target different from baseline');
+}
+const expectedTarget={
+  wbg:45,
+  'mid-bidirectional':-2,'mid-quadrants':-2,
+  'mid-ccm-dcm':0.1,'mid-bcm':0.3,'mid-buck-dcm':0.1,
+  'mid-boost-dcm':0.2,'mid-buckboost-dcm':0.1,'mid-flyback-dcm':0.1
+};
+for(const [id,expected] of Object.entries(expectedTarget)){
+  const [modelName,,focus]=catalog[id];
+  const k=models[modelName].knobs.find(k=>k.key===focus);
+  eq(window.EE_INTERACTIVE.comparisonTarget(id,k),expected,1e-8,'Question-specific target '+id);
+}
+function atLessonTarget(id){
+  const [modelName,,focus]=catalog[id],m=models[modelName];
+  const k=m.knobs.find(k=>k.key===focus);
+  return make(modelName,{[focus]:window.EE_INTERACTIVE.comparisonTarget(id,k)});
+}
+for(const id of ['mid-ccm-dcm','mid-buck-dcm','mid-boost-dcm','mid-buckboost-dcm','mid-flyback-dcm'])
+  assert.equal(atLessonTarget(id).mode,'DCM',id+' experiment must actually enter DCM');
+assert.equal(atLessonTarget('mid-bcm').mode,'BCM','BCM experiment must reach its boundary');
+assert.ok(atLessonTarget('mid-quadrants').metrics[1].value<0,'Quadrants must reverse output power');
+assert.ok(atLessonTarget('mid-bidirectional').primary<0,'Bidirectional must reverse sign');
 const ccm=make('buck',{vin:24,duty:50,l:100,freq:100,io:2});
 assert.equal(ccm.mode,'CCM');eq(ccm.metrics[0].value,12,1e-8,'Buck CCM Vo');eq(ccm.metrics[1].value,2.3,1e-8,'Buck CCM IL peak');
 const dcm=make('buck',{vin:24,duty:50,l:100,freq:100,io:0.1});
