@@ -261,11 +261,34 @@
   }
 
   function timing(v){
-    var tbclk=v.tbclk*1e6,desiredFs=v.fs*1000,periodCounts=Math.round(tbclk/(2*desiredFs));
-    if(periodCounts<2)return unsupported('TBPRD 小於 2：目前解析度無效。');
-    var T=2*periodCounts/tbclk*1e6,cmp=Math.round(periodCounts*v.cmp/100),cmpUp=cmp/periodCounts*T/2,
+    // F28004x-specific clock tree: no arbitrary TBCLK up to 200 MHz.
+    // EPWMCLK = SYSCLK / EPWMCLKDIV; TBCLK = EPWMCLK / HSPCLKDIV / CLKDIV.
+    // ADC tSH=(ACQPS+1)/SYSCLK. The conversion, ISR entry and WCET remain
+    // explicit teaching assumptions; this is not a register generator.
+    function deviceInvalid(note){
+      var r=unsupported(note);r.mode='OUT_OF_DEVICE_DOMAIN';return r;
+    }
+    var sysclk=v.sysclk,epwmDiv=Number(v.epwmdiv),hsp=Number(v.hspdiv),
+      clkDiv=Number(v.clkdiv),adclkDiv=Number(v.adclkdiv),acqps=v.acqps;
+    var legalHsp=[1,2,4,6,8,10,12,14],legalClk=[1,2,4,8,16,32,64,128];
+    if(!Number.isFinite(sysclk)||sysclk<=0||sysclk>100||
+        ![1,2].includes(epwmDiv)||!legalHsp.includes(hsp)||!legalClk.includes(clkDiv)||
+        ![2,4,6,8].includes(adclkDiv))
+      return deviceInvalid('F28004x 時脈或分頻值超出本教學可設定範圍（SYSCLK 最高 100 MHz）。');
+    var tbclk=sysclk/epwmDiv/hsp/clkDiv,adclk=sysclk/adclkDiv,
+      tSH=(acqps+1)/sysclk*1000, // ns; integer ACQPS cycles from SYSCLK.
+      minimumSH=Math.max(75,1000/adclk);
+    if(v.tbclk!==undefined||v.acq!==undefined)
+      return deviceInvalid('TBCLK 與 ADC 取樣窗不接受任意外部覆寫；請由 SYSCLK／ePWM 分頻與 ACQPS 推導。');
+    if(!Number.isInteger(acqps)||acqps<0||acqps>511||tSH+1e-9<minimumSH)
+      return deviceInvalid('ADC ACQPS 不合法或 S+H 過短：F28004x 規格至少 75 ns，且不得短於 1 ADCCLK 週期；須另考慮前端 RC settling。');
+    var desiredFs=v.fs*1000,periodCounts=Math.round(tbclk*1e6/(2*desiredFs));
+    if(periodCounts<2||periodCounts>65535)
+      return deviceInvalid('由硬體分頻計算的 TBPRD 超出可用 16-bit 計數範圍；請調整 SYSCLK／分頻或 PWM 頻率。');
+    var T=2*periodCounts/tbclk, // μs, because MHz count denominator.
+      cmp=Math.round(periodCounts*v.cmp/100),cmpUp=cmp/periodCounts*T/2,
       cmpDown=T-cmpUp,source={ZERO:0,PERIOD:T/2,CMP_UP:cmpUp,CMP_DOWN:cmpDown},soc=source[v.soca],
-      acqEnd=soc+v.acq/1000,eoc=acqEnd+v.conv/1000,isr=eoc+v.entry/1000,
+      acqEnd=soc+tSH/1000,eoc=acqEnd+v.conv/1000,isr=eoc+v.entry/1000,
       finish=isr+v.isr/1000,loads=[];
     for(var cycle=0;cycle<32;cycle++){
       var t=cycle*T;
@@ -273,27 +296,40 @@
       if(v.shadow==='PERIOD'||v.shadow==='BOTH')loads.push(t+T/2);
     }
     loads.sort(function(a,b){return a-b;});
-    var load=loads.find(function(t){return t>finish+1/tbclk*1e6});
-    if(load===undefined)return unsupported('計算延遲超出展示的 32 個 PWM 週期，請減少 ISR 預算。');
-    var nextSoc=soc+T,overrun=finish>=nextSoc,latency=load-soc;
-    var events=[{key:'SOCA',label:'ePWM SOCA',at:soc},{key:'ACQ',label:'ADC 取樣窗結束',at:acqEnd},
-      {key:'EOC',label:'ADC EOC',at:eoc},{key:'ENTRY',label:'CPU ISR 進入',at:isr},
-      {key:'FINISH',label:'計算完成／shadow 寫入',at:finish},{key:'LOAD',label:'下一次 PWM shadow→active',at:load}];
+    // At a coincident load event, assume the CPU missed this reload. The
+    // extra 1 TBCLK setup guard is a pedagogical assumption, not TRM timing.
+    var load=loads.find(function(t){return t>finish+1/tbclk});
+    if(load===undefined)return deviceInvalid('計算延遲超出展示的 32 個 PWM 週期，請減少 ISR 預算。');
+    var nextSoc=soc+T,overrun=finish>=nextSoc,latency=load-soc,
+      loadPwmCycle=Math.floor(load/T+1e-9),samePwm=loadPwmCycle===Math.floor(soc/T),
+      withinSocBudget=finish<nextSoc;
+    var events=[{key:'SOCA',label:'ePWM SOCA',at:soc},
+      {key:'ACQ',label:'ADC 取樣窗結束（ACQPS）',at:acqEnd},
+      {key:'EOC',label:'ADC EOC 假設',at:eoc},
+      {key:'ENTRY',label:'CPU ISR 進入',at:isr},
+      {key:'FINISH',label:'計算完成／shadow 寫入',at:finish},
+      {key:'LOAD',label:'下一個 CMP shadow→active',at:load}];
     var width=Math.max(3*T,load+T*.4),renderTimes=[];
     for(var i=0;i<241;i++)renderTimes.push(i*width/240);
     function counter(t){var z=(t%T)/T;return z<=.5?2*z:2*(1-z);}
-    return valid({mode:overrun?'CPU_OVERRUN':load>=soc+T?'NEXT_CYCLE':'SAME_CYCLE',validity:!overrun,
-      assumptions:'F28004x 型 ePWM UP-DOWN 計數示意：TBCLK、TBPRD、CMPA 由輸入設定量化；SOCA 可由 ZERO／PERIOD／CMPA up/down 觸發。ADC 取樣、轉換、ISR 進入和執行時間均是使用者假設值，不是 TRM 保證值。假設 ISR 由 EOC 觸發，CMP shadow load 於 ZERO／PERIOD，無其他 ISR 或匯流排競用。',
-      note:'從 SOCA→取樣→EOC→CPU ISR→寫 CMP shadow→下一個 load event。未完成計算時不能把新 PWM 值套用到已經發生的 load。',
-      warning:overrun?'ISR 完成時間已跨過下一個相同 SOCA，可能堆積觸發／錯過即時預算；此模型判定為失敗。':
-        '此圖不是晶片實測或暫存器設定產生器；須以 F28004x TRM、ePWM/ADC DriverLib 及 GPIO 示波驗證 shadow load、ADCINT 與實際 WCET。',
-      metrics:[m('量化後 TBPRD',periodCounts,'count',0),m('實際 PWM 週期',T,'µs',3),m('SOCA 時刻',soc,'µs',3),
-        m('ADC EOC 時刻',eoc,'µs',3),m('ISR 計算完成',finish,'µs',3),m('新 Duty 生效',load,'µs',3),
-        m('取樣到 PWM 生效延遲',latency,'µs',3),m('下個 SOCA 前 CPU 裕度',nextSoc-finish,'µs',3)],
+    return valid({mode:overrun?'CPU_OVERRUN':samePwm?'SAME_PWM_CYCLE':'NEXT_PWM_CYCLE',validity:!overrun,
+      assumptions:'F28004x ePWM UP-DOWN 示意：SYSCLK≤100 MHz，EPWMCLK=SYSCLK/EPWMCLKDIV，TBCLK=EPWMCLK/HSPCLKDIV/CLKDIV；TBPRD、CMPA 整數量化。ADC tSH=(ACQPS+1)/SYSCLK，檢查器件 S+H 下限 75 ns 與一個 ADCCLK 週期。EOC／ISR 進入／WCET 仍是使用者假設值，未模擬 ADCINT 早晚脈衝、ADCRESULT latch、其他中斷或匯流排競用。',
+      note:'明確區分兩件事：(1) 計算是否在下一個 SOCA 前完成；(2) CMP Shadow 是同一 PWM 週期內還是下一個 TBCTR ZERO/PERIOD 才載入。',
+      warning:overrun?'計算完成時間超過下一次相同 SOCA，可能發生即時預算失敗；不代表 ISR 本身必然排隊。':
+        '本模型的轉換、ISR 和 PWM Shadow setup guard 仍屬假設；實機需以 F28004x datasheet、TRM、driverlib、GPIO 示波與 WCET 驗證。ADC 前端可能需要更長 S+H。',
+      metrics:[m('SYSCLK',sysclk,'MHz'),m('由分頻得 TBCLK',tbclk,'MHz',3),m('ADCCLK',adclk,'MHz',3),
+        m('ADC ACQPS',acqps,'count',0),m('ADC 實際 S+H',tSH,'ns',2),
+        m('量化後 TBPRD',periodCounts,'count',0),m('PWM 週期',T,'µs',3),
+        m('SOCA 時刻',soc,'µs',3),m('ADC EOC 時刻',eoc,'µs',3),
+        m('ISR 計算完成',finish,'µs',3),m('新 Duty 生效',load,'µs',3),
+        m('SOCA→PWM 生效',latency,'µs',3),m('生效 PWM 週期編號',loadPwmCycle,'',0),
+        m('下一次 SOCA 前裕度',nextSoc-finish,'µs',3)],
       stages:events.map(function(e){return {id:e.key,label:e.label,start:e.at/width,end:e.at/width};}),
       traces:[{key:'counter',label:'UP-DOWN TBCTR / TBPRD',unit:'ratio',x:renderTimes,values:renderTimes.map(counter),step:false}],
-      events:events,data:{tbprd:periodCounts,cmpa:cmp,T:T,soc:soc,acqEnd:acqEnd,eoc:eoc,isrStart:isr,finish:finish,load:load,latency:latency,
-        nextSoc:nextSoc,overrun:overrun,width:width}});
+      events:events,data:{sysclk:sysclk,epwmclk:sysclk/epwmDiv,tbclk:tbclk,adclk:adclk,acqps:acqps,tSH:tSH,
+        tbprd:periodCounts,cmpa:cmp,T:T,soc:soc,acqEnd:acqEnd,eoc:eoc,isrStart:isr,finish:finish,load:load,
+        latency:latency,nextSoc:nextSoc,overrun:overrun,withinSocBudget:withinSocBudget,
+        samePwm:samePwm,loadPwmCycle:loadPwmCycle,width:width}});
   }
 
   function nonideal(v){
@@ -421,8 +457,17 @@
       source:'https://www.ti.com/document-viewer/lit/html/SLUP414/GUID-C4C4C20D-3B3D-4298-813F-5E3A9DA91B12'},
     loop:{title:'Buck 電壓迴路｜Bode 與裕度',category:'control',knobs:[k('vin','輸入電壓',24,72,4,48,'V'),k('fs','PWM 頻率',50,250,25,100,'kHz'),k('l','輸出 L',20,300,20,100,'µH'),k('c','輸出 C',20,500,20,100,'µF'),k('r','負載 R',2,24,2,8,'Ω'),k('esr','電容 ESR',0,200,10,20,'mΩ'),k('kp','PI 比例 Kp',.002,.05,.002,.01,''),k('fz','PI 零點',100,3000,100,500,'Hz'),k('fp','補償高頻極點',5000,60000,5000,30000,'Hz'),k('delay','控制固定延遲',0,10,.5,2,'µs'),k('ramp','PWM ramp 峰對峰',.5,3,.5,1,'V')],compute:loop,
       source:'https://www.ti.com/lit/ug/sprui33c/sprui33c.pdf'},
-    timing:{title:'C2000｜ePWM SOCA → ADC → ISR → Shadow',category:'control',knobs:[k('tbclk','ePWM TBCLK',50,200,25,100,'MHz'),k('fs','PWM 頻率',25,200,25,100,'kHz'),k('cmp','CMPA/TBPRD',10,90,5,35,'%'),k('acq','ADC ACQ 假設時間',50,600,25,125,'ns'),k('conv','ADC conversion 假設',100,800,50,300,'ns'),k('entry','ISR 入口延遲',50,600,25,150,'ns'),k('isr','ISR WCET',100,30000,100,1000,'ns')],
-      selectors:[{key:'soca',label:'SOCA 事件',options:[['ZERO','TBCTR ZERO'],['PERIOD','TBCTR PERIOD'],['CMP_UP','CMPA up'],['CMP_DOWN','CMPA down']],value:'CMP_UP'},
+    timing:{title:'F28004x｜ePWM SOCA → ADC → ISR → Shadow',category:'control',
+      knobs:[k('sysclk','F28004x SYSCLK',50,100,25,100,'MHz'),k('fs','PWM 頻率',25,200,25,100,'kHz'),
+        k('cmp','CMPA/TBPRD',10,90,5,35,'%'),k('acqps','ADC ACQPS 暫存器值',0,60,1,12,'count'),
+        k('conv','ADC EOC 假設延遲',100,800,50,300,'ns'),k('entry','ISR 入口延遲',50,600,25,150,'ns'),
+        k('isr','ISR WCET',100,30000,100,1000,'ns')],
+      selectors:[
+        {key:'epwmdiv',label:'EPWMCLK / SYSCLK',options:[['1','÷1'],['2','÷2']],value:'1'},
+        {key:'hspdiv',label:'HSPCLKDIV',options:[['1','÷1'],['2','÷2'],['4','÷4'],['6','÷6'],['8','÷8'],['10','÷10'],['12','÷12'],['14','÷14']],value:'1'},
+        {key:'clkdiv',label:'CLKDIV',options:[['1','÷1'],['2','÷2'],['4','÷4'],['8','÷8'],['16','÷16'],['32','÷32'],['64','÷64'],['128','÷128']],value:'1'},
+        {key:'adclkdiv',label:'ADCCLK / SYSCLK（教學）',options:[['2','÷2'],['4','÷4'],['6','÷6'],['8','÷8']],value:'2'},
+        {key:'soca',label:'SOCA 事件',options:[['ZERO','TBCTR ZERO'],['PERIOD','TBCTR PERIOD'],['CMP_UP','CMPA up'],['CMP_DOWN','CMPA down']],value:'CMP_UP'},
         {key:'shadow',label:'CMP Shadow load',options:[['ZERO','ZERO'],['PERIOD','PERIOD'],['BOTH','ZERO + PERIOD']],value:'ZERO'}],compute:timing,
       source:'https://www.ti.com/lit/ug/sprui33c/sprui33c.pdf'},
     nonideal:{title:'同步 Buck｜理想與非理想比較',category:'nonideal',knobs:[k('vin','Vin',12,60,4,48,'V'),k('duty','Duty',10,90,5,50,'%'),k('fs','PWM 頻率',50,200,25,100,'kHz'),k('l','輸出 L',40,300,20,100,'µH'),k('c','輸出 C',100,1000,100,470,'µF'),k('load','負載 R',2,20,2,8,'Ω'),k('rh','高側 RDS(on)',2,80,2,20,'mΩ'),k('rl','低側 RDS(on)',2,80,2,20,'mΩ'),k('dcr','電感 DCR',5,100,5,40,'mΩ'),k('dead','每次 Dead Time',0,800,25,150,'ns'),k('vdiode','Body Diode Vf',.4,1.2,.1,.7,'V'),k('esr','電容 ESR',0,100,5,20,'mΩ'),k('esum','Eon+Eoff',0,200,10,40,'µJ')],compute:nonideal,

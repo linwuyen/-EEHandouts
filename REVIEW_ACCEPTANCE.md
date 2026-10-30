@@ -76,3 +76,6 @@
 
 - Bode 應找增益局部極值與高 Q 窄峰；即使原本 220 點都在 0dB 下方，仍須找出雙交越，保留每個交越的 PM 並於圖上畫出峰值。以獨立 16k 點頻率掃描作 fixture，不得僅單純增加固定掃描點數。
 - 72 節掃描曲線的有限樣本如為 `validity.scorable === false`，該樣本不得列入有效曲線與現在值標記；至少測 ADC、B-H、磁阻或安培定律跨有效域，維持原預測評分的不可評分規則。
+
+- F28004x 時序模型必須從 SYSCLK/EPWMCLKDIV/HSPCLKDIV/CLKDIV 推導 TBCLK，不能允許 >100 MHz F28004x SYSCLK、短於 75 ns 的 S+H 或過界 TBPRD；ACQPS 必須整數量化，100MHz SYSCLK 下 ACQPS=7 表示 80ns。ADC 前端高阻抗可能需更長取樣窗。
+- 以 100kHz、SOCA CMP_UP=1.75us、shadow ZERO=10us 反例確認 `NEXT_PWM_CYCLE`，而 SOCA ZERO、shadow PERIOD=5us 應為 `SAME_PWM_CYCLE`；CPU_OVERRUN 單獨以 FINISH 是否跨下一個 SOCA 判定。沒有真實硬體 TRM/示波 evidence 時不得宣稱實機時序準確。
