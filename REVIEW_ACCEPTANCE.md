@@ -70,3 +70,6 @@
 - C2000 時序 TBPRD 與 CMPA 整數量化，SOCA/ADC EOC/ISR/Shadow load 具嚴格先後，超過下一個 SOCA 要視為 WCET 警告；不得將滑桿值當真實 F28004x 延遲規格。
 - Buck 非理想電壓、損耗與效率需要 P_in=P_out+P_loss 的獨立檢查；遇負電流/Dead Time 重疊禁止標有效。PSFB Coss/Llk 只檢查 ZVS 必要前提，不得標成 ZVS 已驗收。
 - Chromium/Firefox/WebKit 至少驗證七模型初始有效、波形可呈現、320px/390px 不橫向溢位、游標與滑桿可操作，以及上中冊既有測試無回歸。
+
+- 進階同步 Buck 必須以真正的 DEAD/HIGH/DEAD/LOW 切換邊界解析積分，並以**區間端點的精確 IL min/max**判斷 CCM；115–125 kHz 之類取樣格點不對齊時也不可誤把負電流判成有效 CCM。週期首尾連續、電容電荷閉合需可觀測。
+- 電容 ESR 要用整個週期 iC=IL−Io 的 RMS² 計算耗損，明列於總損失／輸入功率／效率；ESR 100 mΩ、6 App 理想三角電流應新增約 0.3 W。以獨立數值積分交叉驗證，不能僅依 Pin−Pout−Ploss 的恆等式宣稱真實功率守恆。模型固定 Io 近似、非完全動態耦合的限制應公開。

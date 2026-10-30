@@ -266,53 +266,103 @@
   }
 
   function nonideal(v){
-    var d=v.duty/100,td=v.dead*1e-9*v.fs*1000,fs=v.fs*1000,L=v.l*1e-6,C=v.c*1e-6,
+    var d=v.duty/100,fs=v.fs*1000,td=v.dead*1e-9*fs,L=v.l*1e-6,C=v.c*1e-6,
       rh=v.rh/1000,rl=v.rl/1000,rdcr=v.dcr/1000,esr=v.esr/1000;
     if(td>=Math.min(d,1-d))return unsupported('Dead Time 佔比過大，已與占空比重疊；此簡化同步 Buck 模型失效。');
     var high=d-td,low=1-d-td,body=2*td,r=v.load;
+    // Average-current, fixed-Duty approximation. ESR has zero DC voltage drop
+    // because the mean capacitor current is zero; its ripple dissipation is
+    // included separately in the required input-power budget.
     var vo=(high*v.vin-body*v.vdiode)/(1+(rh*high+rl*low+rdcr)/r),io=vo/r;
     if(vo<=0||io<=0)return unsupported('有效輸出為非正，需重新確認工況；本模型僅支援正向電流同步 Buck。');
+
+    // Integrate exactly over the four physical switch intervals. An arbitrary
+    // uniform midpoint grid can misclassify the CCM boundary (and fabricate a
+    // periodic waveform by wrapping its final sample to the first).
+    var edges=[0,td,d,d+td,1],
+      vSwitch=[-v.vdiode,v.vin-rh*io,-v.vdiode,-rl*io],
+      slopes=vSwitch.map(function(x){return (x-vo-rdcr*io)/(L*fs);}),
+      walk=[0],walkMean=0;
+    for(var seg=0;seg<4;seg++){
+      var span=edges[seg+1]-edges[seg],end=walk[seg]+slopes[seg]*span;
+      walkMean+=span*(walk[seg]+end)/2;
+      walk.push(end);
+    }
+    function segmentAt(t){return t<td?0:t<d?1:t<d+td?2:3;}
+    function currentAt(t){
+      var q=Math.max(0,Math.min(1,t)),idx=segmentAt(q);
+      return io+walk[idx]+slopes[idx]*(q-edges[idx])-walkMean;
+    }
+    var boundaryCurrent=walk.map(function(x){return io+x-walkMean;}),
+      ilMin=Math.min.apply(null,boundaryCurrent),
+      ilMax=Math.max.apply(null,boundaryCurrent),
+      ripple=ilMax-ilMin,ilClosure=boundaryCurrent[4]-boundaryCurrent[0];
+
+    // iC=iL-Io is exactly linear within each stage. Analytic integrals yield
+    // capacitor ripple-current RMS, charge and ESR dissipation independently of
+    // the 240 chart samples. Account for extrema INSIDE a stage as well.
+    var charges=[0],chargeMean=0,capRmsSquared=0;
+    for(var j=0;j<4;j++){
+      var h=edges[j+1]-edges[j],ic0=walk[j]-walkMean,s=slopes[j];
+      capRmsSquared+=ic0*ic0*h+ic0*s*h*h+s*s*h*h*h/3;
+      chargeMean+=charges[j]*h+(ic0*h*h/2+s*h*h*h/6)/(fs*C);
+      charges.push(charges[j]+(ic0*h+s*h*h/2)/(fs*C));
+    }
+    function capacitorAt(t){
+      var q=Math.max(0,Math.min(1,t)),idx=segmentAt(q),
+        h=q-edges[idx],ic0=walk[idx]-walkMean,s=slopes[idx];
+      var charge=charges[idx]+(ic0*h+s*h*h/2)/(fs*C);
+      return vo+charge-chargeMean+esr*(ic0+s*h);
+    }
+    var extrema=[];
+    for(var j=0;j<4;j++){
+      var h=edges[j+1]-edges[j],s=slopes[j],ic0=walk[j]-walkMean;
+      extrema.push(capacitorAt(edges[j]),capacitorAt(edges[j+1]));
+      if(Math.abs(s)>1e-14){
+        var candidate=-ic0/s-esr*fs*C;
+        if(candidate>0&&candidate<h)extrema.push(capacitorAt(edges[j]+candidate));
+      }
+    }
+    var rV=Math.max.apply(null,extrema)-Math.min.apply(null,extrema),
+      icRms=Math.sqrt(Math.max(0,capRmsSquared)),pEsr=esr*icRms*icRms;
+
     var pHigh=io*io*rh*high,pLow=io*io*rl*low,pDcr=io*io*rdcr,
       pDead=io*body*v.vdiode,pSwitch=v.esum*1e-6*fs,po=vo*io,
-      pin=high*v.vin*io+pSwitch;
-    var N=480,iWalk=[0],slopeIntegral=0;
+      conduction=pHigh+pLow+pDcr+pDead;
+    // An incremental fixed-operating-point budget, NOT a fully coupled
+    // loss-dependent switching solution. Pin includes the capacitor loss
+    // needed to sustain the assumed current ripple and average output.
+    var pinBase=high*v.vin*io+pSwitch,pin=pinBase+pEsr,
+      pLoss=conduction+pSwitch+pEsr,eff=100*po/pin;
+    var cycleClosed=Math.abs(ilClosure)<=1e-9*Math.max(1,io,ripple)&&
+      Math.abs(charges[4])<=1e-9,ccm=ilMin>0&&cycleClosed;
     function state(t){
       t=pos(t);
       if(t<td||t>=d&&t<d+td)return {stage:'DEAD',gate:0,vsw:-v.vdiode};
       if(t<d)return {stage:'HIGH',gate:1,vsw:v.vin-rh*io};
       return {stage:'LOW',gate:0,vsw:-rl*io};
     }
-    for(var j=0;j<N;j++){
-      var z=state((j+.5)/N);
-      slopeIntegral+=((z.vsw-vo-rdcr*io)/L)/(fs*N);
-      iWalk.push(slopeIntegral);
-    }
-    var mean=iWalk.slice(0,N).reduce(function(a,b){return a+b;},0)/N;
-    var currents=iWalk.map(function(x){return io+x-mean;}),charge=[0];
-    for(var j=0;j<N;j++)charge.push(charge[j]+(currents[j]+currents[j+1]-2*io)/(2*N*fs*C));
-    var capMean=charge.slice(0,N).reduce(function(a,b){return a+b;},0)/N;
-    var fullV=currents.map(function(x,i){return vo+charge[i]-capMean+esr*(x-io);});
-    var ripple=Math.max.apply(null,currents)-Math.min.apply(null,currents),rV=Math.max.apply(null,fullV)-Math.min.apply(null,fullV);
-    function valueAt(arr,t){return arr[Math.min(N,Math.round(pos(t)*N))];}
-    var conduction=pHigh+pLow+pDcr+pDead,poutIdeal=v.vin*d*v.vin*d/r,eff=100*po/pin;
-    return valid({mode:currents.some(function(x){return x<=0;})?'OUT_OF_DOMAIN':'CCM_SYNC_BUCK',validity:currents.every(function(x){return x>0;}),
-      assumptions:'固定負載 R、連續導通同步 Buck；2 個等長 Dead Time 內以低側 Body Diode 續流；高／低 MOSFET RDS(on)、電感 DCR、理想固定 Eon+Eoff、電容 ESR；電流取週期穩態且忽略溫度、Coss、磁芯與非線性。',
-      note:'理想 Vout=D Vin；非理想 Vout 由導通壓降伏秒平衡求得；電容漣波積分 iC=iL−Io，再疊加 ESR 電壓。',
-      warning:currents.some(function(x){return x<=0;})?'電感電流可能歸零，CCM 模型不適用；不要使用此非理想數值選型。':
-        'Eon/Eoff 固定能量只計入輸入損耗，不反推輸出調節量；未包含切換過衝、佈線環路寄生與實際熱效應。',
-      metrics:[m('理想 Buck Vout',v.vin*d,'V'),m('非理想 Buck Vout',vo,'V'),m('非理想效率',eff,'%'),
+    return valid({mode:ccm?'CCM_SYNC_BUCK':'OUT_OF_DOMAIN',validity:ccm,
+      assumptions:'固定負載 R、固定 Duty／平均 Io 的同步 Buck CCM 近似。Dead Time 的四段電流斜率及電容 iC 電荷用精確分段積分；電容 ESR 耗損視為維持相同平均輸出時的額外輸入功率預算。RDS(on)／DCR 以平均電流估計，不是含所有電流紋波與 ESR 耦合的完整暫態解；忽略溫度、Coss、磁芯與非線性。',
+      note:'理想 Vo=D Vin；非理想 Vo 由平均伏秒推導。電感峰谷與電容漣波用真實切換邊界解析積分，P_ESR=R_ESR×I_C,rms²；同一平均工作點下 ESR 增加會增加所需 Pin 並降低效率。',
+      warning:!ccm?'切換區間精確積分顯示電感可能歸零／為負，或周期狀態未閉合：CCM 模型不適用；請不要將這些結果用於元件選型。':
+        '效率與所需 Pin 是平均 Io 下的增量損耗預算（包含電容 ESR），不是完整耦合的電路暫態或實機效率；固定 Eon/Eoff 不反推輸出電壓。',
+      metrics:[m('理想 Buck Vout',v.vin*d,'V'),m('非理想 Buck Vout',vo,'V'),m('非理想效率',ccm?eff:NaN,'%'),
         m('MOS＋DCR 導通損',pHigh+pLow+pDcr,'W',3),m('Dead Time 二極體損耗',pDead,'W',3),
-        m('固定開關損耗',pSwitch,'W',3),m('電感 ΔIL',ripple,'A',3),m('電容＋ESR ΔVpp',rV*1000,'mVpp',2)],
+        m('固定開關損耗',pSwitch,'W',3),m('電感 ΔIL',ripple,'A',3),m('電容＋ESR ΔVpp',rV*1000,'mVpp',2),
+        m('電容 ESR 耗損',pEsr,'W',3),m('電容漣波電流 RMS',icRms,'A',3)],
       stages:[{id:'DEAD1',label:'高側開啟前 Dead Time：Body Diode 續流',start:0,end:td},
         {id:'HIGH',label:'高側導通：Vin → MOSFET → L → Load',start:td,end:d},
         {id:'DEAD2',label:'低側導通前 Dead Time：Body Diode 續流',start:d,end:d+td},
         {id:'LOW',label:'低側同步續流',start:d+td,end:1}],
       traces:[sample('gate','高側 Gate 指令','0/1',function(t){return state(t).gate;},true),
         sample('vsw','開關節點 vSW','V',function(t){return state(t).vsw;},true),
-        sample('il','電感電流 iL','A',function(t){return valueAt(currents,t);}),
-        sample('vo','含 ESR 電容端電壓','V',function(t){return valueAt(fullV,t);})],
-      probe:function(t){return state(t);},data:{ideal:v.vin*d,vo:vo,io:io,ripple:ripple,rV:rV,pin:pin,po:po,conduction:conduction,pSwitch:pSwitch,pLoss:conduction+pSwitch,
-        energyError:pin-po-conduction-pSwitch,td:td,high:high,low:low,body:body}});
+        sample('il','電感電流 iL','A',currentAt),
+        sample('vo','含 ESR 電容端電壓','V',capacitorAt)],
+      probe:function(t){return state(t);},data:{ideal:v.vin*d,vo:vo,io:io,ripple:ripple,ilMin:ilMin,ilMax:ilMax,ilClosure:ilClosure,
+        capChargeClosure:charges[4],capCurrentRms:icRms,capCurrentRmsSquared:capRmsSquared,pEsr:pEsr,rV:rV,
+        pin:pin,po:po,pinBase:pinBase,conduction:conduction,pSwitch:pSwitch,pLoss:pLoss,
+        energyError:pin-po-pLoss,td:td,high:high,low:low,body:body}});
   }
 
   function zvs(v){

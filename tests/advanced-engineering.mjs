@@ -92,6 +92,55 @@ near(buck.data.energyError,0,1e-9,'Nonideal loss and input/output energy');
 near(ideal.data.vo,24,1e-10,'Zero-loss ideal limit');
 assert.ok(buck.traces.every(s=>s.values.length===241),'Buck common time grid');
 assert.equal(calculate('nonideal',{dead:800,fs:200,duty:10}).validity,false,'Dead time invalid gate overlap');
+// Nonideal Buck must integrate at the true HIGH/DEAD/LOW boundaries, not a
+// fixed midpoint grid that silently reports CCM after crossing zero current.
+const deadEdge={fs:125,duty:40,dead:175,load:16,l:40};
+const exactDead=calculate('nonideal',deadEdge);
+assert.equal(exactDead.mode,'OUT_OF_DOMAIN','Exact dead-time integration must reject zero-crossing CCM');
+assert.equal(exactDead.validity,false,'Near-BCM counterexample must not be called valid');
+near(exactDead.data.ilMin,-0.0015322545885132488,1e-7,'Dead-time exact minimum current, independent 4-stage reference');
+near(exactDead.data.ilClosure,0,1e-9,'Current physically closes over full cycle');
+near(exactDead.data.capChargeClosure,0,1e-9,'Capacitor charge physically closes over full cycle');
+const exactIl=exactDead.traces.find(t=>t.key==='il');
+near(exactIl.values.at(-1),exactIl.values[0],1e-8,'Inductor waveform endpoint is computed, not hard-wrapped');
+// ESR zero-to-100 mΩ case has ideal triangular iC with 6 App => Irms²=6²/12,
+// so dissipated capacitor power =0.1*(36/12)=0.3 W.
+const esrFixture={fs:50,l:40,load:2,dead:0,esr:0};
+const esrZero=calculate('nonideal',esrFixture);
+const esrHeavy=calculate('nonideal',{...esrFixture,esr:100});
+near(esrHeavy.data.capCurrentRmsSquared,3,1e-8,'Independent triangular ripple-current RMS²');
+near(esrHeavy.data.pEsr,0.3,1e-9,'Capacitor ESR dissipation P=Irms² R');
+near(esrHeavy.data.pLoss-esrZero.data.pLoss,0.3,1e-8,'ESR loss belongs in total loss');
+near(esrHeavy.data.pin-esrZero.data.pin,0.3,1e-8,'ESR budget increases input power at fixed output');
+assert.ok(esrHeavy.metrics[2].value<esrZero.metrics[2].value,'ESR must decrease stated efficiency');
+near(esrHeavy.data.energyError,0,1e-9,'ESR-inclusive average loss accounting');
+assert.ok(esrHeavy.data.capCurrentRms>0,'Capacitor RMS current must be observable');
+// Independent high-resolution quadrature checks analytical iC RMS for fractionally
+// positioned switching boundaries (not aligned to either the 240 or 480 plot grid).
+for(const v of [
+  {fs:125,duty:40,dead:175,l:40,load:8,esr:65},
+  {fs:50,duty:60,dead:225,l:120,load:4,esr:100},
+  {fs:200,duty:75,dead:125,l:80,load:6,esr:25}
+]){
+  const r=calculate('nonideal',v),p=params('nonideal',v),fs=p.fs*1000,td=p.dead*1e-9*fs,d=p.duty/100,io=r.data.io,
+    rh=p.rh/1000,rl=p.rl/1000,dcr=p.dcr/1000,vo=r.data.vo,L=p.l*1e-6;
+  // Build an independent stage-aware numerical reference: piecewise exact
+  // segment integration and a separate 24,000-point midpoint RMS quadrature.
+  const borders=[0,td,d,d+td,1],sw=[-p.vdiode,p.vin-rh*io,-p.vdiode,-rl*io];
+  const jumps=[0];for(let j=0;j<4;j++)jumps.push(jumps.at(-1)+(sw[j]-vo-dcr*io)/(L*fs)*(borders[j+1]-borders[j]));
+  const mean=jumps.slice(0,4).reduce((acc,b,j)=>acc+(b+jumps[j+1])*.5*(borders[j+1]-borders[j]),0);
+  const independentMin=io+Math.min(...jumps)-mean;
+  near(r.data.ilMin,independentMin,2e-9,'Exact four-stage current minimum');
+  let sum=0;const N=24000;
+  for(let i=0;i<N;i++){
+    const t=(i+.5)/N,j=t<td?0:t<d?1:t<d+td?2:3;
+    const ic=jumps[j]-mean+(sw[j]-vo-dcr*io)/(L*fs)*(t-borders[j]);
+    sum+=ic*ic/N;
+  }
+  near(r.data.capCurrentRmsSquared,sum,0.0002,'ESR RMS from independent midpoint quadrature');
+  near(r.data.pEsr,sum*p.esr/1000,0.00002,'ESR W from independent midpoint quadrature');
+  near(r.data.ilClosure,0,1e-8,'Waveform closure on arbitrary dead-time boundary');
+}
 const soft=calculate('zvs'),enough=calculate('zvs',{ip:15}),none=calculate('zvs',{ip:0});
 assert.equal(soft.mode,'INSUFFICIENT');assert.equal(enough.mode,'ENERGY_AND_TIME');assert.equal(none.mode,'INSUFFICIENT');
 assert.ok(Number.isNaN(none.metrics[3].value),'zero current has no finite commutation time');

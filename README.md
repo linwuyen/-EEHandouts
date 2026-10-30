@@ -164,3 +164,9 @@ Node.js 22 開發環境：執行 `npm ci --ignore-scripts`，再安裝 Chromium�
 - TI [Boost PFC Modes](https://www.ti.com/document-viewer/lit/html/SLUAAO8/GUID-86F7AD2D-7DF0-45E7-B7A9-79F8DC862F14)
 - TI [PSFB Operational Principles](https://www.ti.com/document-viewer/lit/html/SLUP414/GUID-C4C4C20D-3B3D-4298-813F-5E3A9DA91B12)
 - TI [TMS320F28004x TRM](https://www.ti.com/lit/ug/sprui33c/sprui33c.pdf)
+
+### 2026-10-30 非理想同步 Buck Review 修正
+
+- 四段 DEAD1/HIGH/DEAD2/LOW 直接以實際切換邊界解析積分電感電流，不再用固定 480 midpoint 樣本推斷零電流邊界，也不將最後一個樣本強制連回起點。輸出電容依 iC=iL−Io 計算連續電荷和電流 RMS，並求含 ESR 電壓漣波的區間內極值。
+- 新增 P_ESR=R_ESR×I_C,rms² 至總損耗、等效所需輸入功率與效率預算。**重要限制**：Vo 與電流斜率仍採固定 Duty、平均 Io 近似；ESR 視為維持同一平均輸出所需的額外功率，並非完整耦合的 RLC switching transient。MOS 與 DCR 的導通損仍採平均 Io 近似，能量帳的代數殘差為 0 不是實機準確證據。
+- Regression 加入 125 kHz、40% Duty、175 ns Dead Time、16 Ω、40 µH 的 −1.53 mA CCM 失效反例，以及 ESR 0→100 mΩ、6 App 漣波新增 0.30 W 損耗的獨立分析／UI 測試。
