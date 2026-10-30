@@ -56,7 +56,7 @@ assert.match(publish,/^\s*queue:\s*max\s*$/m,'Keep all out-of-order verified dep
 assert.match(publish,/^\s*cancel-in-progress:\s*false\s*$/m,'Older CI completions must not cancel newer deployment');
 assert.ok(publish.includes("head_repository.full_name == github.repository"),'Reject foreign workflow runs');
 assert.ok(publish.includes("head_branch == 'main'"),'Publish only main');
-assert.ok(publish.includes("release-sha.txt"),'Publish must stamp exact verified SHA into the Pages artifact');
+assert.ok(publish.includes('run: echo "$VERIFIED_SHA" > release-sha.txt'),'Exact SHA stamp must use a real newline, not a literal escaped \\n');
 assert.ok(publish.includes("bash scripts/check-published-head.sh"),'Verify public website exact SHA after deploy');
 assert.ok(publish.includes("steps.deployment.outcome == 'success'"),'Only verify hosted SHA after an actual successful deployment');
 assert.ok(publish.includes("if: steps.final_freshness.outputs.current == 'true'"),'Deploy missing freshness guard');
