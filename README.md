@@ -228,3 +228,10 @@ Node.js 22 開發環境：執行 `npm ci --ignore-scripts`，再安裝 Chromium�
 - 第五批完成後，**中冊 50 張工程教學頁 P.2–51** 應全部擁有白話直覺、階段能量流、公式條件、逐步數值例題、假設限制、理解測驗與既有互動課程連結；封面和結語保留原樣。
 - `tests/middle-magnetic-guides.mjs` 提供 P.41–51 獨立數值驗證，`tests/middle-page-guides.mjs` 與 `tests/content-contracts.mjs` 確保總頁數和 mapping，Chromium + Firefox/WebKit 檢查數學備援、原始 PDF、搜尋與 320/390px 版面。
 - 教學公式使用明確的理想工作條件；不代表實際元件額定、磁芯熱設計、Flux Walking 防護、ZVS 或絕緣認證。
+
+## 上冊第一批逐頁深化｜交流、功率與諧波 P.3–11
+
+- 對照原始 R2 PPTX 的 P.3–11 圖片逐頁建立九份原創導讀：功率符號、效率與 RMS、R-L 複數功率、平衡三相、非正弦波、傅立葉係數、對稱性、輸入電流失真、THD／CF／DPF／PF。
+- 三層教學沿用中冊現有逐頁導讀，包含白話直覺、物理及訊號流、公式及適用條件、數值例題、常見誤解與理解測驗。既有 38 節上冊主題課程、47 個互動模型與本機 PDF 閱讀器不變。
+- 新增 `upper-page-guides.js`、`tests/upper-page-guides.mjs`，同一個 `app.js` 依分冊選擇獨立導讀資料；避免把上冊導讀誤套到中冊。
+- P.3–11 九頁為本次深化範圍，P.12–106 尚待後續批次；原始 PPTX 和原圖不公開再散布，真實儀器量測與安全額定仍需工程驗證。
