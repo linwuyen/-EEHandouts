@@ -64,8 +64,61 @@ await run('upper AC P3-11 original deep guides and quiz',async()=>{
   assert.equal(await d.evaluate(n=>n.open),false);await d.locator('summary').click();
   assert.equal(await d.evaluate(n=>n.open),true);
  }
- await navigate(page,'#slide/12');assert.equal(await page.locator('.page-guide').count(),0,'Upper P12 must remain untouched');
+ await navigate(page,'#slide/12');assert.equal(await page.locator('[data-guide-page="12"]').count(),1,'Upper P12 must now have its own magnetic guide');
 });
+await run('upper P12-26 magnetic original deep guides, equations, answers and local PDF',async()=>{
+  const map={12:'ampere',13:'ampere',14:'bh',15:'reluctance',16:'reluctance',
+    17:'reluctance',18:'reluctance',19:'reluctance',20:'faraday',
+    21:'inductor',22:'transformer',23:'transformer',24:'transformer',
+    25:'transformer',26:'transformer'};
+  const titles=new Set();
+  for(let p=12;p<=26;p++){
+    await navigate(page,'#slide/'+p);
+    const g=page.locator('[data-guide-page="'+p+'"]');
+    assert.equal(await g.count(),1,'P.'+p+' one magnetic guide');
+    const title=await g.locator('h2').innerText();
+    assert.ok(title.length>=16,'P.'+p+' real title');
+    titles.add(title);
+    assert.ok(await g.locator('.guide-steps li').count()>=3,'P.'+p+' stages');
+    assert.ok(await g.locator('.guide-equation').count()>=2,'P.'+p+' derived formulas');
+    assert.ok(await g.locator('.guide-worked li').count()>=3,'P.'+p+' numeric example');
+    assert.ok(await g.locator('.guide-assumptions li').count()>=2,'P.'+p+' domains');
+    assert.equal(await page.locator('#source-pdf-file').count(),1,'P.'+p+' local original PDF preserved');
+    const href=await g.locator('.guide-link').getAttribute('href');
+    assert.ok(href.endsWith('/'+map[p]),'P.'+p+' correct existing lesson');
+    const eq=g.locator('.guide-equation').first();
+    const rendered=await eq.evaluate(el=>el.classList.contains('guide-ready'));
+    assert.ok(rendered||await eq.locator('.guide-math-fallback').isVisible(),
+      'P.'+p+' KaTeX or readable fallback');
+    const check=g.locator('details.guide-check');
+    assert.equal(await check.evaluate(el=>el.open),false,'P.'+p+' answer initially hidden');
+    await check.locator('summary').click();
+    assert.equal(await check.evaluate(el=>el.open),true,'P.'+p+' answer revealed');
+    assert.ok((await check.locator('p').innerText()).length>=20,'P.'+p+' real answer');
+    if([12,14,19,20,22,23,25,26].includes(p))
+      await page.screenshot({path:outDir+'/upper-magnetics-'+p+'.png',fullPage:true});
+  }
+  assert.equal(titles.size,15,'Each magnetics page has independent teaching content');
+  await navigate(page,'#slide/27');
+  assert.equal(await page.locator('.page-guide').count(),0,'P27 not part of this review batch');
+  await navigate(page,'#home');
+  await page.locator('#search-trigger').click();
+  await page.locator('#search-input').fill('磁通連續性');
+  assert.ok(await page.locator('#search-results a[href="#slide/15"]').count()>0,
+    'Magnetic original guide must be discoverable via search');
+  await page.keyboard.press('Escape');
+  for(const width of [320,390]){
+    const mobile=await browser.newPage({viewport:{width,height:720}});
+    for(let p=12;p<=26;p++){
+      await mobile.goto(BASE+'/#slide/'+p);
+      await mobile.locator('[data-guide-page="'+p+'"]').waitFor({timeout:20000});
+      const size=await mobile.evaluate(()=>({vw:innerWidth,sw:document.documentElement.scrollWidth}));
+      assert.ok(size.sw<=size.vw+2,'P.'+p+' mobile '+width+'px overflow '+JSON.stringify(size));
+    }
+    await mobile.close();
+  }
+});
+
 async function makeSourceFixture(count,validTitle=true,variant='A'){
   const file=await PDFDocument.create(),font=await file.embedFont(StandardFonts.Helvetica);
   const anchors={1:'Power Electronics - Beginner Course',2:'THD Fourier Principles',
