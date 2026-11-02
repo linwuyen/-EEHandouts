@@ -46,11 +46,25 @@ await run('完整 107 頁索引與複合頁碼',async()=>{
     assertCheck('頁碼 '+pg,await page.locator('#main-content h1').innerText().then(t=>t.includes('第 '+pg+' 頁')));
   }
   await navigate(page,'#slide/6');
-  assert.equal(await page.locator('.page-guide').count(),0,'Upper must not display middle-specific guides');
+  assert.equal(await page.locator('[data-guide-page="6"]').count(),1,'Upper AC P6 must show original guide');
   await navigate(page,'#slide/41');
   assertCheck('GTO 第 41 頁有對應教材',await page.locator('a[href="#lesson/devices/legacy"]').count()>=1);
   await navigate(page,'#slide/42');
   assertCheck('GTO 第 42 頁有對應教材',await page.locator('a[href="#lesson/devices/legacy"]').count()>=1);
+});
+await run('upper AC P3-11 original deep guides and quiz',async()=>{
+ for(let p=3;p<=11;p++){
+  await navigate(page,'#slide/'+p);
+  const g=page.locator('[data-guide-page="'+p+'"]');
+  assert.equal(await g.count(),1,'Upper P.'+p+' unique guide');
+  assert.ok(await g.locator('.guide-steps li').count()>=3,'Upper P.'+p+' steps');
+  assert.ok(await g.locator('.guide-equation').count()>=2,'Upper P.'+p+' equations');
+  assert.equal(await page.locator('#source-pdf-file').count(),1,'Upper source PDF untouched');
+  const d=g.locator('details.guide-check');
+  assert.equal(await d.evaluate(n=>n.open),false);await d.locator('summary').click();
+  assert.equal(await d.evaluate(n=>n.open),true);
+ }
+ await navigate(page,'#slide/12');assert.equal(await page.locator('.page-guide').count(),0,'Upper P12 must remain untouched');
 });
 async function makeSourceFixture(count,validTitle=true,variant='A'){
   const file=await PDFDocument.create(),font=await file.embedFont(StandardFonts.Helvetica);
