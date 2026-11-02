@@ -1,4 +1,4 @@
-/* 中冊逐頁原創導讀：僅為教學近似，與原講義 PDF、模擬引擎分離。 */
+/* 中冊原創逐頁導讀：由物理現象到工程驗證，原講義 PDF 不公開存放。 */
 (function(root){'use strict';root.EE_PAGE_GUIDES={
   "2": {
     "lesson": "mid-topologies",
@@ -2439,5 +2439,316 @@
       "a": "V2≈(12+0.5)×10/24−0.5≈4.708 V；實際還可能受負載、繞組阻抗與導通時序改變。"
     },
     "tryIt": "到「單一變壓器供多組隔離輸出」課節，固定主路調節，再思考改變輔路負載會如何影響交叉調節。"
+  },
+  "37": {
+    "lesson": "mid-flyback-ccm",
+    "title": "Flyback 為什麼更像耦合電感，而不是 ON 就傳能的理想變壓器？",
+    "question": "MOSFET ON 時二次側二極體不導通，那麼輸入能量究竟存在哪裡，關斷時才怎麼交給輸出？",
+    "takeaway": "Flyback 的關鍵狀態是磁化電流與磁場儲能 E=½Lm i²；ON 時累積，OFF 時透過變壓器耦合及二極體送到輸出，負載在 ON 時靠輸出電容支撐。",
+    "intuition": [
+      "把 Flyback 先想成『帶隔離繞組的儲能電感』，而不是一般把一次側正弦波立刻變成二次側正弦波的理想變壓器。當 MOSFET 接通，磁化電感電流沿一次側路徑上升；因點標及整流方向，二次側二極體反偏，磁場能量增加。",
+      "當 MOSFET 截止，為了維持磁化電流對應的磁通，變壓器繞組極性翻轉，二次側二極體開始導通；儲存的磁場能量透過二次側釋放。CCM 並不是每圈從零開始儲能，而是磁化電流有大於零的谷值。"
+    ],
+    "steps": [
+      {
+        "title": "先辨識磁化電感 Lm 和漏感 Llk",
+        "detail": "Lm 表示磁芯共同磁通的儲能路徑，Llk 是沒有完整耦合到二次側的寄生漏感；兩者不能混成同一個能量項處理 MOSFET 尖峰。"
+      },
+      {
+        "title": "ON：一次側磁化電流沿 Vin／Lm 上升",
+        "detail": "MOSFET ON，理想一次側磁化電感 vLm≈Vin，斜率 diLm/dt≈Vin/Lm；輸出二極體截止，負載主要由 Co 供能。"
+      },
+      {
+        "title": "OFF：次級接收磁化能量",
+        "detail": "MOSFET OFF 時二次側二極體導通；以原邊折算的磁化電壓約 −(Np/Ns)(Vo+Vf)，電流由峰值下降到谷值。"
+      },
+      {
+        "title": "用磁化能量差核對單週期傳輸",
+        "detail": "磁化能量 E=½Lm i²；在理想 CCM、週期穩態、忽略其他能量路徑時，每圈可向輸出傳遞的儲能差為 ½Lm(Ipk²−Ivalley²)，不是一律 ½Lm Ipk²。"
+      }
+    ],
+    "phases": [
+      {
+        "name": "ON：磁化儲能",
+        "pct": 40
+      },
+      {
+        "name": "OFF：二次側釋能",
+        "pct": 60
+      }
+    ],
+    "equations": [
+      {
+        "label": "磁化電感的瞬時儲能",
+        "tex": "E_m(t)=\\frac{1}{2}L_m i_m^2(t)",
+        "plain": "Em(t)=½ Lm im²",
+        "why": "儲能與電流平方成正比；CCM 週期初還保留磁化能量，因此谷值不是零。"
+      },
+      {
+        "label": "ON 的磁化電流變化",
+        "tex": "\\Delta I_m=\\frac{V_{in}D}{L_m f_s}",
+        "plain": "ΔIm=Vin D/(Lm fs)",
+        "why": "ON 時理想磁化電感承受 Vin，電流斜率由 v=L di/dt 決定。"
+      },
+      {
+        "label": "CCM 單週期轉移的理想磁化能量",
+        "tex": "\\Delta E=\\frac{1}{2}L_m(I_{pk}^2-I_{valley}^2)",
+        "plain": "ΔE=½ Lm(Ipk²−Ivalley²)",
+        "why": "若磁化電流谷值不是零，不能把 ½Lm Ipk² 當每次完全釋放的能量。"
+      }
+    ],
+    "worked": {
+      "given": "Vin=100 V、Lm=200 µH、fs=100 kHz、D=40%，假設磁化電流 ON 前谷值 1 A，理想 CCM。",
+      "steps": [
+        "Ts=10 µs，ON=4 µs；ΔIm=100×4µs/(200µH)=2 A，所以一次側磁化電流從 1 A 上升到 3 A。",
+        "OFF 前磁化能量 Epk=½×200µH×3²=900 µJ；ON 前能量 Evalley=½×200µH×1²=100 µJ。",
+        "理想單週期新增且釋出的能量差 ΔE=900−100=800 µJ；每秒 100000 圈，等效傳能約 80 W。",
+        "此範例必須由 OFF 磁化伏秒抵消 ON 的 +400 V·µs，才能回到同樣的 1 A 谷值，否則不是週期穩態。"
+      ],
+      "result": "CCM Flyback 在每圈保留一部分磁化能量；功率來自磁化能量的增減，而不是每圈都從零開始用 ½Lm Ipk²。"
+    },
+    "assumptions": [
+      "示例假設理想耦合、CCM、固定 Vin／Duty、Lm 與週期穩態，忽略漏感、磁芯損耗、開關及二極體壓降。",
+      "實際磁化電流谷值、MOSFET 峰值、磁芯磁通密度、漏感尖峰和二次側導通時序均需量測或另以完整模型驗證。"
+    ],
+    "pitfall": "把 Flyback 當 ON 時直接傳功率的 Forward，或 CCM 仍套用 DCM 每圈全放空的 ½Lm Ipk² 計算傳能。",
+    "check": {
+      "q": "Flyback CCM 電感谷值 1 A、峰值 3 A 時，單次送出能量能用 ½Lm×3² 全部計算嗎？",
+      "a": "不行；CCM 週期末仍保留 1 A 的磁化儲能，應計 ½Lm(3²−1²) 這個能量差。"
+    },
+    "tryIt": "在「Flyback CCM 的 ON／OFF 與轉壓比」課節，把二極體 ON/OFF、一次側磁化電流與電感儲能分開追蹤。"
+  },
+  "38": {
+    "lesson": "mid-flyback-ccm",
+    "title": "Flyback CCM 怎麼由伏秒平衡求 Vo、二次側電流和 MOSFET VDS？",
+    "question": "一次側 MOSFET 關閉後，為什麼 VDS 不只是 Vin，而會出現反射輸出電壓與漏感尖峰？",
+    "takeaway": "由 ON 正伏秒與 OFF 反射電壓負伏秒求 CCM 增益；二次側電流按匝比放大，MOSFET 關斷應力至少考慮 Vin+(Np/Ns)(Vo+Vf)，再加漏感過衝。",
+    "intuition": [
+      "Flyback 有兩種不同的『匝比』用途：一次與二次側磁化電壓可彼此反射，因此決定 OFF 復位斜率；當二次側二極體導通，折算的磁化電流又會依匝比換算到次級電流。電壓與電流的倍率方向相反，這是功率傳遞的基本條件。",
+      "MOSFET OFF 並不是元件兩端只剩下原來的 Vin。二次側輸出電壓被匝比反射回一次側，疊加輸入電壓形成理想 VDS 平台；漏感能量不能立即耦合到次級，常需 RCD／TVS／有源 Clamp 處理額外尖峰。"
+    ],
+    "steps": [
+      {
+        "title": "ON：一次側施加 Vin",
+        "detail": "MOSFET 導通，原邊磁化電感斜率 diLm/dt=Vin/Lm；二次側二極體截止，Co 供應負載。"
+      },
+      {
+        "title": "OFF：次級電壓反射至原邊",
+        "detail": "二次側二極體導通時，理想原邊磁化電壓約 −(Np/Ns)(Vo+Vf)，iLm 由峰值下降；主開關承受的關斷平台電壓變高。"
+      },
+      {
+        "title": "正負伏秒平衡求理想 CCM Vo",
+        "detail": "Vin D=(Np/Ns)Vo(1−D)，所以 Vo/Vin=(Ns/Np)D/(1−D)，此處忽略二極體壓降。"
+      },
+      {
+        "title": "輸出平均電流從次級 OFF 電流求",
+        "detail": "理想磁化電流以原邊折算，OFF 時二次側導通電流約 iS=(Np/Ns)iLm；二極體只在 OFF 時送能，所以 Io=(1−D)(Np/Ns)Im,avg。"
+      }
+    ],
+    "phases": [
+      {
+        "name": "ON：一次側磁化電流上升",
+        "pct": 40
+      },
+      {
+        "name": "OFF：次級二極體導通",
+        "pct": 60
+      }
+    ],
+    "equations": [
+      {
+        "label": "CCM 磁化伏秒平衡",
+        "tex": "V_{in}D=\\frac{N_p}{N_s}V_o(1-D)",
+        "plain": "Vin D=(Np/Ns)Vo(1−D)",
+        "why": "OFF 時輸出電壓經匝比反射至原邊，若固定週期磁化電流不漂移，正負伏秒必須相等。"
+      },
+      {
+        "label": "理想 Flyback CCM 電壓增益",
+        "tex": "\\frac{V_o}{V_{in}}=\\frac{N_s}{N_p}\\frac{D}{1-D}",
+        "plain": "Vo/Vin=(Ns/Np)×D/(1−D)",
+        "why": "與 Forward 的 (Ns/Np)D 不同；當零電流區出現後則不能直接套 CCM 比值。"
+      },
+      {
+        "label": "理想 MOSFET 關斷 VDS 平台",
+        "tex": "V_{DS,off}\\approx V_{in}+\\frac{N_p}{N_s}(V_o+V_F)",
+        "plain": "VDS,off≈Vin+(Np/Ns)(Vo+Vf)",
+        "why": "僅反射輸出與二極體壓降平台，沒有計入 Llk 尖峰、Coss 振鈴及布局寄生。"
+      }
+    ],
+    "worked": {
+      "given": "Vin=100 V、Np:Ns=2:1、Duty=40%、Lm=200 µH、fs=100 kHz。原邊折算磁化電流谷值 1 A、峰值 3 A；理想不計二極體壓降。",
+      "steps": [
+        "CCM 輸出 Vo=100×(1/2)×0.4/0.6≈33.33 V，ON 磁化漣波 2 A。",
+        "OFF 時原邊反射電壓 (Np/Ns)Vo≈66.67 V，持續 6 µs 使原邊折算 iLm 下降約 66.67×6µs/200µH≈2 A，週期閉合。",
+        "OFF 二次側二極體電流隨原邊磁化電流由 (Np/Ns)×3=6 A 降至 2 A，整週期平均 Io=(1−D)×(6+2)/2=2.4 A。",
+        "輸出功率 Po≈33.33×2.4≈80 W，與 P.37 儲能差 800 µJ×100 kHz 相符；理想 MOSFET VDS 平台為 100+2×33.33≈166.67 V。"
+      ],
+      "result": "電壓反射、二次側電流換算和磁化能量帳在理想 CCM 可自洽；實機 MOSFET VDS 必須額外考慮漏感過衝。"
+    },
+    "assumptions": [
+      "理想 Flyback、固定 Vin、CCM、忽略二極體正向壓降與漏感傳能損失；電壓平台與實際峰值必須區分。",
+      "二次側電流是 ON 二極體截止、OFF 導通的反射磁化電流，不是原邊 MOSFET 截止後仍有原邊 MOSFET 電流；安全額定需留裕度與量測。"
+    ],
+    "pitfall": "把 MOSFET 關斷耐壓只選 Vin，忽略反射 Vo 和漏感尖峰；或把二次側二極體平均電流當成全週期的原邊峰值電流。",
+    "check": {
+      "q": "Vin=100 V、Np/Ns=2、Vo≈33.33 V，Flyback 理想 OFF 平台 VDS 大約多少？",
+      "a": "VDS,off≈100+2×33.33≈166.67 V；實際峰值還可能因漏感與寄生而更高。"
+    },
+    "tryIt": "在「Flyback CCM 的 ON／OFF 與轉壓比」課節核對磁化電流三角波、OFF 二極體電流及 MOSFET 的反射電壓。"
+  },
+  "39": {
+    "lesson": "mid-flyback-dcm",
+    "title": "Flyback DCM 為什麼有 ON、DIODE、ZERO 三段？每段電流流向哪裡？",
+    "question": "MOSFET OFF 之後二極體電流先下降到零，那麼剩下的時間誰給負載供電，VDS 又為何可能振鈴？",
+    "takeaway": "DCM 磁化電流每圈從零開始、OFF 二極體釋放到零，剩下的 ZERO 區由輸出電容供負載；必須確認 D+δ<1，不能只看波形表面振鈴。",
+    "intuition": [
+      "與 CCM 不同，DCM Flyback 像每圈重新把磁化電流從 0 往上推，然後把儲存的能量完全放掉。當次級二極體電流降至零，二次側停止供電，輸出電容要撐到下一圈。",
+      "ZERO 階段在理想簡化模型裡 iLm 已是零、輸入端不再把功率送到輸出；實機卻常能看到漏感、磁化電感與 MOSFET／二極體寄生電容造成振鈴。因此看到 VDS 有波形，不等於二次側仍在導通。"
+    ],
+    "steps": [
+      {
+        "title": "ON：一次側磁化電流由零上升",
+        "detail": "MOSFET ON，理想 iLm 斜率 Vin/Lm；二次側整流二極體反偏，輸出電容提供負載電流。"
+      },
+      {
+        "title": "DIODE：MOSFET OFF，磁化儲能傳到二次側",
+        "detail": "二次側二極體導通，原邊折算磁化電流以 −(Np/Ns)(Vo+Vf)/Lm 斜率下降；次級電流從 (Np/Ns)Ipk 線性下降到零。"
+      },
+      {
+        "title": "ZERO：二極體截止、磁化電流為零",
+        "detail": "在比例 1−D−δ>0 的區段，理想磁化儲能已釋放完，負載主要由 Co 供電；真實 MOSFET VDS 可仍有寄生振鈴。"
+      },
+      {
+        "title": "用電流面積核對負載電流",
+        "detail": "理想 DCM 的平均輸出 Io=(Np/Ns)Ipk δ/2，只有 DIODE 時段的三角電流面積會流到輸出。"
+      }
+    ],
+    "phases": [
+      {
+        "name": "ON：儲能",
+        "pct": 30
+      },
+      {
+        "name": "DIODE：釋能到零",
+        "pct": 30
+      },
+      {
+        "name": "ZERO：二極體截止",
+        "pct": 40
+      }
+    ],
+    "equations": [
+      {
+        "label": "一次側磁化峰值",
+        "tex": "I_{pk}=\\frac{V_{in}D}{L_m f_s}",
+        "plain": "Ipk=Vin D/(Lm fs)",
+        "why": "DCM 下每圈磁化電流起點是零，ON 時 Vin 施加 D Ts 的伏秒。"
+      },
+      {
+        "label": "DIODE 比例與理想復位",
+        "tex": "\\delta=\\frac{V_{in}D}{(N_p/N_s)V_o}",
+        "plain": "δ=Vin D/[(Np/Ns)Vo]",
+        "why": "由一次側磁化伏秒平衡，OFF 次級導通時將輸出電壓反射回一次側；需另檢查 D+δ<1。"
+      },
+      {
+        "label": "平均次級輸出電流",
+        "tex": "I_o=\\frac{1}{2}\\frac{N_p}{N_s}I_{pk}\\delta",
+        "plain": "Io=½(Np/Ns) Ipk δ",
+        "why": "二次側電流只在 DIODE 區段是三角形，ON 和 ZERO 時整流器都截止。"
+      }
+    ],
+    "worked": {
+      "given": "Vin=24 V、Np:Ns=2:1、Vo=12 V、Lm=200 µH、fs=50 kHz、D=30%，理想非同步 Flyback DCM。",
+      "steps": [
+        "ON 峰值 Ipk=24×0.3/(200 µH×50 kHz)=0.72 A，次級初始導通電流約 2×0.72=1.44 A。",
+        "反射電壓為 (Np/Ns)Vo=2×12=24 V，所以 DIODE 比例 δ=24×0.3/24=0.3，磁化電流可在 30% 週期內歸零。",
+        "ZERO 比例 1−0.3−0.3=0.4>0，理想 DCM 成立；平均輸出 Io=½×1.44×0.3=0.216 A。",
+        "理想輸出 Po=12×0.216=2.592 W，與磁化能量 ½×200 µH×0.72²×50 kHz=2.592 W 一致。"
+      ],
+      "result": "完整驗證了磁化電流峰值、二極體電流三角形、正的 ZERO 時間與理想功率帳，不能只由 Duty 單獨宣稱 DCM。"
+    },
+    "assumptions": [
+      "理想 DCM、線性 Lm、非同步整流、固定 Vo／Vin／fs、忽略 diode Vf、銅阻、漏感與控制暫態；真實 ZERO 可能存在寄生振鈴。",
+      "若次級整流電流未在下個週期前歸零或 D+δ≥1，就必須用 BCM／CCM 模型分析，不能套此 DCM 面積公式。"
+    ],
+    "pitfall": "把 DIODE 電流面積算成 ON＋OFF 全部磁化三角形，或以為 ZERO 階段 MOSFET VDS 的振鈴就是電感仍在向輸出傳能。",
+    "check": {
+      "q": "Flyback DCM 的 D=0.3、二極體導通比例 δ=0.3，最後 40% 週期的負載靠誰維持？",
+      "a": "二極體已截止，負載主要靠輸出電容支撐；在理想簡化模型裡磁化電流已降到零，寄生 VDS 振鈴不代表仍在向輸出送能。"
+    },
+    "tryIt": "到「Flyback DCM、峰值電流與設計限制」課節對照 iLm、二極體電流、VDS，確認 D+δ 與 ZERO 區段。"
+  },
+  "40": {
+    "lesson": "mid-flyback-dcm",
+    "title": "Flyback DCM 實際算一次：Lm、Ipk、效率、MOSFET 耐壓怎麼排順序？",
+    "question": "講義假設效率 80%，用 ½Lm Ipk²fs 求功率時，還有哪些條件必須另外驗證才能拿去做電源設計？",
+    "takeaway": "先由 Vin、D、Lm、fs 求一次側峰值與每圈磁化儲能，再以明確假設的 η 估輸出；最後獨立檢查磁化完全復位、開關耐壓、漏感 Clamp、輸出電容 RMS／ESR 與磁芯飽和。",
+    "intuition": [
+      "DCM 的好處是磁化電流每圈從 0 開始，因此每圈在磁化電感中累積的能量近似為 ½Lm Ipk²。乘上每秒開關次數，得到可輸入到理想磁化能量路徑的功率估算；這個數值不是自動等於負載真正拿到的瓦數。",
+      "假設效率 80% 只是在總能量帳裡先留出損耗預算，並不表示 MOSFET、二極體、Clamp 和電容 ESR 的損耗都已精確求出。要真的設計 Flyback，還需要逐項核對元件電壓、電流與熱應力。"
+    ],
+    "steps": [
+      {
+        "title": "先由 ON 伏秒計算一次側磁化峰值",
+        "detail": "若真為 DCM，磁化電流起點為 0；Ipk≈Vin D/(Lm fs)。Ipk 還要和 current sense、磁芯飽和及 MOSFET 峰值額定比較。"
+      },
+      {
+        "title": "算單圈儲能與總輸入功率預算",
+        "detail": "理想 ON 儲能 Ecycle≈½Lm Ipk²；Pin,model≈Ecycle fs。DCM 的能量式不能直接拿來算 CCM，因為 CCM 谷值不為零。"
+      },
+      {
+        "title": "以假設效率得到輸出功率和損耗總額",
+        "detail": "給定 η=0.8，Po,estimate=0.8 Pin,model、總損耗預算約 0.2 Pin,model；不能把 η 當成已測得的真實效率。"
+      },
+      {
+        "title": "獨立檢查 VDS 與整流器反向耐壓",
+        "detail": "初級 MOSFET OFF 理想平台約 Vin+(Np/Ns)(Vo+Vf)，還有漏感過衝；次級二極體反向耐壓約 Vo+(Ns/Np)Vin。需加上元件規格餘裕。"
+      },
+      {
+        "title": "檢查電容 ESR、漏感 Clamp 和 DCM 的 ZERO",
+        "detail": "電容有 iC=iD−Io 的紋波，ESR 耗損 P≈IC,rms² ESR；漏感能量需要 Clamp 處理。即使算出功率，也要獨立驗證二極體電流會於下一圈前降到零。"
+      }
+    ],
+    "equations": [
+      {
+        "label": "磁化峰值和每圈儲能",
+        "tex": "I_{pk}=\\frac{V_{in}D}{L_mf_s},\\quad E_{cycle}=\\frac{1}{2}L_mI_{pk}^2",
+        "plain": "Ipk=Vin D/(Lm fs)；Ecycle=½Lm Ipk²",
+        "why": "只對電感磁化電流從零開始的 DCM 做此全儲能公式；CCM 必須扣除谷值能量。"
+      },
+      {
+        "label": "假設效率的輸出與損失預算",
+        "tex": "P_{o,est}=\\eta E_{cycle}f_s,\\quad P_{loss,est}=(1-\\eta)E_{cycle}f_s",
+        "plain": "Po,est=η Ecycle fs；Ploss,est=(1−η) Ecycle fs",
+        "why": "η 是使用者假設的彙總效率，不是已求出各元件溫升、電流 RMS 或開關尖峰。"
+      },
+      {
+        "label": "關斷應力理想參考",
+        "tex": "V_{DS,off}\\approx V_{in}+\\frac{N_p}{N_s}(V_o+V_F)",
+        "plain": "VDS,off≈Vin+(Np/Ns)(Vo+Vf)",
+        "why": "僅為未加漏感尖峰的理想關斷平台；Clamp、吸收器、額定餘裕仍需另算。"
+      }
+    ],
+    "worked": {
+      "given": "Lm=200 µH、fs=50 kHz、Vin=80 V、Duty=25%，假設 DCM 且總效率 η=80%；另以 Np:Ns=2:1、Vo=20 V、Vf=0.7 V 示意 MOSFET 理想關斷應力。",
+      "steps": [
+        "峰值 Ipk=80×0.25/(200 µH×50 kHz)=2.0 A；每次磁化儲能 Ecycle=½×200 µH×2²=400 µJ。",
+        "輸入磁化能量功率預算 Pin≈400 µJ×50 kHz=20 W；若假設 η=0.8，則輸出估 16 W、未分配的總損耗預算 4 W。",
+        "若以 Vo=20 V 做輸出預估，平均負載電流估 Po/Vo=16/20=0.8 A；這是由效率假設得來，不是另一條實測電流方程。",
+        "MOSFET OFF 理想平台 VDS≈80+2×(20+0.7)=121.4 V，尚未加上漏感尖峰；實際元件額定不能直接選 121.4 V。"
+      ],
+      "result": "先建立能量和負載預算，再核對 DCM、耐壓、磁芯飽和與各項損耗。η=80% 只能代表設計假設，不能拿這個數字宣稱實機驗收完成。"
+    },
+    "assumptions": [
+      "效率 80% 是示例指定的總損耗比例；功率預估、輸出電流與理想 VDS 平台不是已完整耦合求解的電路暫態模型。",
+      "示例未計算磁芯 Bmax、實際漏感能量、RCD/TVS/主動 Clamp、二極體恢復、MOSFET/Coss、整流 RMS、電容 ESR／溫升或安規耐壓。",
+      "若還無法證明磁化電流在每個週期起點前降回零，就不能使用 DCM 的 Ecycle=½Lm Ipk² 全釋能假設。"
+    ],
+    "pitfall": "把 η=80% 當元件真的只損失 4 W 的量測結果，或看到 MOSFET 理想反射平台 121.4 V 就依此選耐壓，忽略漏感尖峰。",
+    "check": {
+      "q": "Lm=200 µH、Ipk=2 A、fs=50 kHz 時，假設 η=80%，可以說 Flyback 已證明實際輸出必為 16 W 嗎？",
+      "a": "不行。模型磁化能量預算是 20 W，套假設效率得到 Po,est=16 W；真正輸出還受各種元件損耗、模式及保護條件影響。"
+    },
+    "tryIt": "到「Flyback DCM、峰值電流與設計限制」課節，先驗證 Ipk 與每圈能量，再回頭檢查 OFF 反射電壓和 DCM 歸零條件。"
   }
 };})(window);
