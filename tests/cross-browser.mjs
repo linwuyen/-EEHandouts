@@ -81,7 +81,7 @@ for(const [engineName,engine] of [['firefox',firefox],['webkit',webkit]]){
     console.log('PASS cross-browser',engineName,volume,'search/nav/interactive/step/RWD/vendor');
   }
   // Verify the new page-specific text and source-PDF link on Firefox/WebKit.
-  for(const p of [2,9]){
+  for(const p of [2,9,10,16,22]){
     await page.goto(BASE+'/middle.html#slide/'+p);
     await page.locator('[data-guide-page="'+p+'"]').waitFor({timeout:15000});
     assert.ok(await page.locator('.guide-equation').count()>=2,

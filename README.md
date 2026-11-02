@@ -197,4 +197,11 @@ Node.js 22 開發環境：執行 `npm ci --ignore-scripts`，再安裝 Chromium�
 
 此內容由 middle-page-guides.js 管理；app.js 的中冊逐頁路由負責顯示，middle-page-guides.css 負責排版。原講義摘要及使用者本機 PDF 檢視器都保留；導讀不是投影片逐字稿，也不提供公開原投影片圖片。KaTeX 缺少 JS 或 CSS 時仍顯示可閱讀的文字公式。
 
-本階段僅驗收 P.2–9。P.10–51 與上冊其他頁面尚未逐頁深化，不應宣稱全部 159 頁已完成。對應的數值及頁碼覆蓋檢查位於 tests/middle-page-guides.mjs、tests/middle-smoke.mjs，並納入既有的 Chromium／Firefox／WebKit CI。
+第一批 P.2–9 已驗收；第二批 Boost P.10–22 也已完成原創逐頁深化。P.23–51 與上冊其他頁面尚未逐頁深化，不應宣稱全部 159 頁已完成。對應的數值及頁碼覆蓋檢查位於 tests/middle-page-guides.mjs、tests/middle-smoke.mjs，並納入既有的 Chromium／Firefox／WebKit CI。
+
+## 中冊第二批逐頁深化｜Boost P.10–22
+
+- 在原本 P.2–9 導讀基礎上，補齊 Boost 第 10–22 頁 13 份原創逐頁說明（中冊已完成 P.2–22 共 21 頁）。每頁含核心問題、物理直覺、ON/OFF/零電流時段、公式與條件、完整數值例題、常見錯誤與理解檢核；沿用已有的 PDF 對照和互動課節，沒有新增計算模擬引擎。
+- P.10 Boost CCM 能量流；P.11–12 RL 銅損與反映到輸出端的等效內阻；P.13–14 高 Duty 增益峰值與 RL-only 效率；P.15–19 MOSFET／二極體寄生、分段波形及輸入／輸出功率帳；P.20 MOSFET RMS 導通損；P.21 BCM 臨界輸入／輸出電流；P.22 DCM ON／DIODE／ZERO 三區段、輸出三角電流面積及固定電阻負載增益。
+- 每頁明示理想 CCM、平均電流或 DCM 的適用範圍；所有損耗與輸出電壓皆為教學近似，不代表元件額定、實機效率或閉迴路的安全運作。
+- 新增 `tests/middle-boost-guides.mjs` 做獨立數值 fixture，既有 `tests/middle-page-guides.mjs` 要求 P.2–22 無缺頁；Chromium 測試 13 頁可閱讀、問答、連結、搜尋、320px/390px 與既有 PDF，Firefox／WebKit 擴充到 P.10/P.16/P.22。

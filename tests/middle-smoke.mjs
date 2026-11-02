@@ -98,8 +98,8 @@ await run('P.2–9 original deep explanations, math, references and answer revea
     if(p===6||p===9)await page.screenshot({path:'tests/screenshots/middle-page-'+p+'-guide.png',fullPage:true});
   }
   assert.equal(titles.size,8,'Do not reuse a generic title for different pages');
-  await visit('middle.html#slide/10','#source-pdf-file');
-  assert.equal(await page.locator('.page-guide').count(),0,'Unreviewed P.10 must not show invented explanation');
+  await visit('middle.html#slide/23','#source-pdf-file');
+  assert.equal(await page.locator('.page-guide').count(),0,'Unreviewed P.23 must not show invented explanation');
   await visit('middle.html#home','.subject-card');
   await page.locator('#search-trigger').click();
   await page.locator('#search-input').fill('伏秒平衡');
@@ -111,6 +111,61 @@ await run('P.2–9 original deep explanations, math, references and answer revea
   const widths=await mobile.evaluate(()=>({viewport:innerWidth,scroll:document.documentElement.scrollWidth}));
   assert.ok(widths.scroll<=widths.viewport+2,'Deep guide P.9 overflow on 320px '+JSON.stringify(widths));
   await mobile.close();
+});
+
+await run('P.10–22 Boost deep guides, physical text, equations, answer and mobile layout',async()=>{
+  const titles=new Set();
+  const expected={
+    10:'mid-boost-ccm',11:'mid-boost-rl',12:'mid-boost-rl',13:'mid-boost-efficiency',
+    14:'mid-boost-efficiency',15:'mid-boost-parasitic',16:'mid-boost-parasitic',
+    17:'mid-boost-parasitic',18:'mid-boost-parasitic',19:'mid-boost-parasitic',
+    20:'mid-boost-parasitic',21:'mid-boost-dcm',22:'mid-boost-dcm'
+  };
+  for(let p=10;p<=22;p++){
+    await visit('middle.html#slide/'+p,'[data-guide-page="'+p+'"]');
+    const g=page.locator('[data-guide-page="'+p+'"]');
+    assert.equal(await g.count(),1,'Boost P.'+p+' must mount exactly one deep guide');
+    titles.add(await g.locator('h2').innerText());
+    assert.ok(await g.locator('.guide-steps li').count()>=3,'P.'+p+' energy stages');
+    assert.ok(await g.locator('.guide-equation').count()>=2,'P.'+p+' formula sources');
+    assert.ok(await g.locator('.guide-worked li').count()>=3,'P.'+p+' independent example');
+    assert.ok(await g.locator('.guide-assumptions li').count()>=2,'P.'+p+' model limits');
+    const linked=await g.locator('.guide-link').getAttribute('href');
+    assert.ok(linked.endsWith('/'+expected[p]),'P.'+p+' links the correct existing lesson');
+    assert.equal(await page.locator('#source-pdf-file').count(),1,'P.'+p+' still has local PDF reader');
+    assert.ok((await page.locator('.slide-transcript').innerText()).length>10,'P.'+p+' source summary is intact');
+    const eq=g.locator('.guide-equation').first();
+    const mathReady=await eq.evaluate(el=>el.classList.contains('guide-ready'));
+    assert.ok(mathReady||await eq.locator('.guide-math-fallback').isVisible(),
+      'P.'+p+' equation fallback must remain readable');
+    const answer=g.locator('.guide-check');
+    assert.equal(await answer.evaluate(el=>el.open),false,'P.'+p+' answer initially hidden');
+    await answer.locator('summary').click();
+    assert.equal(await answer.evaluate(el=>el.open),true,'P.'+p+' answer revealed');
+    assert.ok((await answer.locator('p').innerText()).length>=20,'P.'+p+' real answer');
+    if([10,19,22].includes(p))await page.screenshot({
+      path:'tests/screenshots/middle-boost-page-'+p+'.png',fullPage:true
+    });
+  }
+  assert.equal(titles.size,13,'Each Boost source page must have its own specific explanation');
+  await visit('middle.html#slide/23','#source-pdf-file');
+  assert.equal(await page.locator('.page-guide').count(),0,'P.23 is the untouched next unit');
+  await visit('middle.html#home','.subject-card');
+  await page.locator('#search-trigger').click();
+  await page.locator('#search-input').fill('二極體電流三角形');
+  assert.ok(await page.locator('#search-results a[href="#slide/22"]').count()>0,
+    'Boost DCM deep explanation is discoverable via search');
+  await page.keyboard.press('Escape');
+  for(const width of [320,390]){
+    const mobile=await browser.newPage({viewport:{width,height:720}});
+    for(const p of [10,15,22]){
+      await mobile.goto(BASE+'/middle.html#slide/'+p);
+      await mobile.locator('[data-guide-page="'+p+'"]').waitFor({timeout:20000});
+      const sizes=await mobile.evaluate(()=>({vw:innerWidth,sw:document.documentElement.scrollWidth}));
+      assert.ok(sizes.sw<=sizes.vw+2,'P.'+p+' Boost guide '+width+'px overflow: '+JSON.stringify(sizes));
+    }
+    await mobile.close();
+  }
 });
 
 async function makeMiddlePdf(count,kind='valid'){
