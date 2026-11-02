@@ -234,7 +234,7 @@ Node.js 22 開發環境：執行 `npm ci --ignore-scripts`，再安裝 Chromium�
 - 對照原始 R2 PPTX 的 P.3–11 圖片逐頁建立九份原創導讀：功率符號、效率與 RMS、R-L 複數功率、平衡三相、非正弦波、傅立葉係數、對稱性、輸入電流失真、THD／CF／DPF／PF。
 - 三層教學沿用中冊現有逐頁導讀，包含白話直覺、物理及訊號流、公式及適用條件、數值例題、常見誤解與理解測驗。既有 38 節上冊主題課程、47 個互動模型與本機 PDF 閱讀器不變。
 - 新增 `upper-page-guides.js`、`tests/upper-page-guides.mjs`，同一個 `app.js` 依分冊選擇獨立導讀資料；避免把上冊導讀誤套到中冊。
-- P.3–11 九頁為本次深化範圍，P.12–26 在第二批深化，P.27–106 尚待後續批次；原始 PPTX 和原圖不公開再散布，真實儀器量測與安全額定仍需工程驗證。
+- P.3–11 九頁為本次深化範圍，P.12–26 與 P.27–40 已由後續獨立批次深化；P.41–106 尚待後續批次；原始 PPTX 和原圖不公開再散布，真實儀器量測與安全額定仍需工程驗證。
 
 ## 上冊第二批逐頁深化｜磁路、自感與變壓器 P.12–26
 
@@ -246,3 +246,14 @@ Node.js 22 開發環境：執行 `npm ci --ignore-scripts`，再安裝 Chromium�
 - 每頁包含物理直覺、階段磁通／能流、公式及工作域、獨立數值例題、誤解與理解測驗，全部連向既有課節；**沒有新增模擬器**。
 - tests/upper-magnetic-guides.mjs 提供 15 頁獨立參考數值；tests/upper-page-guides.mjs 保證上冊 P.3–26 共 24 頁連續覆蓋；Chromium、Firefox/WebKit 測試數學備援、本機 PDF、搜尋、測驗和手機 320/390 px。
 - 內容是明確限界的教育模型，不代表實際磁芯 Bsat、鐵損／熱、漏感尖峰或安規驗收，需依材料規格與量測確認。
+
+## 上冊第三批逐頁深化｜功率二極體、SCR、BJT、MOSFET P.27–40
+
+- 逐張核對原始 R2 PPTX P.27–40 的符號、電流箭頭、I–V 曲線、SCR 復位時間、達靈頓連接、MOSFET 工作區、Ciss/Coss/Crss、Miller 平台及硬切換功率三角形；原始講義圖不公開重製。
+- **P.27–30**：二極體與受控開關選型差異、I–V 與反向額定、PN 二極體 Qrr／對側 MOSFET turn-on 應力、四類二極體應用及 Cj；P.29 的 `Qrr×VR×fs` 是換流能量尺度估算，不是「二極體本身一定發熱這麼多」，且不能與已含該事件的 Eon 重複計算。
+- **P.31–35**：SCR 鎖存／保持電流、自然換流與 tq、理想受控開關模型、BJT 強迫 β 飽和驅動、二／三級 Darlington 的增益與接面壓降。
+- **P.36–40**：MOSFET RDS(on) 的 VGS／Tj 工作域、body diode 與反向通道導流、Ohmic 與 Active/Saturation 區別、Miller 電荷與時序、硬切換 Eon/Eoff 與導通損分帳。
+- 每頁建立原創白話直覺、電流／電荷／能量路徑、公式適用條件、三步數值算例、常見錯誤、獨立問答及既有課節連結。延用相同渲染器，不增設模擬器、不改動原有 72 節課、47 個模型、7 個進階實驗或本機 PDF 閱讀器。
+- `tests/upper-semiconductor-guides.mjs` 提供 14 頁獨立電路與功率數值；`tests/upper-page-guides.mjs` 驗證上冊 P.3–40 **38 頁**連續覆蓋。Chromium、Firefox／WebKit 驗證公式可讀備援、搜尋、問答、本機 PDF、手機 320/390px 不溢位及下一批 P.41 邊界。
+- 工程參考：[Infineon MOSFET Datasheet Explanation](https://www.infineon.com/assets/row/public/documents/24/42/infineon-mosfet-optimos-datasheet-explanation-applicationnotes-en.pdf)、[Infineon Hard Commutation Application Note](https://www.infineon.com/assets/row/public/documents/24/42/infineon-power-mosfet-optimos-fd-200v-250v-hard-diode-commutation-an-en.pdf?fileId=db3a304344ae06150144b1d2f8250165)、[TI MOSFET Miller Plateau and Gate Driver](https://www.ti.com/document-viewer/lit/html/SSZT070/GUID-C487B538-63ED-4542-B1B2-618D8EDEC16F)。
+- 本批為教育用近似模型，沒有確認任何器件實際 SOA、tq、Qrr、dv/dt、熱分布、保護或實機示波器波形。
