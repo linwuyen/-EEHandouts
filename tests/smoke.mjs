@@ -100,7 +100,7 @@ await run('upper P12-26 magnetic original deep guides, equations, answers and lo
   }
   assert.equal(titles.size,15,'Each magnetics page has independent teaching content');
   await navigate(page,'#slide/27');
-  assert.equal(await page.locator('.page-guide').count(),0,'P27 not part of this review batch');
+  assert.equal(await page.locator('[data-guide-page="27"]').count(),1,'Upper P27 is now covered by semiconductor guides');
   await navigate(page,'#home');
   await page.locator('#search-trigger').click();
   await page.locator('#search-input').fill('磁通連續性');
@@ -114,6 +114,63 @@ await run('upper P12-26 magnetic original deep guides, equations, answers and lo
       await mobile.locator('[data-guide-page="'+p+'"]').waitFor({timeout:20000});
       const size=await mobile.evaluate(()=>({vw:innerWidth,sw:document.documentElement.scrollWidth}));
       assert.ok(size.sw<=size.vw+2,'P.'+p+' mobile '+width+'px overflow '+JSON.stringify(size));
+    }
+    await mobile.close();
+  }
+});
+
+await run('upper P27-40 source-grounded semiconductor deep guides, math, quiz, PDF and search',async()=>{
+  const mapping={
+    27:'diodes',28:'diodes',29:'diodes',30:'diodes',
+    31:'legacy',32:'legacy',33:'legacy',34:'legacy',35:'legacy',
+    36:'mosfet',37:'mosfet',38:'mosfet',39:'mosfet',40:'switchloss'
+  };
+  const titles=new Set();
+  for(let p=27;p<=40;p++){
+    await navigate(page,'#slide/'+p);
+    const guide=page.locator('[data-guide-page="'+p+'"]');
+    assert.equal(await guide.count(),1,'P.'+p+' exactly one original page guide');
+    const title=await guide.locator('h2').innerText();
+    assert.ok(title.length>=18,'P.'+p+' specific title');
+    titles.add(title);
+    assert.ok(await guide.locator('.guide-steps li').count()>=3,'P.'+p+' energy, charge or switching stages');
+    assert.ok(await guide.locator('.guide-equation').count()>=2,'P.'+p+' formulas and valid ranges');
+    assert.ok(await guide.locator('.guide-worked li').count()>=3,'P.'+p+' three-step numeric verification');
+    assert.ok(await guide.locator('.guide-assumptions li').count()>=2,'P.'+p+' nonideal restrictions');
+    const href=await guide.locator('.guide-link').getAttribute('href');
+    assert.ok(href.endsWith('/'+mapping[p]),'P.'+p+' original lesson mapping');
+    assert.equal(await page.locator('#source-pdf-file').count(),1,'P.'+p+' original local PDF viewer preserved');
+    for(const formula of await guide.locator('.guide-equation').all()){
+      const ready=await formula.evaluate(el=>el.classList.contains('guide-ready'));
+      assert.ok(ready||await formula.locator('.guide-math-fallback').isVisible(),
+        'P.'+p+' readable formula/fallback even if CDN unavailable');
+    }
+    const answer=guide.locator('details.guide-check');
+    assert.equal(await answer.evaluate(el=>el.open),false,'P.'+p+' question initially hidden');
+    await answer.locator('summary').click();
+    assert.equal(await answer.evaluate(el=>el.open),true,'P.'+p+' question reveals answer');
+    assert.ok((await answer.locator('p').innerText()).length>=20,'P.'+p+' answer is not trivial');
+    if([27,28,29,31,32,34,36,38,39,40].includes(p)){
+      await page.screenshot({path:outDir+'/upper-semiconductor-'+p+'.png',fullPage:true});
+    }
+  }
+  assert.equal(titles.size,14,'Unique original page title per semiconductor slide');
+  await navigate(page,'#slide/41');
+  assert.equal(await page.locator('.page-guide').count(),0,'P41 left unreviewed by this batch');
+  await navigate(page,'#home');
+  await page.locator('#search-trigger').click();
+  await page.locator('#search-input').fill('Miller');
+  assert.ok(await page.locator('#search-results a[href="#slide/39"]').count()>0,
+    'P39 Miller charge is discoverable in search');
+  await page.keyboard.press('Escape');
+  for(const width of [320,390]){
+    const mobile=await browser.newPage({viewport:{width,height:720}});
+    for(let p=27;p<=40;p++){
+      await mobile.goto(BASE+'/#slide/'+p);
+      await mobile.locator('[data-guide-page="'+p+'"]').waitFor({timeout:20000});
+      const dims=await mobile.evaluate(()=>({vw:innerWidth,sw:document.documentElement.scrollWidth}));
+      assert.ok(dims.sw<=dims.vw+2,
+        'P.'+p+' width '+width+'px overflow '+JSON.stringify(dims));
     }
     await mobile.close();
   }
