@@ -71,6 +71,48 @@ await run('52 slide summaries, local PDF viewer placeholder, boundary pages',asy
   assert.equal(await page.locator('.lesson-pager a[href="#slide/53"]').count(),0);
   await page.screenshot({path:'tests/screenshots/middle-slide-desktop.png',fullPage:true});
 });
+await run('P.2–9 original deep explanations, math, references and answer reveal',async()=>{
+  const titles=new Set();
+  for(let p=2;p<=9;p++){
+    await visit('middle.html#slide/'+p,'.page-guide');
+    const g=page.locator('[data-guide-page="'+p+'"]');
+    assert.equal(await g.count(),1,'P.'+p+' exactly one guide');
+    const title=await g.locator('h2').innerText();
+    assert.ok(title.length>15,'P.'+p+' requires a real title');
+    titles.add(title);
+    assert.ok(await g.locator('.guide-steps li').count()>=3,'P.'+p+' physical stages');
+    assert.ok(await g.locator('.guide-equation').count()>=2,'P.'+p+' equations');
+    assert.ok(await g.locator('.guide-worked li').count()>=3,'P.'+p+' worked example');
+    assert.ok(await g.locator('.guide-assumptions li').count()>=2,'P.'+p+' scope and caveats');
+    const check=g.locator('details.guide-check');
+    assert.equal(await check.evaluate(el=>el.open),false,'Answer must begin hidden');
+    await check.locator('summary').click();
+    assert.equal(await check.evaluate(el=>el.open),true,'P.'+p+' reveal answer');
+    assert.ok((await check.locator('p').innerText()).length>20);
+    assert.equal(await g.locator('.guide-link').count(),1,'P.'+p+' links existing lesson');
+    assert.equal(await page.locator('#source-pdf-file').count(),1,'Original local PDF input intact');
+    const eq=g.locator('.guide-equation').first();
+    const ready=await eq.evaluate(el=>el.classList.contains('guide-ready'));
+    assert.ok(ready||await eq.locator('.guide-math-fallback').isVisible(),
+      'Readable fallback when formula CDN is unavailable');
+    if(p===6||p===9)await page.screenshot({path:'tests/screenshots/middle-page-'+p+'-guide.png',fullPage:true});
+  }
+  assert.equal(titles.size,8,'Do not reuse a generic title for different pages');
+  await visit('middle.html#slide/10','#source-pdf-file');
+  assert.equal(await page.locator('.page-guide').count(),0,'Unreviewed P.10 must not show invented explanation');
+  await visit('middle.html#home','.subject-card');
+  await page.locator('#search-trigger').click();
+  await page.locator('#search-input').fill('伏秒平衡');
+  assert.ok(await page.locator('#search-results a[href="#slide/6"]').count()>0,'Guide searchable by concept');
+  await page.keyboard.press('Escape');
+  const mobile=await browser.newPage({viewport:{width:320,height:720}});
+  await mobile.goto(BASE+'/middle.html#slide/9');
+  await mobile.locator('[data-guide-page="9"]').waitFor();
+  const widths=await mobile.evaluate(()=>({viewport:innerWidth,scroll:document.documentElement.scrollWidth}));
+  assert.ok(widths.scroll<=widths.viewport+2,'Deep guide P.9 overflow on 320px '+JSON.stringify(widths));
+  await mobile.close();
+});
+
 async function makeMiddlePdf(count,kind='valid'){
   const doc=await PDFDocument.create(),font=await doc.embedFont(StandardFonts.Helvetica);
   const anchors={

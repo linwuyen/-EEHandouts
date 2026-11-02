@@ -83,3 +83,10 @@
 - 上／中／進階至少各跑一個 keyboard + landmark smoke，確認 skip link 可到主要內容、可見輸入有標籤、按鈕有名稱，七個進階 SVG 圖形具標籤；這不是完整 WCAG 測試。
 - README 的 71 節 KaTeX／120 條公式必須自動與 `formula-math.js` 實際資料一致，並防止 38＋34 節及 107＋52 頁數變動未被檢查。
 - Pages artifact 的 release-sha.txt 必須使用 exact `workflow_run.head_sha`，發布完成後以公開網址查核與四個靜態資產 HTTP 200 作為額外部署證據；保留原本打包前、部署前雙重 latest-main SHA gate。頁面 JavaScript 的正式站實際互動仍需另行人工驗收。
+
+## 中冊逐頁深入導讀（P.2–9）
+
+- 每頁具不同的提問、白話直覺、至少三步工作流程、至少兩條可閱讀的公式及適用條件、逐步算例、易錯觀念和可揭曉的答案；不得以同一個模板段落替代每頁的工程內容。
+- P.2 Topologies、P.3 PWM、P.4 Switching/LC、P.5 Resonance、P.6 Volt-second、P.7 CCM/DCM、P.8 BCM、P.9 Buck DCM 均應連回相符的既有課節，並保留原 PDF 本機選取與內容摘要。P.10 尚無此導讀。
+- 數值 fixture 要獨立驗證 P.2 的三個轉壓例子、P.4 電感與電容漣波、P.5 LC f0/Q、P.6 正負伏秒、P.8 BCM 臨界 Io/R、P.9 DCM 電流面積與零電流區間。
+- 新增逐頁 Chromium 驗收、Firefox/WebKit 320–390px 驗收；公式須 HTML escaping 且 KaTeX trust=false，CDN JS／CSS 失效時文字版本仍可閱讀，其他上冊與中冊頁面不得受到汙染。

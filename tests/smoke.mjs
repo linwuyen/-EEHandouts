@@ -45,6 +45,8 @@ await run('完整 107 頁索引與複合頁碼',async()=>{
     await navigate(page,'#slide/'+pg);
     assertCheck('頁碼 '+pg,await page.locator('#main-content h1').innerText().then(t=>t.includes('第 '+pg+' 頁')));
   }
+  await navigate(page,'#slide/6');
+  assert.equal(await page.locator('.page-guide').count(),0,'Upper must not display middle-specific guides');
   await navigate(page,'#slide/41');
   assertCheck('GTO 第 41 頁有對應教材',await page.locator('a[href="#lesson/devices/legacy"]').count()>=1);
   await navigate(page,'#slide/42');
