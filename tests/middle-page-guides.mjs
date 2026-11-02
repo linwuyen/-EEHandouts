@@ -11,7 +11,7 @@ function load(file,key){
 const guides=load('middle-page-guides.js','EE_PAGE_GUIDES');
 const middle=load('middle-data.js','EE_DATA');
 const pages=Object.keys(guides).map(Number).sort((a,b)=>a-b);
-assert.deepEqual(pages,Array.from({length:21},(_,i)=>i+2),'Middle guides must cover each page P.2–22 with no holes');
+assert.deepEqual(pages,Array.from({length:31},(_,i)=>i+2),'Middle guides must cover P.2–32 with no holes');
 const lessons=middle.chapters.flatMap(c=>c.lessons);
 const corresponding={
   2:'mid-topologies',3:'mid-buck-pwm',4:'mid-switching-lc',5:'mid-resonance',
@@ -20,7 +20,10 @@ const corresponding={
   13:'mid-boost-efficiency',14:'mid-boost-efficiency',
   15:'mid-boost-parasitic',16:'mid-boost-parasitic',17:'mid-boost-parasitic',
   18:'mid-boost-parasitic',19:'mid-boost-parasitic',20:'mid-boost-parasitic',
-  21:'mid-boost-dcm',22:'mid-boost-dcm'
+  21:'mid-boost-dcm',22:'mid-boost-dcm',
+  23:'mid-buckboost-ccm',24:'mid-buckboost-dcm',25:'mid-buckboost-dcm',
+  26:'mid-sepic-zeta',27:'mid-four-switch',28:'mid-bidirectional',
+  29:'mid-quadrants',30:'mid-motor-hbridge',31:'mid-bipolar',32:'mid-unipolar'
 };
 for(const p of pages){
   const g=guides[p],lesson=lessons.find(l=>l.id===g.lesson);
@@ -73,4 +76,4 @@ near(vo,72/7,1e-9,'P9 DCM Vo');
 near(delta,1/3,1e-10,'P9 diode interval');
 near(pk*(d+delta)/2,.1,1e-10,'P9 average current area');
 assert.ok(1-d-delta>.4,'P9 must have a nonzero DCM idle interval');
-console.log('PASS P.2–22 middle page guides: all page mappings, authoring depth and original P.2–9 numerical fixtures');
+console.log('PASS P.2–32 middle page guides: all page mappings, authoring depth and original P.2–9 numerical fixtures');
