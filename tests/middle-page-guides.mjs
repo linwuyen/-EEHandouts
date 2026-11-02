@@ -11,7 +11,7 @@ function load(file,key){
 const guides=load('middle-page-guides.js','EE_PAGE_GUIDES');
 const middle=load('middle-data.js','EE_DATA');
 const pages=Object.keys(guides).map(Number).sort((a,b)=>a-b);
-assert.deepEqual(pages,Array.from({length:39},(_,i)=>i+2),'Middle guides must cover P.2–40 with no holes');
+assert.deepEqual(pages,Array.from({length:50},(_,i)=>i+2),'Middle guides must cover P.2–51 with no holes');
 const lessons=middle.chapters.flatMap(c=>c.lessons);
 const corresponding={
   2:'mid-topologies',3:'mid-buck-pwm',4:'mid-switching-lc',5:'mid-resonance',
@@ -26,7 +26,10 @@ const corresponding={
   29:'mid-quadrants',30:'mid-motor-hbridge',31:'mid-bipolar',32:'mid-unipolar',
   33:'mid-isolated-types',34:'mid-isolation-feedback',35:'mid-isolation-feedback',
   36:'mid-multi-output',37:'mid-flyback-ccm',38:'mid-flyback-ccm',
-  39:'mid-flyback-dcm',40:'mid-flyback-dcm'
+  39:'mid-flyback-dcm',40:'mid-flyback-dcm',
+  41:'mid-forward-reset',42:'mid-forward-reset',43:'mid-double-forward',
+  44:'mid-half-full',45:'mid-half-full',46:'mid-pushpull',47:'mid-pushpull',
+  48:'mid-magnetization',49:'mid-magnetization',50:'mid-magnetization',51:'mid-coreloss'
 };
 for(const p of pages){
   const g=guides[p],lesson=lessons.find(l=>l.id===g.lesson);

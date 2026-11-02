@@ -99,7 +99,7 @@ await run('P.2–9 original deep explanations, math, references and answer revea
   }
   assert.equal(titles.size,8,'Do not reuse a generic title for different pages');
   await visit('middle.html#slide/41','#source-pdf-file');
-  assert.equal(await page.locator('.page-guide').count(),0,'P.41 remains outside deep-guide rollout');
+  assert.equal(await page.locator('.page-guide').count(),1,'P.41 deep guide must coexist with previous page tests');
   await visit('middle.html#home','.subject-card');
   await page.locator('#search-trigger').click();
   await page.locator('#search-input').fill('伏秒平衡');
@@ -149,7 +149,7 @@ await run('P.10–22 Boost deep guides, physical text, equations, answer and mob
   }
   assert.equal(titles.size,13,'Each Boost source page must have its own specific explanation');
   await visit('middle.html#slide/41','#source-pdf-file');
-  assert.equal(await page.locator('.page-guide').count(),0,'P.41 is the untouched next unit');
+  assert.equal(await page.locator('.page-guide').count(),1,'P.41 is now covered by its original guide');
   await visit('middle.html#home','.subject-card');
   await page.locator('#search-trigger').click();
   await page.locator('#search-input').fill('二極體電流三角形');
@@ -212,7 +212,7 @@ await run('P.23–32 Buck-Boost / bidirectional / H-Bridge deep page regression'
   }
   assert.equal(titles.size,10,'Each Buck-Boost/bridge slide must have unique original explanation');
   await visit('middle.html#slide/41','#source-pdf-file');
-  assert.equal(await page.locator('.page-guide').count(),0,'P.41 must not claim a fabricated guide');
+  assert.equal(await page.locator('.page-guide').count(),1,'P.41 must have verified new page guide');
   await visit('middle.html#home','.subject-card');
   await page.locator('#search-trigger').click();
   await page.locator('#search-input').fill('反電勢');
@@ -274,7 +274,7 @@ await run('P.33–40 isolation / Flyback original deep guides, PDF and responsiv
   }
   assert.equal(titles.size,8,'The eight deep guides must not share a generic title');
   await visit('middle.html#slide/41','#source-pdf-file');
-  assert.equal(await page.locator('.page-guide').count(),0,'P.41 is not yet covered');
+  assert.equal(await page.locator('.page-guide').count(),1,'P.41 must now be covered');
   await visit('middle.html#home','.subject-card');
   await page.locator('#search-trigger').click();
   await page.locator('#search-input').fill('磁化能量');
@@ -371,6 +371,59 @@ await run('52-page PDF identity, render, navigation and separate local cache',as
   await page.locator('#source-pdf-remove').click();
   assert.equal(await page.locator('.source-pdf-placeholder').count(),1);
 });
+
+await run('P.41-51 Forward / bridge / magnetic original guides, PDF and responsive contract',async()=>{
+  const ids={
+    41:'mid-forward-reset',42:'mid-forward-reset',43:'mid-double-forward',
+    44:'mid-half-full',45:'mid-half-full',46:'mid-pushpull',47:'mid-pushpull',
+    48:'mid-magnetization',49:'mid-magnetization',50:'mid-magnetization',51:'mid-coreloss'
+  };
+  const titles=new Set();
+  for(let p=41;p<=51;p++){
+    await visit('middle.html#slide/'+p,'[data-guide-page="'+p+'"]');
+    const g=page.locator('[data-guide-page="'+p+'"]');
+    assert.equal(await g.count(),1,'P.'+p+' exactly one original deep explanation');
+    const title=await g.locator('h2').innerText();
+    titles.add(title);
+    assert.ok(title.length>=18,'P.'+p+' clear page-specific title');
+    assert.ok(await g.locator('.guide-steps li').count()>=3,'P.'+p+' actual energy/signal stages');
+    assert.ok(await g.locator('.guide-equation').count()>=2,'P.'+p+' physical equations');
+    assert.ok(await g.locator('.guide-worked li').count()>=3,'P.'+p+' numeric example');
+    assert.ok(await g.locator('.guide-assumptions li').count()>=2,'P.'+p+' domain caveats');
+    const href=await g.locator('.guide-link').getAttribute('href');
+    assert.ok(href.endsWith('/'+ids[p]),'P.'+p+' correct lesson link');
+    assert.equal(await page.locator('#source-pdf-file').count(),1,'P.'+p+' original PDF remains locally selectable');
+    const eq=g.locator('.guide-equation').first();
+    const ready=await eq.evaluate(el=>el.classList.contains('guide-ready'));
+    assert.ok(ready||await eq.locator('.guide-math-fallback').isVisible(),'P.'+p+' math readable');
+    const answer=g.locator('details.guide-check');
+    assert.equal(await answer.evaluate(el=>el.open),false,'answer initially hidden');
+    await answer.locator('summary').click();
+    assert.equal(await answer.evaluate(el=>el.open),true,'P.'+p+' answer reveals');
+    assert.ok((await answer.locator('p').innerText()).length>=26,'P.'+p+' answer has substance');
+    if([41,42,43,44,45,47,49,51].includes(p))
+      await page.screenshot({path:'tests/screenshots/middle-magnetic-page-'+p+'.png',fullPage:true});
+  }
+  assert.equal(titles.size,11,'All eleven magnetic pages have unique titles');
+  await visit('middle.html#slide/52','#source-pdf-file');
+  assert.equal(await page.locator('.page-guide').count(),0,'P.52 conclusion remains an original non-engineering page');
+  await visit('middle.html#home','.subject-card');
+  await page.locator('#search-trigger').click();
+  await page.locator('#search-input').fill('磁通');
+  assert.ok(await page.locator('#search-results a[href="#slide/49"]').count()>0,'P.49 magnetic guide searchable');
+  await page.keyboard.press('Escape');
+  for(const width of [320,390]){
+    const mobile=await browser.newPage({viewport:{width,height:720}});
+    for(let p=41;p<=51;p++){
+      await mobile.goto(BASE+'/middle.html#slide/'+p);
+      await mobile.locator('[data-guide-page="'+p+'"]').waitFor({timeout:20000});
+      const result=await mobile.evaluate(()=>({vw:innerWidth,sw:document.documentElement.scrollWidth}));
+      assert.ok(result.sw<=result.vw+2,'P.'+p+' '+width+'px overflow '+JSON.stringify(result));
+    }
+    await mobile.close();
+  }
+});
+
 await run('search, chapter quiz, upper-volume switch',async()=>{
   await visit('middle.html#home','.subject-card');
   await page.locator('#search-trigger').click();
