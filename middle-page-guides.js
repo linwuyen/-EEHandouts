@@ -1,7 +1,5 @@
-/* EEHandouts 中冊 P.2–9 原創逐頁導讀。保留來源 PDF 的本機對照；未附原投影片影像。 */
-(function(root){
-  'use strict';
-  root.EE_PAGE_GUIDES = {
+/* EEHandouts 中冊逐頁原創教學資料：不取代來源 PDF 或原 72 節。 */
+(function(root){'use strict';root.EE_PAGE_GUIDES={
   "2": {
     "lesson": "mid-topologies",
     "title": "Buck、Boost、反相 Buck-Boost、Bridge 到底差在哪？",
@@ -559,6 +557,914 @@
       "a": "不會。因為 OFF-續流與 ZERO 的時間比例會改變；必須依伏秒和電荷平衡重新求 Vo。"
     },
     "tryIt": "到「Buck 在 DCM 為何轉壓比會變」課節，調小 Io，觀察 ON／OFF／ZERO 三段如何重新分配。"
+  },
+  "10": {
+    "lesson": "mid-boost-ccm",
+    "title": "Boost 為什麼能升壓？ON／OFF 時能量到底走哪裡？",
+    "question": "MOSFET ON 時二極體不導通，負載為什麼還有電？關掉 MOSFET 又為什麼能升壓？",
+    "takeaway": "ON 時輸入使電感電流上升，輸出電容先供電；OFF 時電感維持電流、抬高開關節點，輸入與電感一起送能到輸出。",
+    "intuition": [
+      "先不要把 Boost 想成『把電流變成電壓』。MOSFET 只是在每個週期切換電感的連接方式；電感電流不能瞬間改變，這個物理限制使 OFF 階段開關節點電壓升高，直到二極體能向輸出導通。",
+      "輸出電容在 ON 階段像小型儲能桶，補上二極體暫時沒有供電的缺口；OFF 階段電感電流經二極體流入輸出，電容可能重新充電。每個週期的能量必須來自輸入，不能靠增加 Duty 產生額外功率。"
+    ],
+    "steps": [
+      {
+        "title": "1. ON：輸入向電感儲能",
+        "detail": "MOSFET 將開關節點拉近地電位，電感兩端近似 Vin，電流 iL 線性增加；二極體反偏，負載電流主要由電容供應。"
+      },
+      {
+        "title": "2. OFF：輸入與電感共同輸出",
+        "detail": "MOSFET 截止，電感要延續電流，開關節點上升使二極體正偏；iL 經二極體流入輸出，電感承受 Vin−Vo 的負電壓，電流下降。"
+      },
+      {
+        "title": "3. 穩態：正負伏秒抵消",
+        "detail": "CCM 週期結束時 iL 回到起點，ON 的 Vin·D·Ts 與 OFF 的 (Vin−Vo)(1−D)Ts 相加等於零。"
+      },
+      {
+        "title": "4. 功率：升壓不等於功率放大",
+        "detail": "理想無損時 Vin·Iin=Vo·Io。Vo 升高時，通常 Io 低於輸入平均電流；高 Duty 也會增加器件的電流與損耗負擔。"
+      }
+    ],
+    "phases": [
+      {
+        "name": "ON：儲能，電容供電",
+        "pct": 50
+      },
+      {
+        "name": "OFF：電感與輸入向輸出供能",
+        "pct": 50
+      }
+    ],
+    "equations": [
+      {
+        "label": "電感伏秒平衡",
+        "tex": "V_{in}D+(V_{in}-V_o)(1-D)=0",
+        "plain": "Vin×D +(Vin−Vo)×(1−D)=0",
+        "why": "iL 在一個週期內的正負變化量必須互相抵消，兩段的 vL 分別約是 Vin 與 Vin−Vo。"
+      },
+      {
+        "label": "理想 Boost CCM 電壓比",
+        "tex": "\\frac{V_o}{V_{in}}=\\frac{1}{1-D}",
+        "plain": "Vo/Vin=1/(1−D)",
+        "why": "由上式整理。只對固定頻率、週期穩態、理想 CCM 模型成立。"
+      },
+      {
+        "label": "理想輸入與輸出電流",
+        "tex": "I_o=(1-D)I_{in}",
+        "plain": "Io=(1−D)×Iin",
+        "why": "由理想輸入／輸出功率守恆及上面的轉壓比得到，不能據此忽略損耗。"
+      }
+    ],
+    "worked": {
+      "given": "Vin=48 V、D=50%、fs=100 kHz、L=100 µH；假設 Vo 的定電流負載 Io=1 A，處於理想 CCM。",
+      "steps": [
+        "Vo=48/(1−0.5)=96 V；理想輸出功率 Po=96×1=96 W。",
+        "輸入平均電流 Iin=Io/(1−D)=2 A；ON 電感漣波 ΔIL=48×0.5/(100 µH×100 kHz)=2.4 App。",
+        "電感谷值=2−2.4/2=0.8 A，峰值=3.2 A，確實符合 CCM（谷值大於零）。"
+      ],
+      "result": "Boost 將 48 V、2 A 對應成約 96 V、1 A；電流漣波仍在輸入電感上，不能只看 96 V 忽略峰值電流。"
+    },
+    "assumptions": [
+      "理想二極體、MOSFET、電感與輸出電容；輸出電壓在單週期內近似固定，無控制延遲、電阻與開關損耗。",
+      "CCM 要先確認電感谷值大於零；D 趨近 1 的理想公式不能外推成實際可用的無限輸出電壓。"
+    ],
+    "pitfall": "把 ON 階段說成負載完全沒電，或認為 Vo 倍增時功率也一定倍增；實際短路時傳統 Boost 仍可能存在輸入經電感和二極體的導通路徑。",
+    "check": {
+      "q": "Boost 的 MOSFET ON 時，二極體截止，那負載當下主要由誰供能？",
+      "a": "主要由輸出電容供電；電感此時由輸入儲能，OFF 時再經二極體向輸出傳能。"
+    },
+    "tryIt": "回到 Boost CCM 既有互動課節，比對電感 iL、Gate、二極體路徑與輸入／輸出功率。"
+  },
+  "11": {
+    "lesson": "mid-boost-rl",
+    "title": "電感有銅阻 RL，Boost 為什麼開始升不到理想電壓？",
+    "question": "電感線圈只多一點電阻，為什麼高 Duty 的升壓效果就會明顯變差？",
+    "takeaway": "電感平均電流越大，銅阻的壓降 IL·RL 與熱損 I²·RL 越大；伏秒平衡要把 RL 納入，不能只套 1/(1−D)。",
+    "intuition": [
+      "電感不是一根沒有電阻的理想導線。繞線電阻 RL 在 ON、OFF 兩段都伴隨電感電流。電感流過越大的電流，就越多電壓掉在銅線上、越多能量變熱。",
+      "升壓很高時輸入平均電流通常比輸出大，而且輸出電流只在 OFF 的一部分時間由二極體傳遞；把 RL 忽略，看似只少幾十或幾百毫歐，但它對高 Duty 的影響會被放大。"
+    ],
+    "steps": [
+      {
+        "title": "1. 先寫 ON 的電感電壓",
+        "detail": "用週期平均電流 IL 代表電阻壓降，近似 vL,ON=Vin−IL·RL。MOSFET 開通時二極體不供能。"
+      },
+      {
+        "title": "2. 寫 OFF 的電感電壓",
+        "detail": "OFF 時電感向輸出放能，近似 vL,OFF=Vin−Vo−IL·RL；電流在一個完整週期仍要回到起點。"
+      },
+      {
+        "title": "3. 伏秒平衡多出 RL·IL",
+        "detail": "ON×D 加 OFF×(1−D) 得到 Vin=(1−D)Vo+IL·RL，與理想式多了銅阻平均壓降。"
+      },
+      {
+        "title": "4. 用輸出電容電荷平衡消去 IL",
+        "detail": "理想二極體只有 OFF 導通，平均 Io=(1−D)IL；若電阻負載 Io=Vo/R，就可解出含 RL 的電壓增益。"
+      }
+    ],
+    "equations": [
+      {
+        "label": "電感平均伏秒平衡",
+        "tex": "V_{in}=(1-D)V_o+I_LR_L",
+        "plain": "Vin=(1−D)Vo+IL·RL",
+        "why": "以近似不變的週期平均 IL 計算銅阻壓降；ON、OFF 期間都要扣除 RL 的壓降。"
+      },
+      {
+        "label": "輸出電流的平均關係",
+        "tex": "I_o=(1-D)I_L=\\frac{V_o}{R}",
+        "plain": "Io=(1−D)IL=Vo/R",
+        "why": "電感向輸出送電的路徑只在 OFF 導通，使用理想 CCM 與小漣波平均模型。"
+      },
+      {
+        "label": "只考慮 RL 的 Boost 增益",
+        "tex": "\\frac{V_o}{V_{in}}=\\frac{1-D}{(1-D)^2+R_L/R}",
+        "plain": "Vo/Vin=(1−D)/[(1−D)²+RL/R]",
+        "why": "用兩個平均關係聯立求解；高 Duty 時分母的 RL/R 不再能忽略。"
+      }
+    ],
+    "worked": {
+      "given": "Vin=48 V、D=50%、電阻負載 R=20 Ω、電感銅阻 RL=0.2 Ω；只計導通銅損並假設 CCM。",
+      "steps": [
+        "設 x=1−D=0.5，RL/R=0.2/20=0.01；理想增益是 1/x=2。",
+        "含銅阻的增益 M=x/(x²+RL/R)=0.5/(0.25+0.01)=1.9231，所以 Vo≈92.31 V。",
+        "Io=Vo/R≈4.615 A，IL=Io/0.5≈9.231 A；RL 平均壓降≈1.846 V，符合 Vin≈0.5×92.31+1.846=48 V。"
+      ],
+      "result": "同樣 Duty 的輸出由理想 96 V 變成約 92.31 V；這些減少的輸出能力與電感銅損有直接關係。"
+    },
+    "assumptions": [
+      "只納入電感串聯銅阻 RL，假設 CCM、固定 R 負載、平均 iL 近似；沒有 MOSFET RDS(on)、二極體壓降或切換損失。",
+      "銅阻受溫度影響，真實繞線電流 RMS 應計入漣波；這裡的 IL²RL 是簡化平均值估算。"
+    ],
+    "pitfall": "看到 0.2 Ω 遠小於 20 Ω 就以為完全能忽略；要先算的是 RL/[R(1−D)²]，不是只看 RL/R。",
+    "check": {
+      "q": "理想 Boost 的轉壓比不受負載電阻影響；加上 RL 後為什麼會依 R 改變？",
+      "a": "因為負載越重，平均電感電流越大，RL 壓降與銅損就越大；帶入電荷平衡後增益分母出現 RL/R。"
+    },
+    "tryIt": "在「加入電感銅損的平均等效電路」課節固定 Duty，增加 RL 並觀察輸出電壓下降。"
+  },
+  "12": {
+    "lesson": "mid-boost-rl",
+    "title": "等效電路怎麼看？為什麼 RL 會被 (1−D)² 放大？",
+    "question": "看著含 RL 的 Boost 等效電路，怎麼從輸入側的電感銅阻看出輸出側的壓降？",
+    "takeaway": "利用 D′=1−D 的平均變比，把輸入側銅阻換算到輸出端後，相當於 RL/D′²；Duty 高時負載端感受到的等效阻抗會急速上升。",
+    "intuition": [
+      "與其記一個很長的增益分數，可以把理想 Boost 想成一個依 Duty 改變的平均轉換器：理想空載輸出相當於 Vin/D′，但內部有會吃掉部分電壓的銅阻。",
+      "這個銅阻並不是元件本身突然變大。電流和電壓被不同的平均變比換算到輸出端，所以同一個物理 RL 會呈現 RL/D′² 的等效效果。"
+    ],
+    "steps": [
+      {
+        "title": "1. 先定義 OFF 比例 D′",
+        "detail": "令 D′=1−D；在理想 CCM，Vo=Vin/D′，而 Io=D′IL。這兩條是把一次側／輸出端量換算的基礎。"
+      },
+      {
+        "title": "2. 將銅阻壓降改寫",
+        "detail": "由 Vin=D′Vo+RL·IL，兩邊除以 D′，得到 Vin/D′=Vo+(RL/D′)IL。"
+      },
+      {
+        "title": "3. 將 IL 換成 Io",
+        "detail": "代入 IL=Io/D′，可得 Vin/D′=Vo+Io·RL/D′²，這就是平均輸出側的串聯等效電阻。"
+      },
+      {
+        "title": "4. 當作有內阻的理想電壓源理解",
+        "detail": "以 R 作負載，輸出電壓相當於 Vin/D′ 乘上 R/(R+RL/D′²)；高 Duty 的等效銅阻可能遠大於實際 0.2 Ω。"
+      }
+    ],
+    "equations": [
+      {
+        "label": "輸出側平均等效關係",
+        "tex": "\\frac{V_{in}}{D'}=V_o+I_o\\frac{R_L}{D'^2}",
+        "plain": "Vin/D′=Vo+Io·(RL/D′²)",
+        "why": "由平均伏秒與 Io=D′IL 聯立而得，不是實體多了一顆電阻。"
+      },
+      {
+        "label": "等效串聯電阻",
+        "tex": "R_{eq,out}=\\frac{R_L}{(1-D)^2}",
+        "plain": "Req,out=RL/(1−D)²",
+        "why": "隨 D 增加，D′ 減少，等效內阻很快變大。"
+      },
+      {
+        "label": "等效電壓分配",
+        "tex": "V_o=\\frac{V_{in}}{D'}\\frac{R}{R+R_L/D'^2}",
+        "plain": "Vo=(Vin/D′)×R/(R+RL/D′²)",
+        "why": "同 P.11 的銅阻模型，只是重新寫成容易直覺理解的電壓源＋內阻。"
+      }
+    ],
+    "worked": {
+      "given": "Vin=48 V、D=80%、RL=0.2 Ω、負載 R=20 Ω，假設理想 CCM 加單一電感銅阻。",
+      "steps": [
+        "D′=0.2，理想 Boost 的平均空載電壓源 Vin/D′=240 V。",
+        "輸出側等效銅阻 Req=0.2/(0.2²)=5 Ω，雖然元件實際銅阻仍只有 0.2 Ω。",
+        "Vo=240×20/(20+5)=192 V，比理想 240 V 低；IL=Vo/(R D′)=48 A，代表這組例子電流壓力非常大。"
+      ],
+      "result": "真正需留意的是高 Duty 對電流與熱設計的放大效應，不能拿 192 V 當作不受硬體限制的可用輸出。"
+    },
+    "assumptions": [
+      "此平均變比僅在固定 Duty、穩態 CCM 和單一 RL 損失模型成立；它不是真實的高頻隔離變壓器。",
+      "這組高 Duty／高電流純為示範等效阻抗；實際器件額定、電感飽和、二極體恢復及溫升都可能先超界。"
+    ],
+    "pitfall": "把 RL/D′² 誤認成元件溫度瞬間增加而變成 5 Ω，或者拿平均等效模型推斷 MOSFET 的切換過衝。",
+    "check": {
+      "q": "實際 RL=0.2 Ω，為什麼 D=80% 的輸出側等效阻抗會是 5 Ω？",
+      "a": "因為 D′=0.2，電壓／電流的平均變比使 Req,out=RL/D′²=0.2/0.04=5 Ω；元件本身的物理銅阻沒有變。"
+    },
+    "tryIt": "回到 Boost RL 課節，固定負載 R，把 D 往上調，觀察輸出側等效阻抗為何快速放大。"
+  },
+  "13": {
+    "lesson": "mid-boost-efficiency",
+    "title": "Boost Duty 越大為什麼反而可能升壓變差？",
+    "question": "理想 Boost 的 D 越接近 100% 增益越大，為什麼含 RL 的曲線可能先升後降？",
+    "takeaway": "含 RL 的平均增益 M=D′/(D′²+RL/R) 有真正的最大值；超過最佳 Duty，增加的電流損耗會比理想升壓效果更強。",
+    "intuition": [
+      "理想公式把所有電流都當成不需付出代價，所以 Duty 越大，模型只看到可用的高轉壓比。但電感銅阻吃掉的是電流平方相關功率，高 Duty 的電流應力足以把額外升壓抵消。",
+      "轉壓增益曲線在某個 Duty 後掉下來，並不是電感突然失去儲能能力，而是模型中的內部電阻壓降成為主導，輸出端所剩的電壓反而減少。"
+    ],
+    "steps": [
+      {
+        "title": "1. 用 D′ 與 q 簡化模型",
+        "detail": "設 x=D′=1−D、q=RL/R，則 M(x)=x/(x²+q)。這讓曲線的兩個競爭項更容易辨識。"
+      },
+      {
+        "title": "2. x 接近 1 時轉壓較低",
+        "detail": "D 小，Boost 的 ON 儲能時間較短，理想升壓作用弱，所以增益通常不大。"
+      },
+      {
+        "title": "3. x 持續縮小時銅損開始占優勢",
+        "detail": "D 接近 1 時，分母中的 x² 趨近 0，但 q 仍存在；M 不會像理想 1/x 一樣無限上升。"
+      },
+      {
+        "title": "4. 求曲線最大值",
+        "detail": "對 x 微分 dM/dx=(q−x²)/(x²+q)²，令導數為 0 可得 x=√q；當 0<q<1，D*=1−√q。"
+      }
+    ],
+    "equations": [
+      {
+        "label": "Boost RL 平均增益",
+        "tex": "M=\\frac{x}{x^2+q},\\quad x=1-D,\\ q=\\frac{R_L}{R}",
+        "plain": "M=x/(x²+q)，x=1−D，q=RL/R",
+        "why": "只考慮電感銅阻，且使用 CCM 固定電阻負載平均模型。"
+      },
+      {
+        "label": "峰值條件（0<q<1）",
+        "tex": "D^*=1-\\sqrt{q}",
+        "plain": "D*=1−√(RL/R)",
+        "why": "由 M(x) 的局部極值求得；必須檢查極值真的在 0<D<1 的範圍內。"
+      },
+      {
+        "label": "可達到的最大增益（RL-only）",
+        "tex": "M_{max}=\\frac{1}{2\\sqrt{q}}",
+        "plain": "Mmax=1/[2√(RL/R)]",
+        "why": "此上限只是 RL 平均模型的數學最大值，實機通常有更早的電流或溫度限制。"
+      }
+    ],
+    "worked": {
+      "given": "假設 RL/R=0.01，令 x=1−D，保持 Vin 與 R 固定，理想 CCM。",
+      "steps": [
+        "最佳 x*=√0.01=0.1，所以數學峰值 D*=90%，Mmax=1/(2×0.1)=5。",
+        "當 D=80%，x=0.2，M=0.2/(0.04+0.01)=4。",
+        "當 D=95%，x=0.05，M=0.05/(0.0025+0.01)=4，已經比 D=90% 時低。"
+      ],
+      "result": "同一電源由 Duty 80% 增到 90% 時增益由 4 增至 5，但再增到 95% 卻回落到 4；理想 CCM 公式在此已明顯失真。"
+    },
+    "assumptions": [
+      "只有單一電感銅阻 RL，忽略 MOSFET／二極體／開關損，且沿路都假設有符合條件的 CCM 穩態。",
+      "D* 是數學峰值，不代表控制器應實際操作在此點；器件飽和、熱限制和回授可先限制 Duty。"
+    ],
+    "pitfall": "把『找到增益最大值』誤認為『找到效率最佳點』；最大增益所在 Duty 未必具有良好效率，也可能完全不能安全運作。",
+    "check": {
+      "q": "RL/R=0.01 的 Boost，D=90% 已達銅損模型的增益峰值；再增加到 95% 會發生什麼？",
+      "a": "依 M=D′/(D′²+0.01)，增益會從 5 降到約 4；高 Duty 的電感銅損限制了可用增益。"
+    },
+    "tryIt": "在「輸出電壓與效率對 Duty」課節，先固定 RL/R 再掃 Duty，找出增益轉折，而非只看最右端。"
+  },
+  "14": {
+    "lesson": "mid-boost-efficiency",
+    "title": "Boost 的效率為何可能在高 Duty 急速惡化？",
+    "question": "只看電感銅阻，不算 MOSFET 或二極體損耗，為什麼效率也可能從 67% 掉到 11%？",
+    "takeaway": "當負載不變而 D′ 越小，維持 Io 所需的平均電感電流越大；RL 的 I² 損耗會快速增加，使 RL-only 效率 η=1/[1+RL/(R D′²)] 降低。",
+    "intuition": [
+      "一個電源不是因為輸出電壓高就有效率。效率看的是真正抵達負載的功率，占輸入功率的比例。若為了少量輸出電流，就要在電感裡搬運很大的電流，銅線會先發熱。",
+      "電感 RL 的功率損耗以 IL² 放大，而輸出只在 OFF 時間由二極體收能，因此 D′ 變小會使銅損在能量帳裡越來越顯著。"
+    ],
+    "steps": [
+      {
+        "title": "1. 先定義效率與電流",
+        "detail": "η=Po/Pin；理想二極體平均 Io=D′IL，負載電阻 R 對應 Po=Io²R。"
+      },
+      {
+        "title": "2. 只計電感銅損",
+        "detail": "以平均電流估計 Pcu≈IL²RL，先不計 MOSFET、二極體、電容、磁芯與切換能量。"
+      },
+      {
+        "title": "3. 把損失與輸出功率相比",
+        "detail": "Pcu/Po≈(IL²RL)/(D′²IL²R)=RL/(D′²R)，因此 η≈1/[1+RL/(D′²R)]。"
+      },
+      {
+        "title": "4. 不要把模型當真機效率",
+        "detail": "器件損失還有 Eon/Eoff、導通阻抗、二極體恢復、驅動、磁芯與溫升，且 RL 隨溫度變；實際 η 往往更低。"
+      }
+    ],
+    "equations": [
+      {
+        "label": "效率的基本定義",
+        "tex": "\\eta=\\frac{P_o}{P_{in}}=\\frac{P_o}{P_o+P_{loss}}",
+        "plain": "η=Po/Pin=Po/(Po+Ploss)",
+        "why": "每一個忽略的損失都會使預測偏樂觀；此處只把電感銅損納入 Ploss。"
+      },
+      {
+        "label": "RL-only Boost 效率",
+        "tex": "\\eta_{RL}=\\frac{1}{1+\\frac{R_L}{R(1-D)^2}}",
+        "plain": "ηRL=1/[1+RL/(R(1−D)²)]",
+        "why": "利用 Io=D′IL 及 Po=Io²R，推得損失占比如何隨 Duty 變化。"
+      },
+      {
+        "label": "銅損與輸出功率比",
+        "tex": "\\frac{P_{cu}}{P_o}\\approx\\frac{R_L}{R(1-D)^2}",
+        "plain": "Pcu/Po≈RL/[R(1−D)²]",
+        "why": "它指出高 Duty 的損耗放大因素，使用平均 IL，不代表完整的 RMS 損失分析。"
+      }
+    ],
+    "worked": {
+      "given": "只考慮電感銅阻，固定 RL/R=0.02，分別測 D=80%、90%、95%。",
+      "steps": [
+        "D=80%，D′=0.2，η=1/[1+0.02/0.04]≈66.7%。",
+        "D=90%，D′=0.1，η=1/[1+0.02/0.01]≈33.3%。",
+        "D=95%，D′=0.05，η=1/[1+0.02/0.0025]≈11.1%；Duty 只多 5 個百分點，損失占比卻急升。"
+      ],
+      "result": "只要 RL/R 非零，高 Duty 就可能付出龐大的損耗代價。設計時要先確認電流、熱與保護，不是只追求更高的轉壓比。"
+    },
+    "assumptions": [
+      "RL-only 平均 CCM 模型，不是完整 Boost 效率預測；只計 RL，忽略所有其他真實元件及開關損失。",
+      "把 IL²RL 當銅損的近似只在電流漣波相對平均值小時較適合；大漣波須改用 RMS 電流。"
+    ],
+    "pitfall": "看到 η=66.7% 就說產品實測效率是 66.7%，或把 RL-only 理論曲線拿來推斷整台 PFC 的效率。",
+    "check": {
+      "q": "RL/R 固定，Boost D 從 90% 增加到 95%，為什麼只有小小的 Duty 變化卻可能讓效率大幅下降？",
+      "a": "因為控制效率的分母含 D′²；D′ 從 0.1 降到 0.05，對應的銅損占比放大四倍。"
+    },
+    "tryIt": "在「輸出電壓與效率對 Duty」課節，同時比較 Gain 與 η，觀察增益峰值不等於良好效率。"
+  },
+  "15": {
+    "lesson": "mid-boost-parasitic",
+    "title": "Boost 開始計算 MOSFET、二極體損耗時，先畫哪兩張等效電路？",
+    "question": "除了電感 RL，MOSFET RDS(on)、二極體 Vf／RD 分別在哪一段造成壓降？",
+    "takeaway": "同一電感在 ON、OFF 的導通路徑不同；電阻壓降與二極體固定 Vf 必須按實際導通階段分開列出，再用平均伏秒和電荷平衡求輸出。",
+    "intuition": [
+      "每個元件的損耗不是隨便塞進一個『效率折扣』。MOSFET 只在 ON 承受主要電感電流；二極體在 OFF 導通才有 Vf 和 RD 壓降；電感 RL 則在兩段都承受電流。",
+      "先逐段畫出導通路徑，才能知道哪些電阻該乘 D、哪些該乘 (1−D)。即使算出平均電壓，也還不代表算到切換瞬間的 Eon、Eoff 或 Qrr。"
+    ],
+    "steps": [
+      {
+        "title": "1. ON：MOSFET 與電感銅阻導通",
+        "detail": "二極體反偏，電感兩端約 vL,ON=Vin−IL(RL+RON)；電容暫供負載電流。"
+      },
+      {
+        "title": "2. OFF：二極體導通，MOSFET 截止",
+        "detail": "電感兩端約 vL,OFF=Vin−Vo−VD−IL(RL+RD)；OFF 時 MOSFET RON 不在主要續流路徑。"
+      },
+      {
+        "title": "3. 伏秒平衡找出等效串聯阻抗",
+        "detail": "把 ON 和 OFF 各乘導通比例並相加，可得 Vin=(1−D)(Vo+VD)+IL[RL+D RON+(1−D)RD]。"
+      },
+      {
+        "title": "4. 再使用平均輸出電流解出 Vo",
+        "detail": "理想 CCM 且忽略二極體反向恢復時，Io≈(1−D)IL=Vo/R。最後才能得到含 RL、RON、RD、VD 的平均增益。"
+      }
+    ],
+    "equations": [
+      {
+        "label": "ON／OFF 的電感壓降",
+        "tex": "v_{L,on}\\approx V_{in}-I_L(R_L+R_{on})",
+        "plain": "vL,on≈Vin−IL(RL+Ron)",
+        "why": "僅 ON 時 MOSFET RDS(on) 出現在主要電流路徑，並以平均 IL 近似瞬時電流。"
+      },
+      {
+        "label": "含寄生壓降的平均伏秒",
+        "tex": "V_{in}=D'(V_o+V_D)+I_L(R_L+DR_{on}+D'R_D)",
+        "plain": "Vin=D′(Vo+VD)+IL(RL+D Ron+D′RD)",
+        "why": "D′=1−D；二極體固定壓降只出現在 OFF，電感 RL 則兩段都有。"
+      },
+      {
+        "label": "等效增益（R 負載、CCM）",
+        "tex": "V_o=\\frac{(V_{in}-D'V_D)D'}{D'^2+[R_L+DR_{on}+D'R_D]/R}",
+        "plain": "Vo=(Vin−D′VD)D′/[D′²+(RL+D Ron+D′RD)/R]",
+        "why": "由 Io=D′IL=Vo/R 消去 IL；尚不含開關損、電流漣波造成的 RMS 差異。"
+      }
+    ],
+    "worked": {
+      "given": "Vin=48 V、D=50%、R=20 Ω、RL=0.2 Ω、RON=0.1 Ω、RD=0.05 Ω、VD=0.7 V，假設 CCM。",
+      "steps": [
+        "D′=0.5，等效導通電阻 rEff=0.2+0.5×0.1+0.5×0.05=0.275 Ω。",
+        "Vo=(48−0.5×0.7)×0.5/[0.5²+0.275/20]=23.825/0.26375≈90.33 V。",
+        "Io≈4.52 A，IL≈9.03 A。相較理想 96 V，寄生導通壓降使輸出降低，實際熱損仍需另行計算。"
+      ],
+      "result": "不要把每顆電阻無條件相加成同一個導通路徑；正確係數由 ON／OFF 導通時間與路徑決定。"
+    },
+    "assumptions": [
+      "非同步 Boost 固定 Duty、CCM、小漣波、固定 R 負載；RON、RD、RL 與 VD 都視為常數。",
+      "未包含二極體反向恢復、MOSFET 切換過渡、Coss、驅動損、佈線寄生、磁芯損耗或熱效應。"
+    ],
+    "pitfall": "把二極體 Vf 放進 ON 時段、把 MOSFET RDS(on) 放進 OFF 時段，或把平均等效的增益當作完整效率與切換波形。",
+    "check": {
+      "q": "為什麼 Boost 的 MOSFET RDS(on) 前面乘 D，而二極體 RD 前面乘 D′？",
+      "a": "因為 MOSFET 主要在 ON 導通，二極體主要在 OFF 導通；兩者在電感伏秒平均中各自只貢獻對應導通區間。"
+    },
+    "tryIt": "到 Boost 寄生損耗既有課節，先畫 ON／OFF 電流路徑，再逐一提高 RON 或二極體 Vf，檢查增益變化。"
+  },
+  "16": {
+    "lesson": "mid-boost-parasitic",
+    "title": "Boost 的 ON／OFF 波形：iL、iC、vL、vSW 怎麼互相對應？",
+    "question": "為什麼 MOSFET 的 Gate 是方波，電感電流是三角波，電容電流甚至會在同一 OFF 階段跨過零？",
+    "takeaway": "每段電流都有自己的物理路徑：ON 時 iL 上升、iC≈−Io；OFF 時 iL 下降、iC≈iL−Io。Gate 指令和開關節點電壓不能混成一條曲線。",
+    "intuition": [
+      "看示波器時，先問『探棒到底在量什麼』：Gate 是控制命令，vSW 是功率節點電壓，iL 是元件內電流，iC 是電感／二極體送進輸出和負載抽走之間的差額。它們在同一 PWM 週期內有時間關係，但不是同一種訊號。",
+      "Boost 的輸出電容並不只在 OFF 時無條件充電。如果 OFF 初期 iL>Io，它會充電；當 iL 降到 Io 以下，就算二極體仍導通，電容也會開始放電。"
+    ],
+    "steps": [
+      {
+        "title": "ON｜Gate 指令高、vSW 接近低電位",
+        "detail": "MOSFET 導通，二極體截止，理想 vL≈Vin，iL 以正斜率上升；輸出電容供負載，iC≈−Io。"
+      },
+      {
+        "title": "OFF｜Gate 指令低、vSW 被輸出側箝位",
+        "detail": "MOSFET 關斷，電感迫使開關節點上升使二極體導通；理想 vL≈Vin−Vo 為負，iL 沿斜坡下降。"
+      },
+      {
+        "title": "OFF 的電容電流可以先正再負",
+        "detail": "因為 iC=iD−Io≈iL−Io，隨 iL 下降，若跨過 Io，電容電流就由充電變成放電；不要只用 Gate 判定電容正在充電。"
+      },
+      {
+        "title": "把寄生壓降加回真實電路",
+        "detail": "ON 的 vL 會扣 RL／RON，OFF 再扣 VD／RD；示波器上 vSW 還可能出現 Coss、寄生 L 與二極體反向恢復造成的振鈴。"
+      }
+    ],
+    "phases": [
+      {
+        "name": "ON：iL 上升／C 放電",
+        "pct": 40
+      },
+      {
+        "name": "OFF：iL 下降／C 可充或放電",
+        "pct": 60
+      }
+    ],
+    "equations": [
+      {
+        "label": "電感電流斜率",
+        "tex": "\\frac{di_L}{dt}=\\frac{v_L}{L}",
+        "plain": "diL/dt=vL/L",
+        "why": "ON 的 vL 通常為正，OFF 在 Vo>Vin 時為負，所以 iL 為近似三角波。"
+      },
+      {
+        "label": "電容電流分段關係",
+        "tex": "i_C=\\begin{cases}-I_o,&ON\\\\i_L-I_o,&OFF\\end{cases}",
+        "plain": "iC=−Io（ON）；iC=iL−Io（OFF）",
+        "why": "ON 時輸出二極體截止，OFF 時理想二極體電流等於電感電流；由輸出端 KCL 得到。"
+      },
+      {
+        "label": "理想 CCM 電感漣波",
+        "tex": "\\Delta I_L=\\frac{V_{in}D}{Lf_s}",
+        "plain": "ΔIL=Vin×D/(L×fs)",
+        "why": "這是理想 Buck/Boost 不同拓樸要分清的公式：Boost ON 階段 vL≈Vin。"
+      }
+    ],
+    "worked": {
+      "given": "Vin=48 V、D=40%、fs=100 kHz、L=120 µH、理想 Vo=80 V、Io=1 A，假設 CCM。",
+      "steps": [
+        "週期 10 µs，ON=4 µs、OFF=6 µs；vL,ON=+48 V、vL,OFF=48−80=−32 V。",
+        "ΔIL,ON=48×4µs/120µH=+1.6 A，OFF 下降 32×6µs/120µH=−1.6 A。",
+        "Iin≈Io/(1−D)=1.667 A，因此 iL 谷值約 0.867 A、峰值約 2.467 A；OFF 初期 iC 約 +1.467 A，末期約 −0.133 A。"
+      ],
+      "result": "輸出二極體仍在 OFF 導通時，電容電流也能由正轉負；電流方向一定要靠 KCL 判定，不能只看 Gate。"
+    },
+    "assumptions": [
+      "理想非同步 Boost、固定 Vo／Io、CCM；用三角電感電流和理想二極體建立波形，尚未包含換流短暫過渡。",
+      "實際 vSW、VDS、Gate VGS 波形及反向恢復，需要元件資料與示波器確認；本頁只示範時序和電流關係。"
+    ],
+    "pitfall": "把 Gate 0/1 當成真正的 VGS 波形；或以為 OFF 的二極體有電流時，輸出電容一定整段都在充電。",
+    "check": {
+      "q": "Boost OFF 時 iL 由 2.5 A 降到 0.9 A，Io=1 A，電容電流可能發生什麼變化？",
+      "a": "iC≈iL−Io，所以會先為正、跨過 iL=1 A 變成負；即使二極體仍導通也可能有這種轉換。"
+    },
+    "tryIt": "回到 Boost 波形相關互動模型，固定 Duty 觀察 iL／vL 的斜率，再區分二極體電流與電容電流。"
+  },
+  "17": {
+    "lesson": "mid-boost-parasitic",
+    "title": "從 ON／OFF 等效電路，如何自己推導 Boost 的平均增益？",
+    "question": "看到一張包含 RL、RON、VD、RD 的 Boost 電路，怎麼有順序地整理，而不是硬背一串長公式？",
+    "takeaway": "先寫兩段電感 KVL，再寫輸出電容平均電流為零，最後聯立。ON／OFF 電阻必須按各自的導通比例加權。",
+    "intuition": [
+      "平均模型的好處不是把元件『變不見』，而是把非常快的開關過程濃縮成每週期可理解的兩個平衡：電感電流不能逐週發散，電容電壓也不能逐週無限制飄移。",
+      "電感有伏秒平衡，電容有電荷平衡。前者找電壓和電感電流的關係，後者告訴你哪一段有電流流入輸出；兩者缺一不可。"
+    ],
+    "steps": [
+      {
+        "title": "第一步｜指定參考方向",
+        "detail": "設 iL 正方向由 Vin 流向開關節點，Vo 為正輸出，Io=Vo/R；讓每一個 KVL、KCL 都沿相同方向，避免莫名其妙的負號。"
+      },
+      {
+        "title": "第二步｜寫 ON 的 vL",
+        "detail": "MOSFET 導通：vL,on≈Vin−IL(RL+RON)；二極體截止，電容平均在 ON 提供 −Io。"
+      },
+      {
+        "title": "第三步｜寫 OFF 的 vL",
+        "detail": "MOSFET 截止、二極體導通：vL,off≈Vin−Vo−VD−IL(RL+RD)。"
+      },
+      {
+        "title": "第四步｜伏秒＋電荷雙平衡",
+        "detail": "D·vL,on+(1−D)·vL,off≈0，且 Io=(1−D)IL；代入 Io=Vo/R，即可得到含寄生的平均增益。"
+      }
+    ],
+    "equations": [
+      {
+        "label": "電感電壓平均為零",
+        "tex": "D v_{L,on}+(1-D)v_{L,off}=0",
+        "plain": "D×vL,on+(1−D)×vL,off=0",
+        "why": "穩態平均電感電壓為零，必須使用 ON／OFF 各自的導通路徑。"
+      },
+      {
+        "label": "輸出端平均電容電流為零",
+        "tex": "D(-I_o)+(1-D)(I_L-I_o)=0",
+        "plain": "D(−Io)+(1−D)(IL−Io)=0",
+        "why": "理想 CCM 輸出電容在完整週期的淨電荷變化為零；整理得 Io=(1−D)IL。"
+      },
+      {
+        "label": "平均電路結果",
+        "tex": "V_{in}=D'(V_o+V_D)+I_L(R_L+DR_{on}+D'R_D)",
+        "plain": "Vin=D′(Vo+VD)+IL(RL+D Ron+D′RD)",
+        "why": "由電感平均方程整理，D′=1−D；再與 Io=Vo/R 聯立才能解 Vout。"
+      }
+    ],
+    "worked": {
+      "given": "用只含 RL 的簡化特例驗算：Vin=48 V、D=50%、RL=0.2 Ω、R=20 Ω，VD／RON／RD 暫設為零。",
+      "steps": [
+        "伏秒平衡：48=0.5Vo+0.2IL；電荷平衡：Io=0.5IL，且 Io=Vo/20。",
+        "將 IL=Vo/(20×0.5)=Vo/10 代入，得 48=(0.5+0.02)Vo=0.52Vo。",
+        "因此 Vo≈92.31 V、Io≈4.615 A、IL≈9.231 A；反代原式：0.5×92.31+0.2×9.231≈48 V。"
+      ],
+      "result": "兩個獨立的平衡關係一起成立，才表示你寫的平均路徑和導通比例自洽；只用一條伏秒式通常還解不出負載電流。"
+    },
+    "assumptions": [
+      "固定 Duty、電阻負載、CCM、平均 IL 代表導通期間電流，忽略 ESR 對直流平均的影響。",
+      "本頁是簡化平均模型，不等於含換流過渡與控制補償的實機時域模擬；波形 RMS 與切換損耗另算。"
+    ],
+    "pitfall": "只寫電感的伏秒平衡就任意指定 IL，或漏掉輸出電容電荷平衡，導致產生不符合負載的輸出結果。",
+    "check": {
+      "q": "Boost 若只知道 Vin、D、RL、R，為什麼不能只靠 Vin=D′Vo+RL IL 直接解 Vo？",
+      "a": "這一條同時有 Vo、IL 兩個未知數，還要由輸出端電容電荷平衡得到 Io=D′IL=Vo/R，才能聯立求解。"
+    },
+    "tryIt": "在既有 Boost 含寄生課節，選一組參數，逐一核對 ON／OFF 伏秒和輸出平均電流關係。"
+  },
+  "18": {
+    "lesson": "mid-boost-parasitic",
+    "title": "Boost 的理想變比等效電路，是把什麼換算到輸出端？",
+    "question": "平均模型裡出現像變壓器的符號，是不是 Boost 裡真的藏著一顆隔離變壓器？",
+    "takeaway": "這是非隔離 Boost 的平均功率變比表示法，不是實體磁耦合元件；用 D′=1−D 換算電壓、電流，就能把電感銅阻視為輸出端等效內阻。",
+    "intuition": [
+      "理想無損 Boost 的功率守恆和變壓器很像：電壓在一端放大，電流在另一端縮小。畫成依 Duty 變化的『理想變比元件』只是方便分析的數學等效。",
+      "有 RL 時，不能直接把原本 0.1 Ω 拿到輸出端串聯不變。因為電壓與電流各經過一個 D′ 的換算因子，等效電阻必須按平方比例換算。"
+    ],
+    "steps": [
+      {
+        "title": "定義平均轉換倍率",
+        "detail": "設 D′=1−D。理想 Boost CCM 的 Vo=Vin/D′，Io=D′IL；這是平均電壓和電流的相依關係。"
+      },
+      {
+        "title": "把輸入伏秒式改寫成輸出側",
+        "detail": "Vin=D′Vo+RL IL；兩邊除以 D′ 得 Vin/D′=Vo+RL IL/D′。"
+      },
+      {
+        "title": "將電感電流換成輸出電流",
+        "detail": "IL=Io/D′，於是 Vin/D′=Vo+Io RL/D′²，對輸出側就像串聯 Req=RL/D′²。"
+      },
+      {
+        "title": "記得『平均等效』不是『瞬態元件』",
+        "detail": "此等效電路用來快速估 Vo、效率與電流壓力，不能直接用來推導 MOSFET VDS 尖峰或電容 ESR 高頻漣波。"
+      }
+    ],
+    "equations": [
+      {
+        "label": "理想平均電壓／電流換算",
+        "tex": "V_o=\\frac{V_{in}}{D'},\\qquad I_o=D'I_L",
+        "plain": "Vo=Vin/D′，Io=D′IL",
+        "why": "理想 CCM 下的功率關係，D′ 代表 Boost 二極體的導通比例。"
+      },
+      {
+        "label": "銅阻反映至輸出端",
+        "tex": "R_{eq,out}=\\frac{R_L}{D'^2}",
+        "plain": "Req,out=RL/D′²",
+        "why": "每換算一次平均電壓與電流，都會引入 D′ 因子；此等效是數學換算，不是物理阻值變動。"
+      },
+      {
+        "label": "輸出端電壓分壓",
+        "tex": "V_o=\\frac{V_{in}}{D'}\\frac{R}{R+R_{eq,out}}",
+        "plain": "Vo=(Vin/D′)×R/(R+Req,out)",
+        "why": "輸出端等效電壓源與串聯內阻分壓，結果與直接用伏秒／電荷平衡相同。"
+      }
+    ],
+    "worked": {
+      "given": "Vin=24 V、D=50%、RL=0.1 Ω、負載 R=12 Ω，假設 RL-only CCM 平均模型。",
+      "steps": [
+        "D′=0.5，平均等效理想輸出電壓=24/0.5=48 V。",
+        "反映到輸出側的銅阻 Req=0.1/0.5²=0.4 Ω。",
+        "負載端 Vo=48×12/(12+0.4)≈46.45 V；IL=Vo/(12×0.5)≈7.74 A，RL 本體仍為 0.1 Ω。"
+      ],
+      "result": "以等效電路看，內阻是 0.4 Ω 的『輸出端數學表示』；實際感測或溫升還是發生在 0.1 Ω 的電感繞線上。"
+    },
+    "assumptions": [
+      "只計電感銅阻且 CCM、電阻負載、固定 Duty；等效元件不是有隔離繞組的實體變壓器。",
+      "高 Duty 會使等效電阻大幅升高，但真實器件可能先受飽和、熱、過流與頻率相關效應限制。"
+    ],
+    "pitfall": "把平均變比符號當成 Boost 真的隔離了輸入輸出，或直接拿輸出端等效阻抗當成電感的熱功耗電阻。",
+    "check": {
+      "q": "RL=0.1 Ω，D=50% 時，輸出端等效電阻是 0.1 Ω 還是 0.4 Ω？",
+      "a": "在此 RL-only 平均 Boost 模型裡，輸出端等效為 RL/(1−D)²=0.1/0.25=0.4 Ω；實體銅阻仍是 0.1 Ω。"
+    },
+    "tryIt": "回到銅損等效電路課節，比較輸出側分壓法和輸入側伏秒法是否算出相同 Vo。"
+  },
+  "19": {
+    "lesson": "mid-boost-parasitic",
+    "title": "Boost 含 RL、RDS(on)、二極體 VD/RD，怎麼算增益與損耗？",
+    "question": "同一個 Boost 加入好幾種寄生元件後，如何先算直流工作點，再做正確的功率帳？",
+    "takeaway": "先用伏秒／電荷平衡解出 Vo 與 IL，再計算 RL、MOSFET、二極體分段導通損；這仍不是完整切換損耗與熱模型。",
+    "intuition": [
+      "公式的目的是把現實電路的限制拆成可觀察的來源。電感 RL 全週期有電流，MOSFET 只在 ON 主要導通，二極體只在 OFF 主要導通，二極體固定壓降 VD 也只在它導通時生效。",
+      "當一組參數讓計算結果出現非常大的 IL，就代表你應先擔心元件額定及溫升，而不是因為程式能算出 Vo，就認定實機一定能工作。"
+    ],
+    "steps": [
+      {
+        "title": "先確認每段導通路徑",
+        "detail": "ON：RL+RON；OFF：RL+RD+VD。令 D′=1−D，得到加權電阻 rEff=RL+D RON+D′RD。"
+      },
+      {
+        "title": "求穩態 Vo，再回推電流",
+        "detail": "由 Vin=D′(Vo+VD)+rEff IL 和 IL=Vo/(R D′)，可解 Vo=[Vin−D′VD]D′/[D′²+rEff/R]。"
+      },
+      {
+        "title": "逐項計算導通損耗",
+        "detail": "以平均 IL 的小漣波近似：PL≈IL²RL，PMOS≈D IL²RON，PD≈D′ IL²RD+VD Io。"
+      },
+      {
+        "title": "核對平均輸入、輸出能量帳",
+        "detail": "比較 Vin IL 與 Vo Io+各導通損。此平均式應相符，但並未計算 Eon/Eoff、Qrr、Coss、磁芯與寄生振鈴損失。"
+      }
+    ],
+    "equations": [
+      {
+        "label": "ON／OFF 加權導通電阻",
+        "tex": "r_{eff}=R_L+D R_{on}+(1-D)R_D",
+        "plain": "rEff=RL+D Ron+(1−D)RD",
+        "why": "RL 兩段都承受 iL，RON 只在 ON、RD 只在 OFF 主要導通。"
+      },
+      {
+        "label": "含導通寄生的平均輸出",
+        "tex": "V_o=\\frac{[V_{in}-(1-D)V_D](1-D)}{(1-D)^2+r_{eff}/R}",
+        "plain": "Vo=[Vin−(1−D)VD](1−D)/[(1−D)²+rEff/R]",
+        "why": "取穩態 CCM、定 R 負載與平均電流近似；若失去正輸出或 CCM，不能宣稱該值有效。"
+      },
+      {
+        "label": "二極體平均導通損",
+        "tex": "P_D\\approx (1-D)I_L^2R_D+V_DI_o",
+        "plain": "PD≈(1−D)IL² RD+VD Io",
+        "why": "固定壓降由二極體平均輸出電流 Io 計算；動態電阻需要導通時間加權，漣波大時應改用 RMS。"
+      }
+    ],
+    "worked": {
+      "given": "Vin=48 V、D=50%、R=20 Ω、RL=0.2 Ω、RON=0.1 Ω、RD=0.05 Ω、VD=0.7 V，忽略開關損。",
+      "steps": [
+        "rEff=0.2+0.5×0.1+0.5×0.05=0.275 Ω；Vo=23.825/(0.25+0.275/20)≈90.33 V。",
+        "Io=Vo/20≈4.52 A，IL=Io/0.5≈9.03 A；按各時段導通電阻估 Pcond,res≈IL²×0.275≈22.44 W。",
+        "二極體固定壓降損約 VD×Io≈3.16 W；輸入 Vin IL≈433.6 W、負載 Vo Io≈408.0 W，差額約 25.6 W。"
+      ],
+      "result": "平均功率差額可對應成已納入的寄生導通損。這個帳算平，不代表真實 switching loss、溫升或過衝已驗證。"
+    },
+    "assumptions": [
+      "CCM、固定 D、電阻負載、小漣波、常數 RL／RON／RD／VD；利用 IL 平均值近似導通 RMS。",
+      "實際損耗還有 MOSFET 電流 RMS、切換能量、二極體 Qrr／反恢復、Gate 驅動、磁芯與熱效應；不要用這條平均式做完整產品效率承諾。"
+    ],
+    "pitfall": "把 IL 直接乘各個電阻當成損耗 W，漏掉電流平方與導通比例；或把這些簡化導通損當成真實完整效率。",
+    "check": {
+      "q": "Boost 二極體固定 Vf 損耗為什麼近似 VD×Io，而不是 VD×IL？",
+      "a": "因為二極體只在 OFF 的 D′ 比例導通，平均二極體電流就是 Io=D′IL，所以固定壓降的平均耗損為 VD Io。"
+    },
+    "tryIt": "在寄生平均模型課節提高 RON 或 VD，重新核對輸入與負載功率，最後再對比電流漣波帶來的 RMS 差異。"
+  },
+  "20": {
+    "lesson": "mid-boost-parasitic",
+    "title": "電流漣波很大時，為什麼不能只用平均電流估 MOSFET 損耗？",
+    "question": "兩個電路的 MOSFET 平均導通電流一樣，為什麼三角電流漣波比較大的那一個更熱？",
+    "takeaway": "電阻發熱取決於 RMS 電流的平方，不是平均電流的平方。Boost MOSFET 只在 ON 承受 iL，正確週期均方值還要乘導通比例 D。",
+    "intuition": [
+      "電阻熱量與電流平方成正比。就算有兩段較大和較小的電流互相抵消成相同平均值，高電流那段的平方會放大更多，因此 RMS 電流會高於平均值。",
+      "在 Boost，MOSFET 只於 ON 時段導通，OFF 由二極體送能。計算 MOSFET 整個開關週期 RMS，必須同時考慮電感三角漣波和 MOSFET 導通時間；這和直接拿 iL 的週期平均值乘 D 再平方不一樣。"
+    ],
+    "steps": [
+      {
+        "title": "先畫出 MOSFET 電流波形",
+        "detail": "理想 CCM 開關 ON 時 iMOS=iL，並從谷值線性升到峰值；OFF 時 iMOS≈0。"
+      },
+      {
+        "title": "計算 ON 區段的三角波均方",
+        "detail": "若 iL=IL+線性三角漣波，ON 區段平均 iL²=IL²+(ΔIL)²/12；後項就是漣波造成的額外熱。"
+      },
+      {
+        "title": "換算到完整週期 RMS",
+        "detail": "MOSFET 只導通 D 比例，故 IMOS,rms²≈D[IL²+(ΔIL)²/12]；乘上 RDS(on) 得近似導通損。"
+      },
+      {
+        "title": "把導通損與切換損分開",
+        "detail": "開關過渡期間 vDS、iD 同時非零會產生 Eon/Eoff，另需 Qrr、Coss、死區與溫度資料，不能混成 I²R 一項。"
+      }
+    ],
+    "equations": [
+      {
+        "label": "電阻導通發熱的真正自變量",
+        "tex": "P_R=I_{rms}^2R",
+        "plain": "PR=Irms² R",
+        "why": "平方發熱的平均值，才是能量耗散的正確基礎。"
+      },
+      {
+        "label": "理想 Boost CCM MOSFET 週期 RMS",
+        "tex": "I_{MOS,rms}^2=D\\left(I_L^2+\\frac{\\Delta I_L^2}{12}\\right)",
+        "plain": "IMOS,rms²=D[IL²+(ΔIL)²/12]",
+        "why": "ON 區段 iL 為線性三角波，OFF MOSFET 電流近零；若電流波形不是理想三角形需直接積分。"
+      },
+      {
+        "label": "MOSFET 導通損",
+        "tex": "P_{MOS,cond}\\approx R_{DS(on)}I_{MOS,rms}^2",
+        "plain": "PMOS,cond≈RDS(on) IMOS,rms²",
+        "why": "忽略 RDS(on) 溫度變化、切換過渡與反向電流路徑。"
+      }
+    ],
+    "worked": {
+      "given": "Boost D=50%、IL 平均=4 A、ΔIL=4 App、MOSFET RDS(on)=40 mΩ，先只估導通損。",
+      "steps": [
+        "若忽略漣波，只按 IL=4 A 估：PMOS≈0.5×4²×0.04=0.320 W。",
+        "加入三角漣波：IMOS,rms²=0.5×[4²+4²/12]=8.667 A²，因此 PMOS≈0.347 W。",
+        "漣波額外增加約 0.0267 W（相較無漣波近似約 +8.33%）；如果錯拿 MOSFET 的平均電流 D IL=2 A 平方，還會低估更多。"
+      ],
+      "result": "同樣平均 IL，漣波越大 RMS 越大、導通損越高。平均模型適合先抓趨勢，但高漣波和熱設計須用真正的 RMS 波形。"
+    },
+    "assumptions": [
+      "理想 CCM、ON 電感電流為線性斜坡、OFF MOSFET 無主要導通電流，RDS(on) 固定。",
+      "本頁只比較導通損，不包含 switching loss、二極體反恢復、Coss、MOSFET 體二極體、溫度變化與 PCB 寄生。"
+    ],
+    "pitfall": "用 (D×IL)²RON 來估整週期 MOSFET 損耗，卻漏了開關 OFF 時電流為零以及 ON 的均方電流；或以為 ΔIL 變大不會影響熱。",
+    "check": {
+      "q": "Boost MOSFET 的 iL 平均為 4 A，D=50%，ΔIL 從 0 增到 4 App，RDS(on) 固定，導通熱會如何變？",
+      "a": "會上升，因為週期 RMS² 從 D IL² 增加到 D[IL²+ΔIL²/12]；本例約由 0.320 W 升到 0.347 W。"
+    },
+    "tryIt": "回到寄生損耗課節，先比較平均模型，再用相同 Duty 下不同漣波的 RMS 公式交叉驗證。"
+  },
+  "21": {
+    "lesson": "mid-boost-dcm",
+    "title": "Boost 的 BCM 門檻怎麼算？為什麼 IL,crit 和 Io,crit 曲線不一樣？",
+    "question": "同一個 Boost 的臨界輸入電感電流與臨界輸出負載電流，為什麼不是同一條曲線？",
+    "takeaway": "BCM 電感谷值剛好碰 0，所以 IL,crit=ΔIL/2；輸出只在 OFF 時接收電感電流，Io,crit=(1−D)IL,crit。固定 Vo 時兩者對 D 的變化並不同。",
+    "intuition": [
+      "把電感電流想成一個三角形：負載越輕，整個三角形往下移；當最底點第一次碰 0 A，就是 CCM 與 DCM 的邊界。這個判斷看的是電感電流，不是 MOSFET Gate。",
+      "Boost 的輸入電流在電感裡整個週期都有，而輸出二極體只在 OFF 的一段時間導通。因此即使 BCM 的電感電流平均已知，輸出電流仍要再乘上 OFF 比例。"
+    ],
+    "steps": [
+      {
+        "title": "1. 找到 BCM 的三角電流",
+        "detail": "谷值=0、峰值=ΔIL，因此週期平均 IL,crit=Ipk/2；理想 CCM 邊界的漣波 ΔIL=Vin D/(Lfs)。"
+      },
+      {
+        "title": "2. 轉成輸出臨界電流",
+        "detail": "輸出只在 OFF 接收電流，Io,crit=(1−D)IL,crit=Vin D(1−D)/(2Lfs)。"
+      },
+      {
+        "title": "3. 若固定 Vo，就把 Vin 換成 Vo(1−D)",
+        "detail": "理想邊界仍有 Vo=Vin/(1−D)，因此 IL,crit=Vo D(1−D)/(2Lfs)，Io,crit=Vo D(1−D)²/(2Lfs)。"
+      },
+      {
+        "title": "4. 比較曲線的峰值",
+        "detail": "固定 Vo 時，IL,crit 隨 D(1−D) 變化，在 D=0.5 取峰值；Io,crit 隨 D(1−D)² 變化，在 D=1/3 取峰值。"
+      }
+    ],
+    "equations": [
+      {
+        "label": "BCM 臨界電感電流（固定 Vin）",
+        "tex": "I_{L,crit}=\\frac{V_{in}D}{2Lf_s}",
+        "plain": "IL,crit=Vin D/(2 L fs)",
+        "why": "谷值為零，電感平均就是正三角形峰值的一半。"
+      },
+      {
+        "label": "輸出電流的臨界關係",
+        "tex": "I_{o,crit}=(1-D)I_{L,crit}",
+        "plain": "Io,crit=(1−D)IL,crit",
+        "why": "Boost 二極體只於 OFF 導通，輸出端平均只接收其對應時段的電感電流。"
+      },
+      {
+        "label": "固定 Vo 時的輸出臨界曲線",
+        "tex": "I_{o,crit}=\\frac{V_oD(1-D)^2}{2Lf_s}",
+        "plain": "Io,crit=Vo D(1−D)²/(2 L fs)",
+        "why": "只在理想 BCM 邊界 Vo=Vin/(1−D) 可代換 Vin，才能得到固定 Vo 的曲線。"
+      }
+    ],
+    "worked": {
+      "given": "固定 Vo=100 V、D=50%、L=100 µH、fs=100 kHz，假設理想 Boost BCM。",
+      "steps": [
+        "理想邊界對應 Vin=Vo(1−D)=50 V。",
+        "電感漣波 ΔIL=50×0.5/(100 µH×100 kHz)=2.5 App；IL,crit=1.25 A。",
+        "Io,crit=(1−D)×1.25=0.625 A；Rcrit=100/0.625=160 Ω，電阻再增大則負載更輕，進入 DCM。"
+      ],
+      "result": "臨界輸入電感電流 1.25 A 與臨界輸出電流 0.625 A 不相等；使用固定 Vo 畫不同臨界曲線時，必須分清橫軸假設。"
+    },
+    "assumptions": [
+      "理想非同步 Boost，固定頻率、線性 L、固定 Vo 的邊界掃描；不包含 Burst、PFM、同步反向電流或大漣波寄生。",
+      "在 DCM 側的 Vo 與 Vin 關係會改變，不能把固定 Vo 邊界公式拿去當任意 DCM 工作點的輸出電流。"
+    ],
+    "pitfall": "把 IL,crit 和 Io,crit 畫成相同曲線，或忽略固定 Vo 條件，使 D 掃描時混用固定 Vin 的公式。",
+    "check": {
+      "q": "固定 Vo、L、fs 的理想 Boost，IL,crit 的 Duty 峰值在 50%；Io,crit 也在 50% 嗎？",
+      "a": "不是。Io,crit 比 IL,crit 多乘一個 (1−D)，因此固定 Vo 時與 D(1−D)² 成正比，峰值在 D=1/3。"
+    },
+    "tryIt": "在 Boost BCM 課節，先固定 Vo、改 D，分別觀察臨界 IL 與臨界 Io 的曲線，確認兩者高點不同。"
+  },
+  "22": {
+    "lesson": "mid-boost-dcm",
+    "title": "Boost DCM 為什麼多出 ZERO 區段，還會讓轉壓比依負載改變？",
+    "question": "輸入、Duty 都固定，Boost 輕載時電感電流先降到 0，為什麼 Vo 不再是 Vin/(1−D)？",
+    "takeaway": "非同步 Boost DCM 由 ON、二極體續流、ZERO 三段組成；除了伏秒平衡，還要算二極體電流三角形面積才能解出 Vo 與負載。",
+    "intuition": [
+      "CCM 的 OFF 電流會一直流到下次 ON；當負載很輕時，電感電流可能提早放到 0 A，二極體因不能反向導通而停止。剩下的時間是 ZERO，不再把能量輸送到輸出。",
+      "零電流區多出來後，真正釋能時間不再等於 1−D。即使 Duty 相同，輸出電流需求不同會改變二極體導通時間，也會使 DC 輸出電壓不同。"
+    ],
+    "steps": [
+      {
+        "title": "ON：電感由 0 升到 Ipk",
+        "detail": "MOSFET ON，二極體截止，vL≈Vin。Ipk=Vin D/(Lfs)，輸出電容暫供負載。"
+      },
+      {
+        "title": "DIODE：MOSFET OFF，電感下降到 0",
+        "detail": "二極體導通，vL≈Vin−Vo<0，經過 Δ1 Ts 時間電流由 Ipk 降到零，故 Vin D=(Vo−Vin)Δ1。"
+      },
+      {
+        "title": "ZERO：電感電流為零",
+        "detail": "二極體截止，開關也關閉，iL=0；剩餘比例 1−D−Δ1 必須大於零，才能稱為 DCM。"
+      },
+      {
+        "title": "輸出端用三角電流面積求平均",
+        "detail": "只有二極體導通區把電流送給輸出，所以 Io=Ipk Δ1/2（注意不是 Ipk(D+Δ1)/2，那是 Buck DCM 的面積關係）。"
+      },
+      {
+        "title": "若負載是 R，還要聯立 Io=Vo/R",
+        "detail": "代入 Ipk 與 Δ1，求得增益 M=Vo/Vin 滿足 M(M−1)=R D²/(2Lfs)；此式需另外檢查 DCM 模式自洽。"
+      }
+    ],
+    "phases": [
+      {
+        "name": "ON：升流",
+        "pct": 30
+      },
+      {
+        "name": "DIODE：釋能降至零",
+        "pct": 39.22
+      },
+      {
+        "name": "ZERO：電感電流為零",
+        "pct": 30.78
+      }
+    ],
+    "equations": [
+      {
+        "label": "ON 與二極體導通時間的伏秒平衡",
+        "tex": "V_{in}D=(V_o-V_{in})\\Delta_1",
+        "plain": "Vin D=(Vo−Vin)Δ1",
+        "why": "ZERO 區段 iL=0，理想電感電壓近似零，因此只有前兩段提供伏秒。"
+      },
+      {
+        "label": "DCM 二極體電流三角形平均",
+        "tex": "I_o=\\frac{1}{2}I_{pk}\\Delta_1,\\quad I_{pk}=\\frac{V_{in}D}{Lf_s}",
+        "plain": "Io=Ipk×Δ1/2，Ipk=Vin D/(Lfs)",
+        "why": "只把二極體實際導通的三角面積算作輸出電流；ON 時電容仍然供電。"
+      },
+      {
+        "label": "DCM 固定電阻負載的理想增益",
+        "tex": "M=\\frac{1+\\sqrt{1+2RD^2/(Lf_s)}}{2}",
+        "plain": "M=Vo/Vin=[1+√(1+2 R D²/(L fs))]/2",
+        "why": "將 Io=Vo/R 與伏秒／電荷平衡聯立；算出 M 後還必須檢查 D+Δ1<1。"
+      }
+    ],
+    "worked": {
+      "given": "Vin=24 V、D=30%、L=100 µH、fs=100 kHz、負載 R=300 Ω，假設理想非同步 Boost DCM。",
+      "steps": [
+        "K=2 R D²/(Lfs)=2×300×0.3²/(100 µH×100 kHz)=5.4，M=(1+√6.4)/2≈1.765。",
+        "Vo≈24×1.765=42.36 V；Ipk=24×0.3/(100 µH×100 kHz)=0.72 A。",
+        "Δ1=D/(M−1)≈0.392，ZERO≈1−0.3−0.392=0.308>0；輸出 Io=0.72×0.392/2≈0.141 A，與 Vo/R≈0.141 A 相符。"
+      ],
+      "result": "DCM 的數值需同時符合輸出電流面積與正的 ZERO 時間；若 ZERO≤0，就不能把這個結果標示成有效 DCM。"
+    },
+    "assumptions": [
+      "理想非同步 Boost、固定電阻負載、固定頻率與 Duty、零電流區二極體截止；Vo 在單週期內近似固定。",
+      "無二極體恢復、寄生振鈴、切換損耗或閉迴路調節；若電流反向、ZERO≤0 或能量不平衡，應使用對應的其他工作模式。"
+    ],
+    "pitfall": "把 Boost DCM 的輸出平均電流誤寫成 Ipk(D+Δ1)/2（Buck DCM 形式），或拿 CCM 的 Vo=Vin/(1−D) 算全部輕載。",
+    "check": {
+      "q": "Boost DCM 的 iL 在 ON 和 OFF-DIODE 都有電流，為什麼輸出平均 Io 只用 Ipk×Δ1/2？",
+      "a": "因為 ON 時輸出二極體截止，電感不直接向輸出送能；只有 OFF-DIODE 的三角電流面積對輸出平均電流有貢獻。"
+    },
+    "tryIt": "在 Boost BCM／DCM 課節從輕載往重載調，觀察 ZERO 消失，再比較 DCM 與 CCM 的輸出計算差別。"
   }
-};
-})(window);
+};})(window);
