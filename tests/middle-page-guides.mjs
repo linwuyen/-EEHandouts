@@ -11,7 +11,7 @@ function load(file,key){
 const guides=load('middle-page-guides.js','EE_PAGE_GUIDES');
 const middle=load('middle-data.js','EE_DATA');
 const pages=Object.keys(guides).map(Number).sort((a,b)=>a-b);
-assert.deepEqual(pages,Array.from({length:31},(_,i)=>i+2),'Middle guides must cover P.2–32 with no holes');
+assert.deepEqual(pages,Array.from({length:39},(_,i)=>i+2),'Middle guides must cover P.2–40 with no holes');
 const lessons=middle.chapters.flatMap(c=>c.lessons);
 const corresponding={
   2:'mid-topologies',3:'mid-buck-pwm',4:'mid-switching-lc',5:'mid-resonance',
@@ -23,7 +23,10 @@ const corresponding={
   21:'mid-boost-dcm',22:'mid-boost-dcm',
   23:'mid-buckboost-ccm',24:'mid-buckboost-dcm',25:'mid-buckboost-dcm',
   26:'mid-sepic-zeta',27:'mid-four-switch',28:'mid-bidirectional',
-  29:'mid-quadrants',30:'mid-motor-hbridge',31:'mid-bipolar',32:'mid-unipolar'
+  29:'mid-quadrants',30:'mid-motor-hbridge',31:'mid-bipolar',32:'mid-unipolar',
+  33:'mid-isolated-types',34:'mid-isolation-feedback',35:'mid-isolation-feedback',
+  36:'mid-multi-output',37:'mid-flyback-ccm',38:'mid-flyback-ccm',
+  39:'mid-flyback-dcm',40:'mid-flyback-dcm'
 };
 for(const p of pages){
   const g=guides[p],lesson=lessons.find(l=>l.id===g.lesson);
@@ -76,4 +79,4 @@ near(vo,72/7,1e-9,'P9 DCM Vo');
 near(delta,1/3,1e-10,'P9 diode interval');
 near(pk*(d+delta)/2,.1,1e-10,'P9 average current area');
 assert.ok(1-d-delta>.4,'P9 must have a nonzero DCM idle interval');
-console.log('PASS P.2–32 middle page guides: all page mappings, authoring depth and original P.2–9 numerical fixtures');
+console.log('PASS P.2–40 middle page guides: all page mappings, authoring depth and original P.2–9 numerical fixtures');
