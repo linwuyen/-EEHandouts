@@ -98,8 +98,8 @@ await run('P.2–9 original deep explanations, math, references and answer revea
     if(p===6||p===9)await page.screenshot({path:'tests/screenshots/middle-page-'+p+'-guide.png',fullPage:true});
   }
   assert.equal(titles.size,8,'Do not reuse a generic title for different pages');
-  await visit('middle.html#slide/33','#source-pdf-file');
-  assert.equal(await page.locator('.page-guide').count(),0,'P.33 remains outside deep-guide rollout');
+  await visit('middle.html#slide/41','#source-pdf-file');
+  assert.equal(await page.locator('.page-guide').count(),0,'P.41 remains outside deep-guide rollout');
   await visit('middle.html#home','.subject-card');
   await page.locator('#search-trigger').click();
   await page.locator('#search-input').fill('伏秒平衡');
@@ -148,8 +148,8 @@ await run('P.10–22 Boost deep guides, physical text, equations, answer and mob
     });
   }
   assert.equal(titles.size,13,'Each Boost source page must have its own specific explanation');
-  await visit('middle.html#slide/33','#source-pdf-file');
-  assert.equal(await page.locator('.page-guide').count(),0,'P.33 is the untouched next unit');
+  await visit('middle.html#slide/41','#source-pdf-file');
+  assert.equal(await page.locator('.page-guide').count(),0,'P.41 is the untouched next unit');
   await visit('middle.html#home','.subject-card');
   await page.locator('#search-trigger').click();
   await page.locator('#search-input').fill('二極體電流三角形');
@@ -211,8 +211,8 @@ await run('P.23–32 Buck-Boost / bidirectional / H-Bridge deep page regression'
     });
   }
   assert.equal(titles.size,10,'Each Buck-Boost/bridge slide must have unique original explanation');
-  await visit('middle.html#slide/33','#source-pdf-file');
-  assert.equal(await page.locator('.page-guide').count(),0,'P.33 must not claim a fabricated guide');
+  await visit('middle.html#slide/41','#source-pdf-file');
+  assert.equal(await page.locator('.page-guide').count(),0,'P.41 must not claim a fabricated guide');
   await visit('middle.html#home','.subject-card');
   await page.locator('#search-trigger').click();
   await page.locator('#search-input').fill('反電勢');
@@ -233,6 +233,68 @@ await run('P.23–32 Buck-Boost / bidirectional / H-Bridge deep page regression'
       });
       assert.ok(size.sw<=size.vw+2,
         'P.'+p+' mobile '+width+'px must not overflow '+JSON.stringify(size));
+    }
+    await mobile.close();
+  }
+});
+
+await run('P.33–40 isolation / Flyback original deep guides, PDF and responsive contract',async()=>{
+  const ids={
+    33:'mid-isolated-types',34:'mid-isolation-feedback',35:'mid-isolation-feedback',
+    36:'mid-multi-output',37:'mid-flyback-ccm',38:'mid-flyback-ccm',
+    39:'mid-flyback-dcm',40:'mid-flyback-dcm'
+  };
+  const titles=new Set();
+  for(let p=33;p<=40;p++){
+    await visit('middle.html#slide/'+p,'[data-guide-page="'+p+'"]');
+    const guide=page.locator('[data-guide-page="'+p+'"]');
+    assert.equal(await guide.count(),1,'P.'+p+' exactly one deep explanation');
+    const title=await guide.locator('h2').innerText();
+    assert.ok(title.length>=18,'P.'+p+' explanatory title is substantive');
+    titles.add(title);
+    assert.ok(await guide.locator('.guide-steps li').count()>=3,'P.'+p+' physical/isolated flow stages');
+    assert.ok(await guide.locator('.guide-equation').count()>=2,'P.'+p+' equations');
+    assert.ok(await guide.locator('.guide-worked li').count()>=3,'P.'+p+' worked example');
+    assert.ok(await guide.locator('.guide-assumptions li').count()>=2,'P.'+p+' realistic boundaries');
+    const href=await guide.locator('.guide-link').getAttribute('href');
+    assert.ok(href.endsWith('/'+ids[p]),'P.'+p+' correct original interactive lesson');
+    assert.equal(await page.locator('#source-pdf-file').count(),1,'P.'+p+' original local PDF viewer');
+    assert.ok((await page.locator('.slide-transcript').innerText()).length>8,'P.'+p+' original transcript/summary');
+    const eq=guide.locator('.guide-equation').first();
+    const typeset=await eq.evaluate(el=>el.classList.contains('guide-ready'));
+    assert.ok(typeset||await eq.locator('.guide-math-fallback').isVisible(),
+      'P.'+p+' math must be readable whether CDN assets work or not');
+    const answer=guide.locator('details.guide-check');
+    assert.equal(await answer.evaluate(el=>el.open),false,'P.'+p+' answer starts hidden');
+    await answer.locator('summary').click();
+    assert.equal(await answer.evaluate(el=>el.open),true,'P.'+p+' answer reveals');
+    assert.ok((await answer.locator('p').innerText()).length>=26,'P.'+p+' answer is substantive');
+    if([33,34,36,38,39,40].includes(p))
+      await page.screenshot({path:'tests/screenshots/middle-flyback-page-'+p+'.png',fullPage:true});
+  }
+  assert.equal(titles.size,8,'The eight deep guides must not share a generic title');
+  await visit('middle.html#slide/41','#source-pdf-file');
+  assert.equal(await page.locator('.page-guide').count(),0,'P.41 is not yet covered');
+  await visit('middle.html#home','.subject-card');
+  await page.locator('#search-trigger').click();
+  await page.locator('#search-input').fill('磁化能量');
+  assert.ok(await page.locator('#search-results a[href="#slide/37"]').count()>0,
+    'P.37 magnetizing-energy page is discoverable in existing search');
+  await page.keyboard.press('Escape');
+  for(const width of [320,390]){
+    const mobile=await browser.newPage({viewport:{width,height:720}});
+    for(let p=33;p<=40;p++){
+      await mobile.goto(BASE+'/middle.html#slide/'+p);
+      await mobile.locator('[data-guide-page="'+p+'"]').waitFor({timeout:20000});
+      const result=await mobile.evaluate(()=>{
+        const vw=innerWidth,sw=document.documentElement.scrollWidth;
+        const overflowing=sw>vw+2?Array.from(document.querySelectorAll('.page-guide *'))
+          .filter(el=>el.getBoundingClientRect().right>vw+2).slice(0,5)
+          .map(el=>({tag:el.tagName,cls:typeof el.className==='string'?el.className.slice(0,55):''})):[];
+        return {vw,sw,overflowing};
+      });
+      assert.ok(result.sw<=result.vw+2,
+        'P.'+p+' '+width+'px isolated/Flyback guide overflow '+JSON.stringify(result));
     }
     await mobile.close();
   }
