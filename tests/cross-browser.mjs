@@ -80,6 +80,17 @@ for(const [engineName,engine] of [['firefox',firefox],['webkit',webkit]]){
     assert.ok(local.every(Boolean),engineName+'/'+volume+' missing self-hosted PDF.js assets');
     console.log('PASS cross-browser',engineName,volume,'search/nav/interactive/step/RWD/vendor');
   }
+  // Verify the new page-specific text and source-PDF link on Firefox/WebKit.
+  for(const p of [2,9]){
+    await page.goto(BASE+'/middle.html#slide/'+p);
+    await page.locator('[data-guide-page="'+p+'"]').waitFor({timeout:15000});
+    assert.ok(await page.locator('.guide-equation').count()>=2,
+      engineName+' middle P.'+p+' deep formulas');
+    assert.equal(await page.locator('#source-pdf-file').count(),1,
+      engineName+' middle P.'+p+' original PDF viewer');
+    const size=await page.evaluate(()=>({v:innerWidth,s:document.documentElement.scrollWidth}));
+    assert.ok(size.s<=size.v+2,engineName+' middle P.'+p+' horizontal overflow');
+  }
   // Advanced engineering page: no test may silently degrade to a missing lab.
   for (const lab of ['pfc','llc','psfb','loop','timing','nonideal','zvs']){
     await page.goto(BASE+'/advanced.html#'+lab);

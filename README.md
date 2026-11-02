@@ -190,3 +190,11 @@ Node.js 22 開發環境：執行 `npm ci --ignore-scripts`，再安裝 Chromium�
 - `tests/accessibility-smoke.mjs` 檢查上／中／進階的語意標籤、skip link、鍵盤第一焦點、可見表單名稱、SVG 無障礙名稱及重複 ID；這只是 smoke test，不能宣稱完整 WCAG、螢幕閱讀器、色彩對比或真實手機驗收。
 - Pages 部署時將已通過 CI 的 exact SHA 另寫入 `release-sha.txt`（由部署環境生成，非原始 Repo 檔案），部署後對公開網址做限時重試，確認該 SHA 與三個課程入口和 `advanced-models.js` 皆可取得。若 GitHub Pages 邊緣快取延遲或站點未發佈，發布 workflow 會顯示失敗，不會把 skipped 誤判成成功。
 - GitHub Ruleset 的 Require conversation resolution 與 Require branch up to date 需具備管理權限的維護者在 GitHub UI 開啟；教材擷取文字的公開散布權利也仍需權利人核可，不會因 CI PASS 自動視為合法授權。
+
+## 中冊逐頁深化導讀｜第一批 P.2–9
+
+中冊 P.2–9 共八頁已加入原創、分層的逐頁解說。依序呈現：本頁核心問題與白話直覺、ON/OFF 或系統訊號流、明確適用條件的公式、逐步數值例題、常見誤解，以及可以點開答案的理解題。並連回已存在的課節與互動模型。
+
+此內容由 middle-page-guides.js 管理；app.js 的中冊逐頁路由負責顯示，middle-page-guides.css 負責排版。原講義摘要及使用者本機 PDF 檢視器都保留；導讀不是投影片逐字稿，也不提供公開原投影片圖片。KaTeX 缺少 JS 或 CSS 時仍顯示可閱讀的文字公式。
+
+本階段僅驗收 P.2–9。P.10–51 與上冊其他頁面尚未逐頁深化，不應宣稱全部 159 頁已完成。對應的數值及頁碼覆蓋檢查位於 tests/middle-page-guides.mjs、tests/middle-smoke.mjs，並納入既有的 Chromium／Firefox／WebKit CI。
