@@ -37,3 +37,15 @@
 .guide-check p{margin:12px 0 0}
 .guide-link{display:inline-block;color:var(--accent);font-weight:750;overflow-wrap:anywhere}
 @media(max-width:610px){.guide-intro,.guide-section{padding:19px 16px}.guide-steps li{padding-left:43px}.guide-math{font-size:15px}}
+
+/* Long Boost KVL expressions must scroll INSIDE their formula card, never
+   inflate the page-wide intrinsic grid track on 320px devices. */
+.page-guide{grid-template-columns:minmax(0,1fr);max-width:100%;width:100%}
+.page-guide>.guide-intro,.page-guide>.guide-section{min-width:0;max-width:100%}
+.guide-equations{grid-template-columns:minmax(0,1fr);min-width:0;max-width:100%;width:100%}
+.guide-equation{min-width:0;max-width:100%;overflow:hidden;overflow-wrap:anywhere}
+.guide-math{width:100%;min-width:0;max-width:100%;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain}
+.guide-math .katex-display{max-width:100%;overflow-x:auto;overflow-y:hidden}
+.guide-math-fallback{overflow-wrap:anywhere;word-break:normal}
+.guide-steps,.guide-worked,.guide-assumptions{min-width:0;max-width:100%}
+.guide-section li,.guide-section p{overflow-wrap:anywhere}

@@ -158,10 +158,17 @@ await run('P.10–22 Boost deep guides, physical text, equations, answer and mob
   await page.keyboard.press('Escape');
   for(const width of [320,390]){
     const mobile=await browser.newPage({viewport:{width,height:720}});
-    for(const p of [10,15,22]){
+    for(let p=10;p<=22;p++){
       await mobile.goto(BASE+'/middle.html#slide/'+p);
       await mobile.locator('[data-guide-page="'+p+'"]').waitFor({timeout:20000});
-      const sizes=await mobile.evaluate(()=>({vw:innerWidth,sw:document.documentElement.scrollWidth}));
+      const sizes=await mobile.evaluate(()=>{
+        const vw=innerWidth,sw=document.documentElement.scrollWidth;
+        const culprits=sw>vw+2?Array.from(document.querySelectorAll('.page-guide *'))
+          .map(el=>({tag:el.tagName,cls:typeof el.className==='string'?el.className.slice(0,65):'',
+            right:Math.round(el.getBoundingClientRect().right),scroll:el.scrollWidth,client:el.clientWidth}))
+          .filter(x=>x.right>vw+2&&x.scroll>x.client+2).slice(0,6):[];
+        return {vw,sw,culprits};
+      });
       assert.ok(sizes.sw<=sizes.vw+2,'P.'+p+' Boost guide '+width+'px overflow: '+JSON.stringify(sizes));
     }
     await mobile.close();
