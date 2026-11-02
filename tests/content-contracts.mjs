@@ -10,7 +10,7 @@ function load(file,key){
 const upper=load('data.js','EE_DATA'),middle=load('middle-data.js','EE_DATA');
 const equations=load('formula-math.js','EE_MATH');
 const guides=load('middle-page-guides.js','EE_PAGE_GUIDES');
-assert.equal(Object.keys(guides).length,21,'Middle P.2–22 original deep guides');
+assert.equal(Object.keys(guides).length,31,'Middle P.2–32 original deep guides');
 const upperSlides=load('slide-text.js','EE_SOURCE_TEXT');
 const middleSlides=load('middle-slide-text.js','EE_SOURCE_TEXT');
 assert.equal(upper.chapters.length,7,'upper chapters');

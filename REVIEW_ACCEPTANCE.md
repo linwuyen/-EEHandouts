@@ -87,13 +87,20 @@
 ## 中冊逐頁深入導讀（P.2–9）
 
 - 每頁具不同的提問、白話直覺、至少三步工作流程、至少兩條可閱讀的公式及適用條件、逐步算例、易錯觀念和可揭曉的答案；不得以同一個模板段落替代每頁的工程內容。
-- P.2 Topologies、P.3 PWM、P.4 Switching/LC、P.5 Resonance、P.6 Volt-second、P.7 CCM/DCM、P.8 BCM、P.9 Buck DCM 均應連回相符的既有課節，並保留原 PDF 本機選取與內容摘要。P.23 尚無此導讀。
+- P.2 Topologies、P.3 PWM、P.4 Switching/LC、P.5 Resonance、P.6 Volt-second、P.7 CCM/DCM、P.8 BCM、P.9 Buck DCM 均應連回相符的既有課節，並保留原 PDF 本機選取與內容摘要。P.33 尚無此導讀。
 - 數值 fixture 要獨立驗證 P.2 的三個轉壓例子、P.4 電感與電容漣波、P.5 LC f0/Q、P.6 正負伏秒、P.8 BCM 臨界 Io/R、P.9 DCM 電流面積與零電流區間。
 - 新增逐頁 Chromium 驗收、Firefox/WebKit 320–390px 驗收；公式須 HTML escaping 且 KaTeX trust=false，CDN JS／CSS 失效時文字版本仍可閱讀，其他上冊與中冊頁面不得受到汙染。
 
 ## 中冊 Boost P.10–22 深化教學 Gate
 
-- P.10–22 應有 13 個不同的頁面導讀，全部正確對應原有 Boost CCM、RL、Efficiency、Parasitic、DCM 課節，保留 P.2–9、原 PPTX 摘要與本機 PDF reader，P.23 不應偽裝成已完成的逐頁內容。
+- P.10–22 應有 13 個不同的頁面導讀，全部正確對應原有 Boost CCM、RL、Efficiency、Parasitic、DCM 課節，保留 P.2–9、原 PPTX 摘要與本機 PDF reader，P.33 為下一階段，尚未加入逐頁導讀。
 - 對 P.10 的 CCM 伏秒／峰谷電流、P.11–12 的 RL 平均增益及輸出等效阻抗、P.13 的 gain peak、P.14 的 RL-only η、P.15–19 的寄生 KVL／KCL／導通能量帳、P.16 的電容電流充放電方向、P.20 的三角電流 RMS、P.21 BCM 臨界輸入／輸出與 D=1/3 峰值、P.22 Boost DCM 的輸出三角形面積與 ZERO 長度建立獨立數值 fixture。
 - 假設值、寄生元件導通區間與工作模式必須講清楚；二極體只在 Boost OFF 向輸出供能，因此 Boost DCM 的 Io 不可沿用 Buck DCM 的 Ipk(D+Δ1)/2；若 ZERO≤0 必須拒絕標作有效 DCM。
 - Chromium 訪問 P.10–22 全部 13 頁，驗證計算可讀性、可展開答案、原摘要、PDF 載入入口、互動連結及搜尋，並涵蓋 320px/390px；Firefox／WebKit 至少覆蓋 P.10/P.16/P.22。不得刪除既有 72 節及全站 PDF/數學 Regression。
+
+## 中冊 P.23–32 深化導讀 Gate
+
+- P.23–32 每頁須具獨立提問、至少 2 段物理直覺、3 步以上能量／訊號流、2 條以上附條件的公式、實際逐步算例、適用域與常見錯誤、可展開答案。不可用相同泛用段落冒充逐頁內容。
+- 正確對應 23 反相 Buck-Boost CCM；24–25 BCM/DCM；26 Ćuk/SEPIC/ZETA；27 四開關；28 雙向；29 四象限；30 馬達；31 Bipolar；32 Unipolar。P.33 仍未有深入導讀，且上冊不得載入中冊專用資料。
+- 獨立數值驗證 P.23 的反相有號 Vo／Iin、IL；P.24 BCM 輸出僅計 OFF 面積；P.25 DCM ZERO 正負、固定 R 電荷與伏秒平衡；P.26 三拓樸極性；P.27 兩中點 vL 的 PWM 伏秒；P.28 電池正負功率；P.29 四個 V/I 象限；P.30 馬達反電勢與 di/dt；P.31 Bipolar 兩態平均與電流漣波；P.32 Unipolar 三態與兩橋臂 Duty。
+- Chromium 逐頁查 P.23–32 的說明、可閱讀公式、答案開啟、原有課節連結、PDF 選取入口、原摘要、搜尋與 320/390px 全頁無溢位；Firefox／WebKit 至少覆蓋 23、25、27、29、32。正式合併仍須 exact HEAD CI 與 Reviews Gate，部署依 exact main SHA 驗證。
