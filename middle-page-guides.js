@@ -1,4 +1,4 @@
-/* EEHandouts 中冊逐頁原創教學資料：不取代來源 PDF 或原 72 節。 */
+/* 原創中冊逐頁導讀：不取代來源 PDF 或既有課節。 */
 (function(root){'use strict';root.EE_PAGE_GUIDES={
   "2": {
     "lesson": "mid-topologies",
@@ -1466,5 +1466,363 @@
       "a": "因為 ON 時輸出二極體截止，電感不直接向輸出送能；只有 OFF-DIODE 的三角電流面積對輸出平均電流有貢獻。"
     },
     "tryIt": "在 Boost BCM／DCM 課節從輕載往重載調，觀察 ZERO 消失，再比較 DCM 與 CCM 的輸出計算差別。"
+  },
+  "23": {
+    "lesson": "mid-buckboost-ccm",
+    "title": "反相 Buck-Boost 為何能升降壓，而且輸出是負電壓？",
+    "question": "同一顆電感先充能再放能，怎樣從 ON／OFF 推出 24 V 輸入、Duty 40% 時 Vo=−16 V？",
+    "takeaway": "先固定輸出參考極性；ON 時輸入讓電感充能，OFF 才經二極體向輸出放能，理想 CCM 有號比為 −D/(1−D)。",
+    "intuition": [
+      "反相 Buck-Boost 像在電感中先『存一桶能量』，再換一條路倒給輸出。ON 階段電感從輸入吸能、輸出電容暫時供負載；OFF 時二極體導通，電感改向輸出送能，所以不能把它當成 Buck 的相同供電路徑。",
+      "負號不是能量變成負數，而是相對輸入共同參考地，典型反相拓樸的輸出端電壓極性與輸入相反。量測前要先確認正負端，尤其一般接地示波器的地夾不能任意接負輸出。"
+    ],
+    "steps": [
+      {
+        "title": "ON：電感儲能、輸出由電容供電",
+        "detail": "MOSFET 導通、二極體截止，依選定電感方向 vL≈+Vin，iL 線性上升；此時輸入端電流只在開關導通路徑流過。"
+      },
+      {
+        "title": "OFF：二極體導通、電感向負極性輸出釋能",
+        "detail": "MOSFET 截止後電感電流不能突變，沿二極體向輸出供能；同一電感電壓方向下 vL≈−|Vo|，iL 線性下降。"
+      },
+      {
+        "title": "穩態正負伏秒互相抵消",
+        "detail": "一週期 iL 起點與終點相同，Vin·D·Ts−|Vo|·(1−D)·Ts=0，消去 Ts 後 |Vo|/Vin=D/(1−D)。"
+      },
+      {
+        "title": "分別算輸入與輸出平均電流",
+        "detail": "只有 ON 時輸入經開關供電感，只有 OFF 時電感經二極體供輸出；理想 CCM 下 Iin≈D IL,avg，Io≈(1−D)IL,avg。"
+      }
+    ],
+    "phases": [
+      {
+        "name": "ON：儲能",
+        "pct": 40
+      },
+      {
+        "name": "OFF：向負輸出放能",
+        "pct": 60
+      }
+    ],
+    "equations": [
+      {
+        "label": "週期電感伏秒",
+        "tex": "V_{in}D-|V_o|(1-D)=0",
+        "plain": "Vin×D−|Vo|×(1−D)=0",
+        "why": "穩態電流不逐週漂移，兩段電感電壓乘時間的正負面積必須相等。"
+      },
+      {
+        "label": "理想 CCM 有號轉壓比",
+        "tex": "\\frac{V_o}{V_{in}}=-\\frac{D}{1-D}",
+        "plain": "Vo/Vin=−D/(1−D)",
+        "why": "先由伏秒求幅值，再按典型反相輸出相對共同地的極性加負號。"
+      },
+      {
+        "label": "輸出電流與負載功率幅值",
+        "tex": "I_o=(1-D)\\overline I_L,\\quad P_o=|V_o|I_o",
+        "plain": "Io=(1−D)IL,avg；Po=|Vo|Io",
+        "why": "OFF 二極體導通期間才有輸出電流，不能把整週期電感電流直接當 Io。"
+      }
+    ],
+    "worked": {
+      "given": "理想反相 Buck-Boost，Vin=24 V、D=0.4、R=8 Ω、L=100 µH、fs=100 kHz，先假設 CCM。",
+      "steps": [
+        "伏秒求 |Vo|=24×0.4/0.6=16 V，故有號 Vo=−16 V；輸出電流幅值 Io=16/8=2 A。",
+        "電感平均 IL=2/(1−0.4)=3.333 A；漣波 ΔIL=24×0.4/(100 µH×100 kHz)=0.96 App。",
+        "谷值約 3.333−0.48=2.853 A，大於零，CCM 假設成立；Iin≈D IL=1.333 A。",
+        "輸入功率 24×1.333≈32 W，輸出功率幅值 16×2=32 W，符合理想功率守恆。"
+      ],
+      "result": "24 V 可得到 −16 V，但負號是極性而非負損耗；電流谷值、OFF 放能路徑和元件耐壓都要另外確認。"
+    },
+    "assumptions": [
+      "適用理想固定頻率、二極體式反相 Buck-Boost、CCM、電阻負載，忽略導通壓降和切換損耗。",
+      "開關與二極體的實際耐壓還需包含 Vin+|Vo| 與寄生過衝；公式不是元件額定或閉迴路穩定保證。"
+    ],
+    "pitfall": "把幅值 |Vo|=16 V 誤寫成共地輸出 +16 V，或用示波器接地夾接到負輸出節點造成短路。",
+    "check": {
+      "q": "為什麼 Vin=24 V、Duty 40% 的典型反相 Buck-Boost 有號 Vo=−16 V？",
+      "a": "伏秒平衡決定輸出幅值 16 V；典型反相拓樸相對共同地的輸出極性與輸入相反，所以有號值為 −16 V。"
+    },
+    "tryIt": "到「傳統反相 Buck-Boost 的 CCM」課節，對照 ON／OFF 電感電壓與負載功率。"
+  },
+  "24": {
+    "lesson": "mid-buckboost-dcm",
+    "title": "BCM 是反相 Buck-Boost 哪個電流剛好碰到零？",
+    "question": "非同步 Buck-Boost 的電感三角波下降到 0 A 時，怎麼計算臨界輸出電流和負載電阻？",
+    "takeaway": "BCM 電感谷值恰好為零，但輸出只在 OFF 收到電感電流，因此 Io,B=(1−D)Ipk/2，而不是 Ipk/2。",
+    "intuition": [
+      "想像一個三角電流波形整體往下移：重載時谷值大於零是 CCM；谷值剛好碰到零是 BCM；更輕載時二極體截止後就會出現零電流區段。這個分類看 iL，不是看 Gate 有沒有關。",
+      "輸出平均電流不能拿整個電感三角形直接求平均，因為反相 Buck-Boost 在 MOSFET ON 時二極體截止，電感並沒有向輸出送能；只有 OFF 的電流面積能計入負載。"
+    ],
+    "steps": [
+      {
+        "title": "ON：算從零上升的峰值",
+        "detail": "理想 vL=Vin、ON 時間 D Ts，BCM 時 Ipk=Vin D/(Lfs)，此處電感谷值恰為 0。"
+      },
+      {
+        "title": "OFF：電流降至零，剛好接上下一個 ON",
+        "detail": "理想 BCM 沒有長的 ZERO 區；輸出只在 OFF 接收由 Ipk 線性下降到 0 的二極體電流。"
+      },
+      {
+        "title": "OFF 面積轉成輸出平均電流",
+        "detail": "OFF 比例是 1−D，三角電流面積為 Ipk(1−D)/2，故 Io,B=(1−D)Ipk/2。"
+      },
+      {
+        "title": "由臨界輸出幅值換算 R",
+        "detail": "邊界伏秒得 |Vo|=Vin D/(1−D)，代回可得 Io,B=|Vo|(1−D)²/(2Lfs)；R_B=|Vo|/Io,B。"
+      }
+    ],
+    "phases": [
+      {
+        "name": "ON：0→Ipk",
+        "pct": 40
+      },
+      {
+        "name": "OFF：Ipk→0",
+        "pct": 60
+      }
+    ],
+    "equations": [
+      {
+        "label": "BCM 峰值與臨界輸出電流",
+        "tex": "I_{pk}=\\frac{V_{in}D}{Lf_s},\\quad I_{o,B}=\\frac{(1-D)I_{pk}}{2}",
+        "plain": "Ipk=Vin D/(Lfs)；Io,B=(1−D)Ipk/2",
+        "why": "只有二極體的 OFF 導通階段向輸出供電，因此三角面積需乘 OFF 比例。"
+      },
+      {
+        "label": "以輸出幅值表示的臨界電流",
+        "tex": "I_{o,B}=\\frac{|V_o|(1-D)^2}{2Lf_s}",
+        "plain": "Io,B=|Vo|(1−D)²/(2Lfs)",
+        "why": "將理想邊界 Vin D=|Vo|(1−D) 代換，不能把它當任意 DCM 點的負載式。"
+      }
+    ],
+    "worked": {
+      "given": "Vin=24 V、D=40%、L=100 µH、fs=100 kHz，理想反相 Buck-Boost 的 BCM。",
+      "steps": [
+        "先算輸出幅值 |Vo|=24×0.4/0.6=16 V。",
+        "峰值 Ipk=24×0.4/(100 µH×100 kHz)=0.96 A，整週期平均電感電流為 0.48 A。",
+        "負載臨界 Io,B=0.6×0.96/2=0.288 A；R_B=16/0.288≈55.56 Ω。"
+      ],
+      "result": "電感平均是 0.48 A，輸出平均只有 0.288 A；差異來自電感的 ON 儲能段沒有向輸出送電。"
+    },
+    "assumptions": [
+      "僅適用理想、非同步、固定 Duty/頻率的反相 Buck-Boost BCM，忽略二極體恢復和寄生振鈴。",
+      "同步整流可容許反向電流，或採 PFM/Burst 的控制時，零電流邊界需用相應模式重新分析。"
+    ],
+    "pitfall": "把 Ipk/2 直接當輸出 Io，漏掉輸出只在 OFF 有電流這個關鍵條件。",
+    "check": {
+      "q": "D=40%、BCM 時 Ipk=0.96 A，輸出臨界 Io 是 0.48 A 嗎？",
+      "a": "不是；OFF 占比只有 60%，Io,B=(1−0.4)×0.96/2=0.288 A。"
+    },
+    "tryIt": "到「Buck-Boost 的臨界模式與 DCM」觀察電感谷值從正值下降到零的邊界。"
+  },
+  "25": {
+    "lesson": "mid-buckboost-dcm",
+    "title": "反相 Buck-Boost 進入 DCM，為什麼增益會跟負載有關？",
+    "question": "電感提前把能量放完、多出 ZERO 區段後，為何不能直接套 CCM 的 D/(1−D)？",
+    "takeaway": "DCM 的二極體放能區是 Δ₁Ts，並非整段 (1−D)Ts；需同時使用伏秒平衡和二極體電流三角形面積求解負載。",
+    "intuition": [
+      "當負載變輕，電感電流可能在 OFF 中途降到零，二極體因不能讓電流反向而截止，剩下的時間電感不再向輸出送能。這個『休息時間』叫 ZERO，是 DCM 的重要特徵。",
+      "此時電感放能多久，取決於輸出電壓和負載需要多少電荷；同樣的 Vin、Duty，DCM 下的 Vo 會跟 L、fs 以及電阻 R 一起改變。"
+    ],
+    "steps": [
+      {
+        "title": "ON：電感從 0 A 上升到 Ipk",
+        "detail": "vL≈Vin，Ipk=Vin D/(Lfs)；二極體截止，負載由輸出電容供電。"
+      },
+      {
+        "title": "DIODE：電感在 Δ₁Ts 內降回 0 A",
+        "detail": "vL≈−|Vo|，伏秒平衡給 Vin D=|Vo|Δ₁；此 Δ₁ 不一定等於 1−D。"
+      },
+      {
+        "title": "ZERO：OFF 剩下的電感電流等於零",
+        "detail": "二極體截止，直到下一次 ON 才恢復導通；比例 1−D−Δ₁ 必須大於零才是有效 DCM。"
+      },
+      {
+        "title": "用輸出電流面積求固定 R 的增益",
+        "detail": "Io=Ipk Δ₁/2，並令 Io=|Vo|/R；聯立後 |Vo|/Vin=D√[R/(2Lfs)]，仍須檢查 ZERO>0。"
+      }
+    ],
+    "phases": [
+      {
+        "name": "ON：升流",
+        "pct": 30
+      },
+      {
+        "name": "DIODE：放能",
+        "pct": 44.72135955
+      },
+      {
+        "name": "ZERO：截止",
+        "pct": 25.27864045
+      }
+    ],
+    "equations": [
+      {
+        "label": "DCM 正負伏秒",
+        "tex": "V_{in}D=|V_o|\\Delta_1",
+        "plain": "Vin×D=|Vo|×Δ₁",
+        "why": "ZERO 時理想電感電壓近似零，只有前兩段參與伏秒平衡。"
+      },
+      {
+        "label": "二極體平均輸出電流",
+        "tex": "I_o=\\frac{I_{pk}\\Delta_1}{2},\\quad I_{pk}=\\frac{V_{in}D}{Lf_s}",
+        "plain": "Io=Ipk Δ₁/2；Ipk=Vin D/(Lfs)",
+        "why": "輸出只收到二極體導通區的電流三角形面積；不能加上 ON 的電感電流。"
+      },
+      {
+        "label": "固定 R 的理想 DCM 輸出幅值",
+        "tex": "\\frac{|V_o|}{V_{in}}=D\\sqrt{\\frac{R}{2Lf_s}}",
+        "plain": "|Vo|/Vin=D√[R/(2 L fs)]",
+        "why": "伏秒與 Io=|Vo|/R 聯立而得，算完必須確認放能區和 ZERO 都是合理正值。"
+      }
+    ],
+    "worked": {
+      "given": "Vin=24 V、D=30%、L=100 µH、fs=100 kHz、R=100 Ω，假設理想反相 Buck-Boost DCM。",
+      "steps": [
+        "R/(2Lfs)=100/[2×100 µH×100 kHz]=5；|Vo|/Vin=0.3√5≈0.6708，因此 Vo≈−16.10 V。",
+        "Ipk=24×0.3/(100 µH×100 kHz)=0.72 A，Δ₁=Vin D/|Vo|≈0.4472。",
+        "ZERO=1−0.3−0.4472≈0.2528>0；二極體輸出平均 0.72×0.4472/2≈0.161 A，等於 |Vo|/100 Ω。"
+      ],
+      "result": "這是一組自洽 DCM 解：不只得到 Vo，還驗證了二極體電流面積與正的零電流空檔。"
+    },
+    "assumptions": [
+      "固定電阻負載、固定 Duty/頻率、理想非同步反相 Buck-Boost DCM；不適用 CCM 的固定轉壓式。",
+      "忽略開關壓降、ESR、磁芯損耗、同步整流與控制迴路；若 ZERO≤0，必須改用 BCM／CCM 解。"
+    ],
+    "pitfall": "把 OFF 全部當成二極體有電流，硬套 Δ₁=1−D；或把 Buck DCM 的 ON＋OFF 全三角面積誤算成此電路的 Io。",
+    "check": {
+      "q": "為何固定 Duty 的反相 Buck-Boost DCM 會隨電阻負載 R 改變 Vo？",
+      "a": "因為 OFF 二極體放能時間會隨負載需求改變，聯立伏秒、二極體三角形電流面積與 Io=|Vo|/R 才能求 Vo。"
+    },
+    "tryIt": "在「Buck-Boost 的臨界模式與 DCM」課節改變 R，對照 ZERO 區段是否為正。"
+  },
+  "26": {
+    "lesson": "mid-sepic-zeta",
+    "title": "Ćuk、SEPIC、ZETA 的輸出極性和電流波形到底差在哪？",
+    "question": "三者都可升降壓，為什麼 Ćuk 常是負輸出、SEPIC/ZETA 則常是正輸出？",
+    "takeaway": "先認出能量轉移電容和兩顆電感的位置。典型 Ćuk 反相、SEPIC/ZETA 非反相，理想 CCM 比值幅度可相同，電流脈動卻不同。",
+    "intuition": [
+      "這些拓樸不只是換一顆二極體方向：它們用耦合電容在不同時段搬運能量，兩側電感又會改變電流的連續性。只背 D/(1−D) 看不出元件電流 RMS、輸出極性或 EMI 差異。",
+      "當輸入電源怕脈動，常會注意典型 Ćuk/SEPIC 的輸入串聯電感；當輸出希望較平滑，常會注意典型 Ćuk/ZETA 的輸出串聯電感。這些只是拓樸特徵，不是保證 EMI 或效率的規格。"
+    ],
+    "steps": [
+      {
+        "title": "找到兩個電感和中間傳能電容",
+        "detail": "確認輸入側、輸出側是否有串聯電感，電容如何經開關與二極體連結；它不是只用來抑制雜訊的旁路電容。"
+      },
+      {
+        "title": "Ćuk：典型拓樸的輸出極性反相",
+        "detail": "能量透過傳能電容轉移，理想 CCM 的有號增益為 −D/(1−D)，輸入與輸出電感可讓電流較連續。"
+      },
+      {
+        "title": "SEPIC／ZETA：典型拓樸的輸出非反相",
+        "detail": "它們的理想 CCM 增益為 +D/(1−D)；SEPIC 通常有較連續的輸入電流，ZETA 通常有較連續的輸出電流。"
+      },
+      {
+        "title": "把理想增益當起點，非終點",
+        "detail": "下一步仍需查各電感峰值、傳能電容耐壓與 RMS、開關電壓應力，以及可能進入 DCM 的情況。"
+      }
+    ],
+    "equations": [
+      {
+        "label": "典型 Ćuk 理想 CCM",
+        "tex": "\\frac{V_o}{V_{in}}=-\\frac{D}{1-D}",
+        "plain": "Ćuk：Vo/Vin=−D/(1−D)",
+        "why": "負號對應典型反相輸出；同幅值增益不代表能量傳遞路徑完全相同。"
+      },
+      {
+        "label": "典型 SEPIC 與 ZETA 理想 CCM",
+        "tex": "\\frac{V_o}{V_{in}}=\\frac{D}{1-D}",
+        "plain": "SEPIC/ZETA：Vo/Vin=+D/(1−D)",
+        "why": "限定理想穩態 CCM、典型接線和明確的 PWM Duty 定義，不代表所有改型都相同。"
+      }
+    ],
+    "worked": {
+      "given": "Vin=12 V、Duty=40%，假設典型 Ćuk、SEPIC 和 ZETA 都在理想 CCM。",
+      "steps": [
+        "共同的理想幅值比 D/(1−D)=0.4/0.6≈0.6667，輸出幅值 8 V。",
+        "Ćuk 有號輸出約 −8 V；SEPIC、ZETA 輸出約 +8 V。",
+        "若 D 升至 60%，理想幅值比 1.5，輸出幅值會變成 18 V；但傳能電容 RMS 與元件應力不一定相同。"
+      ],
+      "result": "相同增益不等於可互換：極性、輸入／輸出脈動、傳能電容電流與元件應力才是選型關鍵。"
+    },
+    "assumptions": [
+      "比較典型拓樸的理想 CCM DC 增益；沒有建模耦合電感、寄生電阻、電容 ESR 或控制環路。",
+      "實際電流是否連續、開關耐壓／EMI 與效率要由真實接線和元件參數驗證；此頁不是選型工具。"
+    ],
+    "pitfall": "看到都叫升降壓就認為全部反相；或只因為理想增益相同就假設其輸入與輸出漣波相同。",
+    "check": {
+      "q": "Vin=12 V、D=40% 時，典型 Ćuk 與 SEPIC 的理想輸出幅值都約 8 V，極性也一樣嗎？",
+      "a": "不一樣；典型 Ćuk 輸出為 −8 V，SEPIC 輸出為 +8 V，且傳能電容與電感的路徑不同。"
+    },
+    "tryIt": "從「Ćuk、SEPIC、ZETA 與四開關拓樸」課節的電感位置開始辨識，不要先套公式。"
+  },
+  "27": {
+    "lesson": "mid-four-switch",
+    "title": "四開關 Buck-Boost 怎麼用兩個橋臂中點讓電感升流或降流？",
+    "question": "左右各有一組半橋，為什麼要先求兩個中點電壓差，而不能只看一個 Gate？",
+    "takeaway": "以左向右電感方向定義 vL=vSW,left−vSW,right。不同模式是用不同橋臂狀態產生正、負伏秒，再透過電感傳能。",
+    "intuition": [
+      "四開關非隔離 Buck-Boost 是『左半橋 → 電感 → 右半橋』。兩橋臂中點都能切換，因此電感兩端電壓是它們的差值；MOSFET Gate 只是命令，不等於真實開關節點電壓。",
+      "Vin 高於 Vo 時，可能讓左端作 Buck PWM、右端保持適當固定狀態；Vin 低於 Vo 時則可令右端作 Boost PWM。接近交界時還有混合方式，但模式切換與 dead time 必須由實際控制器規定。"
+    ],
+    "steps": [
+      {
+        "title": "先定義左、右電壓與電感電流方向",
+        "detail": "令 iL 正方向由左向右、vL=vSW,left−vSW,right；每個橋臂上下管都不能同時開通。"
+      },
+      {
+        "title": "Buck：左端 PWM、右端近似固定 Vo",
+        "detail": "左節點切 Vin／0，右節點維持 Vo；左上管 ON 時 vL=Vin−Vo，左下管導通時 vL=−Vo，平均伏秒得 Vo≈Dbuck Vin。"
+      },
+      {
+        "title": "Boost：左端固定 Vin、右端 PWM",
+        "detail": "右側低管導通時右中點≈0，vL≈+Vin；右側高管送能時右中點≈Vo，vL≈Vin−Vo，得到 Vo≈Vin/(1−Dboost)。"
+      },
+      {
+        "title": "把時序與保護加回現實世界",
+        "detail": "兩半橋要處理 dead time、body diode、電流正負、PWM Shadow 更新與模式切換；不能只把兩個 Duty 公式拼起來就完成控制。"
+      }
+    ],
+    "equations": [
+      {
+        "label": "真正控制電感斜率的是兩中點差",
+        "tex": "v_L=v_{SW,L}-v_{SW,R}=L\\frac{di_L}{dt}",
+        "plain": "vL=vSW,L−vSW,R=L diL/dt",
+        "why": "當 vSW,L>vSW,R，沿定義方向電感電流增加；反之下降。"
+      },
+      {
+        "label": "指定 Buck 工作策略的平均式",
+        "tex": "V_o\\approx D_{buck}V_{in}",
+        "plain": "Vo≈Dbuck×Vin",
+        "why": "右橋臂高側保持適當導通、左橋臂以 Dbuck PWM 且為理想 CCM。"
+      },
+      {
+        "label": "指定 Boost 工作策略的平均式",
+        "tex": "V_o\\approx\\frac{V_{in}}{1-D_{boost}}",
+        "plain": "Vo≈Vin/(1−Dboost)",
+        "why": "左橋臂高側導通、右橋臂低側的佔比為 Dboost，且理想 CCM、忽略損耗。"
+      }
+    ],
+    "worked": {
+      "given": "電感 L=100 µH、PWM=100 kHz。比較 Vin=24 V→Vo=12 V 降壓，以及 Vin=12 V→Vo=24 V 升壓。",
+      "steps": [
+        "Buck 選 Dbuck=0.5，左端 ON/OFF 分別 24／0 V，右端近似 12 V，因此 vL=+12／−12 V。",
+        "每段 5 µs，電感上升或下降 12×5 µs/100 µH=0.6 A，正負伏秒抵消。",
+        "Boost 選 Dboost=0.5，左端近似 12 V；右低側導通時 vL=+12 V，右高側送能時 vL=12−24=−12 V，也能週期閉合。"
+      ],
+      "result": "同樣得到正負 12 V 電感電壓，但切換的是不同橋臂；要由兩個開關節點決定真實 vL，不能把兩套模式混用。"
+    },
+    "assumptions": [
+      "只演示非隔離四開關、固定橋臂＋單 PWM 的理想正向 CCM 策略，沒有模擬雙橋同時 PWM。",
+      "不含 body diode、MOSFET dead time、混合模式、反向功率或保護停機；實機必須依硬體 PWM／故障時序驗證。"
+    ],
+    "pitfall": "把四開關 Buck-Boost 當成負載直接接在 H-Bridge 兩中點的馬達驅動，忽略它中間串著能量轉移電感。",
+    "check": {
+      "q": "左橋臂中點 24 V、右橋臂中點 12 V，電感兩端 vL 是多少？",
+      "a": "依左減右的參考方向，vL=24−12=+12 V，因此電感正方向電流開始上升。"
+    },
+    "tryIt": "到「四開關 Buck-Boost 的橋臂與控制」課節分別找 Buck／Boost 的固定橋臂和 PWM 橋臂。"
   }
 };})(window);
