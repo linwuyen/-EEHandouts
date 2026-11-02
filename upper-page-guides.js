@@ -2060,5 +2060,303 @@
     "a": "βeq≈650；這是放大區近似，不保證功率飽和與關斷速度。"
   },
   "tryIt": "對照 P.35 二級與三級的節點，分別標示 VBE 串級與主電流路徑。"
+},
+"36": {
+  "lesson": "mosfet",
+  "title": "MOSFET I–V 曲線與 RDS(on)：Gate 到底控制了什麼？",
+  "question": "圖中 VGS=4、5、6、7 V 對應不同電流，為何資料表只有指定條件才列 RDS(on)？",
+  "takeaway": "Gate 建立導電通道；只有充分增強且工作在低 VDS 歐姆區時，才可把導通壓降近似為 ID×RDS(on)。",
+  "intuition": [
+    "P.36 畫出 N 通道 MOSFET 的 G/D/S 與多組輸出特性，Gate 電壓不同時曲線會改變，不能把 VGS(th) 當成「已能承載額定大電流」的開啟電壓。",
+    "MOSFET 主要靠多數載子導電，因此高頻常有優勢；但 Gate 雖然直流平均輸入電流很小，充放 Gate 電荷仍需要 Driver 電流與時間。"
+  ],
+  "steps": [
+    {
+      "title": "先標示 VGS 與 VDS 的參考端",
+      "detail": "N 溝 MOSFET 的 VGS 是 Gate 相對 Source，VDS 是 Drain 相對 Source；同名電壓不可直接以 MCU 腳位對地推斷。"
+    },
+    {
+      "title": "對照低 VDS 線性區的斜率",
+      "detail": "在充分增強的指定 VGS 和工作溫度下，低 VDS 區域的斜率可用 1/RDS(on) 描述，正向電流增大造成 I×R 壓降。"
+    },
+    {
+      "title": "確認 Gate 驅動與溫度限制",
+      "detail": "必須查指定 VGS、Tj 的最大 RDS(on)、總 Gate 電荷與 VGS 絕對額定，不能只由閾值電壓曲線估計大電流損失。"
+    }
+  ],
+  "equations": [
+    {
+      "label": "通道導通壓降",
+      "tex": "V_{DS(on)}\\approx I_D R_{DS(on)}",
+      "plain": "低 VDS 導通壓降≈ID×RDS(on)",
+      "why": "僅在充分增強的歐姆區且以指定 VGS、Tj 的電阻作估算。"
+    },
+    {
+      "label": "整週導通損耗",
+      "tex": "P_{cond}\\approx I_{D,rms}^2 R_{DS(on)}",
+      "plain": "Pcond≈元件整週 RMS 電流²×RDS(on)",
+      "why": "RMS 已包含不導通時間的零電流，不應再在同一算法中重複乘 Duty。"
+    }
+  ],
+  "worked": {
+    "given": "指定工作點下 MOSFET 的 RDS(on)=40 mΩ，整週導通電流 Irms=10 A，假設 RDS(on) 在該温度、VGS 近似固定。",
+    "steps": [
+      "低 VDS 通道損估算 Pcond=10²×0.040=4 W。",
+      "若 10 A 是只有半週導通時的固定電流而非整週 RMS，則整週 Irms=10√0.5≈7.071 A，平均導通損為 2 W。"
+    ],
+    "result": "同一個 10 A 數字若未交代峰值、導通區平均或 RMS，就會得到不同損失，必須先定義量測範圍。"
+  },
+  "assumptions": [
+    "範例 RDS(on) 和電流只是說明元件自身通道，未包含電容性換流、body diode 與寄生振鈴。",
+    "資料表需核對 VGS、結溫和製程差異的最大值，尤其高溫 RDS(on) 可能與標稱不同。"
+  ],
+  "pitfall": "把 VGS(th) 視為低 RDS(on) 的保證，或對已含 Duty 的 RMS 再乘一次 Duty。",
+  "check": {
+    "q": "若 MOSFET 整週 Irms=10 A 且 RDS(on)=40 mΩ，平均導通損是多少？",
+    "a": "4 W；若 10 A 其實只在 50% Duty 導通，則須重新計算整週 RMS。"
+  },
+  "tryIt": "在既有 MOSFET 課節固定電流、調整 RDS(on)，再和原始 P.36 多條 VGS 曲線對照。"
+},
+"37": {
+  "lesson": "mosfet",
+  "title": "理想化 MOSFET 與 Body Diode：反向電流到底怎麼走？",
+  "question": "為何 MOSFET 的功率通道能雙向流電流，卻不能說 OFF 時也一定能阻斷任意反向電壓？",
+  "takeaway": "真實 MOSFET 有可雙向導流的通道及 body diode；電流方向與 Gate 狀態決定損耗，原講義的單向理想開關只是有條件近似。",
+  "intuition": [
+    "P.37 左側曲線包含導通時的有限 RON、反向導流與 body diode 影響，右側把它簡化成理想開關與二極體，目的是方便分析續流路徑。",
+    "ON 時通道可以承擔反向電流（在安全範圍內），OFF 時若 body diode 被正向偏壓，仍可能自動導通；僅看 Gate=0 無法保證元件所有方向的電流都為零。"
+  ],
+  "steps": [
+    {
+      "title": "找出原圖 Source/Drain 與二極體箭頭",
+      "detail": "讀右上理想開關旁的體二極體方向：在對應反向壓力下，即使通道關閉仍可能有續流路徑。"
+    },
+    {
+      "title": "Gate ON 時比較通道與二極體",
+      "detail": "若有充分增強的 Gate、反向電流可經通道降低導通壓降；但具體分流取決於電流、VGS、温度與二極體狀態。"
+    },
+    {
+      "title": "Gate OFF 時確認換流及反向應力",
+      "detail": "若 body diode 正偏則會產生 VF 壓降；若反向阻斷則應按 BVDSS、Coss 與寄生過衝檢查安全條件。"
+    }
+  ],
+  "equations": [
+    {
+      "label": "通道導通耗散",
+      "tex": "P_{channel}\\approx I_{rms}^2R_{DS(on)}",
+      "plain": "通道平均熱損≈整週 RMS 電流²×RDS(on)",
+      "why": "適用 MOS 通道充分增強、對應 VGS/Tj 的歐姆區，包含允許的反向電流。"
+    },
+    {
+      "label": "Body diode 導通耗散",
+      "tex": "P_{body}\\approx V_FI_{avg,body}",
+      "plain": "體二極體平均熱損≈VF×平均二極體正向電流",
+      "why": "僅用於實際體二極體導通區，與已流經通道的同一電流不可雙重計算。"
+    }
+  ],
+  "worked": {
+    "given": "假設反向續流 5 A、MOSFET 導通通道 RDS(on)=20 mΩ；若 Gate OFF 體二極體承流，其 VF 暫估 0.8 V。",
+    "steps": [
+      "ON 且反向電流完全流經通道時，通道耗散約 5²×0.020=0.5 W。",
+      "OFF 時若通道不承流、body diode 承流，估算耗散為 0.8×5=4 W。"
+    ],
+    "result": "兩者是互斥的示意工作狀態，不能把 0.5 W+4 W 當作同一個 5 A 的單段損失。"
+  },
+  "assumptions": [
+    "圖為教學理想化模型，真實開關的反向導通、body diode 電流及寄生電容需按器件結構與偏壓核對。",
+    "不包含 body diode Qrr、死區或同步整流切換過程；實機 Gate 高低和控制時序必須附保護與量測。"
+  ],
+  "pitfall": "認為 MOSFET Gate OFF 就能阻斷所有方向電流，或同一個續流電流被通道和二極體重複計算。",
+  "check": {
+    "q": "5 A 反向續流、RDS(on)=20 mΩ 時，純通道損與 VF=0.8 V 純二極體損分別多少？",
+    "a": "純通道約 0.5 W，純體二極體約 4 W；實際分流由 Gate 和器件工作狀態決定。"
+  },
+  "tryIt": "配合 P.37 原圖的簡化開關／body diode，在 Buck 續流期間辨別電流路徑。"
+},
+"38": {
+  "lesson": "mosfet",
+  "title": "MOSFET 的 Ohmic、Active、Cutoff：為何飽和區不是低損耗 ON？",
+  "question": "類比電路常說 MOSFET 飽和區是放大區，與電源工程所說『導通』有何不同？",
+  "takeaway": "電源開關期待充分增強的低 VDS 歐姆區；Active/Saturation 區可同時承受較高 VDS 與 ID，不可直接套低 RDS(on) 估算。",
+  "intuition": [
+    "P.38 左圖依 VGS 和 VDS 將 MOSFET 分為截止、線性/三極區、Active/飽和區；右側轉移曲線說明驅動電壓上升會讓電流能力改變。",
+    "當 VDS 小、通道充分增強時可以用 RDS(on) 近似；當 VDS 很高且有電流時更接近主動區或切換過渡，這往往造成額外熱損而非理想 ON。"
+  ],
+  "steps": [
+    {
+      "title": "先檢查 VGS 是否高於閾值",
+      "detail": "VGS≤Vth 時在簡化模型近似截止，但真實器件有漏電及次臨界電流，不能把閾值當成額定強導通條件。"
+    },
+    {
+      "title": "對照 VDS 與 overdrive 的區域邊界",
+      "detail": "長通道近似下 VDS<VGS−Vth 是三極/歐姆區；超過此值則進入 Active/飽和區，RDS(on) 常數模型不再有效。"
+    },
+    {
+      "title": "回到電源硬切換與熱設計",
+      "detail": "低阻 ON 希望 VDS≈ID×RDS(on)，但切換期間電壓電流同時存在；須由 v(t)i(t) 或 datasheet Eon/Eoff 計算損失。"
+    }
+  ],
+  "equations": [
+    {
+      "label": "長通道區域邊界",
+      "tex": "V_{DS}<V_{GS}-V_{th}\\ \\ (\\mathrm{ohmic})",
+      "plain": "歐姆區近似條件：VDS<VGS−Vth",
+      "why": "只作理想長通道分類，功率 MOSFET 的實際特性需查曲線與量測。"
+    },
+    {
+      "label": "實際瞬時損失",
+      "tex": "p(t)=v_{DS}(t)i_D(t)",
+      "plain": "瞬時熱功率尺度 p=VDS×ID",
+      "why": "忽略外部寄生儲能時的端口耗散近似，切換期間電壓與電流需取同一時刻。"
+    }
+  ],
+  "worked": {
+    "given": "假設長通道分類用的 VGS=5 V、Vth=3 V，並假設充分導通時 RDS(on)=40 mΩ。",
+    "steps": [
+      "過驅動電壓 VGS−Vth=2 V。若 VDS=0.1 V 小於 2 V，區域分類屬歐姆區。",
+      "在低 VDS 且充分增強近似下，ID≈0.1/0.04=2.5 A、瞬時耗散約 0.25 W。"
+    ],
+    "result": "若 VDS 增至 5 V (>2 V)，不可繼續拿固定 40 mΩ 推算 125 A；這已落在主動區的示意條件。"
+  },
+  "assumptions": [
+    "區域公式只作長通道電晶體物理直覺，功率 MOSFET 的短通道、漂移區、熱及 body diode 行為更複雜。",
+    "RDS(on) 模型須以真正充分增強的 VGS、結溫及特定電流評估，不得以 Vth 判定已能承載額定電流。"
+  ],
+  "pitfall": "把 MOSFET 的 Active/Saturation 區誤認為可以低壓降承載大電流的理想 ON。",
+  "check": {
+    "q": "VGS=5 V、Vth=3 V、VDS=5 V，可用 40 mΩ 算 125 A 嗎？",
+    "a": "不能，VDS 大於過驅動 2 V，固定歐姆區 RDS(on) 算法失效。"
+  },
+  "tryIt": "對照原講義 P.38 三個區域與轉移曲線，分辨物理飽和區和低電阻導通區。"
+},
+"39": {
+  "lesson": "mosfet",
+  "title": "Gate 電荷、Miller 平台與 Ciss/Coss/Crss：為何 PWM 腳位不能直接決定邊緣？",
+  "question": "同樣 100 kHz PWM，為何換 Driver、Rg 和 Layout 後的 VDS 邊緣與切換損耗差很多？",
+  "takeaway": "真實 MOSFET 的 Gate/Drain/Source 寄生電容需充放電；Miller 階段 Gate 電流被用於 VDS 變化，切換時間取決於實際電荷與 Driver 電流。",
+  "intuition": [
+    "P.39 左圖把 MOSFET 表成 Cgs、Cgd、Cds 及 Gate 電阻，右圖把 VGS、ID、VDS 與瞬時損耗對齊；Gate 命令上升與 Drain 端電壓下降不是同一瞬間。",
+    "資料表 Ciss/Coss/Crss 依特定 VDS、VGS、頻率測得並非固定整個切換期間；判斷切換速度更應搭配 Qg、Qgd、Driver 電流與寄生 inductance。"
+  ],
+  "steps": [
+    {
+      "title": "從器件等效圖辨認三顆寄生電容",
+      "detail": "在同一測試偏壓下可用 Cgd=Crss、Cgs=Ciss−Crss、Cds=Coss−Crss 表達小訊號關係，不能把數值當全工作域常數。"
+    },
+    {
+      "title": "依 Gate 電荷描述切換階段",
+      "detail": "Driver 先提高 VGS 讓 ID 建立；到 Miller 平台時主要搬運 Qgd 使 VDS 下降，期間電流與電壓重疊造成切換損。"
+    },
+    {
+      "title": "驗證 Gate/Drain 示波器時序與損失",
+      "detail": "量測 Gate loop、VGS 相對 Source、VDS 和 ID；注意共源寄生電感、探棒接地及 Driver source/sink 電流限制。"
+    }
+  ],
+  "equations": [
+    {
+      "label": "相同偏壓下的電容分解",
+      "tex": "C_{gs}=C_{iss}-C_{rss},\\quad C_{ds}=C_{oss}-C_{rss}",
+      "plain": "Cgs=Ciss−Crss，Cds=Coss−Crss（相同測試偏壓）",
+      "why": "只是小訊號定義，真實 C(V) 非線性，不適合直接用固定 C×ΔV 取代全程電荷。"
+    },
+    {
+      "label": "Miller 電荷區段時間尺度",
+      "tex": "t_{Miller}\\approx\\frac{Q_{gd}}{I_{G,avg}}",
+      "plain": "Miller 時間≈Qgd/平均 Gate 電流",
+      "why": "平均電流須符合該段 Driver／Rg／VGS 的限制，並非 MCU PWM 邊緣速度。"
+    },
+    {
+      "label": "Gate 驅動功率尺度",
+      "tex": "P_{gate}\\approx Q_gV_{drive}f_s",
+      "plain": "Gate 驅動總供電功率尺度≈Qg×Vdrive×fs",
+      "why": "表示 Gate 充放電循環的驅動能量，耗散可分布於 Driver、Gate 電阻和電路，非 MOSFET 通道必定承擔。"
+    }
+  ],
+  "worked": {
+    "given": "假設同一偏壓下 Ciss=4 nF、Crss=0.5 nF、Coss=1.5 nF；另 Qgd=10 nC、Gate 電流 0.5 A、Qg=60 nC、Vdrive=10 V、fs=100 kHz。",
+    "steps": [
+      "Cgs=Ciss−Crss=3.5 nF，Cds=Coss−Crss=1.0 nF（只在相同偏壓下成立）。",
+      "Miller 區段時間尺度 t≈10 nC/0.5 A=20 ns，尚未計入 Gate 電流在過程中的變化。",
+      "Gate 驅動能量尺度為 60 nC×10 V=600 nJ/cycle，100 kHz 時約 0.06 W。"
+    ],
+    "result": "這 0.06 W 不代表 MOSFET 本體的全部切換損，VDS/ID 重疊、Coss 能量、Qrr 與寄生仍須另外核算且避免重複。"
+  },
+  "assumptions": [
+    "使用 Ciss/Coss/Crss 的同偏壓小訊號關係，MOSFET 寄生電容對 VDS 高度非線性。",
+    "Gate 驅動損與 Eon/Eoff、Coss 能量的分配依實際測試定義，P.39 時序只是物理示意非示波器證據。"
+  ],
+  "pitfall": "把 Ciss 數值當恆定 Gate 電荷或以為 MCU 輸出 100 kHz 就能直接決定 MOSFET 邊緣時間。",
+  "check": {
+    "q": "Qgd=10 nC，平均 Gate 電流 0.5 A，Miller 區段約多久？",
+    "a": "約 20 ns；真實時間仍受 Driver、Rg、偏壓與寄生回路影響。"
+  },
+  "tryIt": "對照 P.39 VGS、ID、VDS 與 p(t) 五段波形，在既有 MOSFET 主題觀察 Gate 電荷。"
+},
+"40": {
+  "lesson": "switchloss",
+  "title": "MOSFET 硬切換損：如何由電壓電流重疊推導 Eon/Eoff？",
+  "question": "同一顆 10 A MOSFET，即使 ON 時只有 40 mΩ，為何 100 kHz 還可能額外損失十幾瓦？",
+  "takeaway": "硬切換瞬間 VDS 與 ID 重疊形成 Eon/Eoff；先核對每次切換能量再乘頻率，與整週導通損分帳，避免 Qrr 重複列入。",
+  "intuition": [
+    "原講義 P.40 畫出了含箝位二極體的感性負載簡化電路、Gate ON/OFF、vT/iT 及 pT 的三角形重疊區。理想切換瞬間長度為零，實際轉換時間有限才有損耗。",
+    "導通損的電流通常在 MOSFET 充分 ON 時流過 RDS(on)；切換損則需要積分 v(t)i(t)，其能量可能受寄生、Qrr、Driver 和元件溫度影響。"
+  ],
+  "steps": [
+    {
+      "title": "先以三角形近似求 ON 轉換能量",
+      "detail": "依 P.40 的先電流上升後電壓下降示意，在固定 Bus Vd 與 Io、線性斜坡假設下，Eon≈½VdIo(t_ri+t_fv)。"
+    },
+    {
+      "title": "再以相反方向推得 OFF 損失",
+      "detail": "OFF 時先使電壓上升再讓電流下降，在同一線性假設下 Eoff≈½VdIo(t_rv+t_fi)。"
+    },
+    {
+      "title": "完成全週導通與開關損失分帳",
+      "detail": "每週平均 Psw=(Eon+Eoff)fs；若 ON 固定 I，通道損約 I²RonD；實際硬體以資料表 Eon/Eoff 或量測優先。"
+    },
+    {
+      "title": "檢查額外損失是否已被包含",
+      "detail": "datasheet Eon 可能已包含對側二極體反向恢復，Coss 能量也可能在同一積分中；不能直接把所有粗估項再次相加。"
+    }
+  ],
+  "equations": [
+    {
+      "label": "單次 ON/OFF 硬切換能量近似",
+      "tex": "E_{on/off}\\approx\\frac12 V_dI_ot_{c,on/off}",
+      "plain": "Eon/off≈0.5×Vd×Io×對應轉換時間",
+      "why": "只在線性三角重疊、電壓電流起始及先後關係符合講義圖時成立。"
+    },
+    {
+      "label": "切換平均功率",
+      "tex": "P_{sw}\\approx(E_{on}+E_{off})f_s",
+      "plain": "Psw≈(Eon+Eoff)×每秒切換次數",
+      "why": "按每週期各一次 ON/OFF 計；若脈波數不同或有 ZVS/ZCS，不能直接沿用。"
+    },
+    {
+      "label": "MOSFET 整週導通損",
+      "tex": "P_{cond}\\approx I_o^2R_{DS(on)}D",
+      "plain": "若 ON 固定 Io，Pcond≈Io²×RDS(on)×D",
+      "why": "僅充分增強且導通電流恆定時用 Duty，已採整週 RMS 時不能重複乘 Duty。"
+    }
+  ],
+  "worked": {
+    "given": "假設感性硬切換 Vd=400 V、Io=10 A、fs=100 kHz、D=0.5、Ron=40 mΩ；線性等效切換時間 ton,c=50 ns、toff,c=30 ns。",
+    "steps": [
+      "Eon≈0.5×400×10×50 ns=100 µJ，Eoff≈0.5×400×10×30 ns=60 µJ。",
+      "Psw≈(100+60) µJ×100 kHz=16 W，代表切換損耗模型的平均功率尺度。",
+      "導通損 Pcond≈10²×0.04×0.5=2 W，兩者合計約 18 W，還沒計入其他獨立損失。"
+    ],
+    "result": "若 Eon 已包含相同 diode Qrr 換流，不能再將 QrrVRfs 疊加進 18 W；真正選型要以相同工況 Eon/Eoff 和熱測試確認。"
+  },
+  "assumptions": [
+    "以指定夾位感性負載、線性電流／電壓斜率、一次 ON 和一次 OFF 作粗估，非真實器件的 datasheet 準確值。",
+    "不含 Coss、Qrr 重複計算、導通 RDS(on) 温升、Driver 功耗與 SOA；實機示波器量測需注意 VDS/ID 探頭時差和帶寬。"
+  ],
+  "pitfall": "把 16 W 三角近似當成任何 ZVS／PSFB 的真實損失，或將已含 Qrr 的 Eon 再加一次 QrrVRfs。",
+  "check": {
+    "q": "Eon=100 µJ、Eoff=60 µJ、100 kHz、Ron=40 mΩ、10 A ON 50%，粗估兩種損失是多少？",
+    "a": "切換 16 W、導通 2 W，合計 18 W 僅限此簡化模型，尚非元件熱驗收。"
+  },
+  "tryIt": "對照 P.40 電壓電流與功率三角形，再到『導通、切換與 Gate 損耗』課節驗算不同 fs 下的結果。"
 }
 };})(window);
