@@ -103,6 +103,18 @@ for(const [engineName,engine] of [['firefox',firefox],['webkit',webkit]]){
     const sz=await page.evaluate(()=>({v:innerWidth,s:document.documentElement.scrollWidth}));
     assert.ok(sz.s<=sz.v+2,engineName+' upper P.'+p+' overflow '+JSON.stringify(sz));
   }
+  // Upper magnetics source-specific guides: full P12-26 mobile Firefox/WebKit.
+  for(let p=12;p<=26;p++){
+    await page.goto(BASE+'/index.html#slide/'+p);
+    const g=page.locator('[data-guide-page="'+p+'"]');
+    await g.waitFor({timeout:15000});
+    assert.ok(await g.locator('.guide-equation').count()>=2,
+      engineName+' upper magnetics P.'+p+' math/fallback');
+    assert.equal(await page.locator('#source-pdf-file').count(),1,
+      engineName+' upper magnetics P.'+p+' original PDF viewer');
+    const sz=await page.evaluate(()=>({v:innerWidth,s:document.documentElement.scrollWidth}));
+    assert.ok(sz.s<=sz.v+2,engineName+' upper magnetics P.'+p+' horizontal overflow');
+  }
   // Advanced engineering page: no test may silently degrade to a missing lab.
   for (const lab of ['pfc','llc','psfb','loop','timing','nonideal','zvs']){
     await page.goto(BASE+'/advanced.html#'+lab);
