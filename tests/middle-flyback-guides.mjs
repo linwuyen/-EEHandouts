@@ -108,4 +108,22 @@ near(eta*input40,16,1e-12,'P40 assumed Po');
 near((1-eta)*input40,4,1e-12,'P40 assumed loss envelope');
 near(eta*input40/20,.8,1e-12,'P40 20V output current at assumed efficiency');
 near(vin40+2*(20+.7),121.4,1e-10,'P40 ideal VDS excluding leakage');
+
+const diodeFraction40=vin40*dc40/(2*(20+.7));
+const zeroFraction40=1-dc40-diodeFraction40;
+near(diodeFraction40,20/41.4,1e-12,'P40 diode interval ratio');
+near(diodeFraction40/fs40,9.661835748792272e-6,1e-12,'P40 diode microseconds');
+near(zeroFraction40/fs40,5.338164251207728e-6,1e-12,'P40 idle microseconds');
+assert.ok(zeroFraction40>0,'P40 must verify DCM before using full peak energy');
+near(dc40+diodeFraction40,0.7330917874396135,1e-12,'P40 DCM period closure');
+const idealSecondaryCurrent40=.5*2*current40*diodeFraction40;
+near(idealSecondaryCurrent40,.966183574879227,1e-12,'P40 ideal secondary current area');
+near(20*idealSecondaryCurrent40,19.32367149758454,1e-10,'P40 diode voltage drop reduces ideal load power');
+assert.ok(Math.abs(idealSecondaryCurrent40-eta*input40/20)>.15,
+  'P40 ideal waveform current must NOT be conflated with assumed efficiency output current');
+const dcmRegion=(vout,duty,drop=.7)=>1-duty-vin40*duty/(2*(vout+drop));
+assert.ok(dcmRegion(20,.25)>0,'P40 DCM valid');
+near(dcmRegion(80*.25/(2*(1-.25))-.7,.25),0,1e-12,'P40 BCM boundary');
+assert.ok(dcmRegion(4,.25)<0,'P40 invalid DCM cannot use complete-demagnetization formula');
+
 console.log('PASS P.33–40 isolated/Flyback: eight original pages, fixed source mapping, independent CCM/DCM and isolation numeric evidence');
