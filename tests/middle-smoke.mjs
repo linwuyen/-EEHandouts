@@ -98,8 +98,8 @@ await run('P.2–9 original deep explanations, math, references and answer revea
     if(p===6||p===9)await page.screenshot({path:'tests/screenshots/middle-page-'+p+'-guide.png',fullPage:true});
   }
   assert.equal(titles.size,8,'Do not reuse a generic title for different pages');
-  await visit('middle.html#slide/23','#source-pdf-file');
-  assert.equal(await page.locator('.page-guide').count(),0,'Unreviewed P.23 must not show invented explanation');
+  await visit('middle.html#slide/33','#source-pdf-file');
+  assert.equal(await page.locator('.page-guide').count(),0,'P.33 remains outside deep-guide rollout');
   await visit('middle.html#home','.subject-card');
   await page.locator('#search-trigger').click();
   await page.locator('#search-input').fill('伏秒平衡');
@@ -148,8 +148,8 @@ await run('P.10–22 Boost deep guides, physical text, equations, answer and mob
     });
   }
   assert.equal(titles.size,13,'Each Boost source page must have its own specific explanation');
-  await visit('middle.html#slide/23','#source-pdf-file');
-  assert.equal(await page.locator('.page-guide').count(),0,'P.23 is the untouched next unit');
+  await visit('middle.html#slide/33','#source-pdf-file');
+  assert.equal(await page.locator('.page-guide').count(),0,'P.33 is the untouched next unit');
   await visit('middle.html#home','.subject-card');
   await page.locator('#search-trigger').click();
   await page.locator('#search-input').fill('二極體電流三角形');
@@ -170,6 +170,69 @@ await run('P.10–22 Boost deep guides, physical text, equations, answer and mob
         return {vw,sw,culprits};
       });
       assert.ok(sizes.sw<=sizes.vw+2,'P.'+p+' Boost guide '+width+'px overflow: '+JSON.stringify(sizes));
+    }
+    await mobile.close();
+  }
+});
+
+await run('P.23–32 Buck-Boost / bidirectional / H-Bridge deep page regression',async()=>{
+  const ids={
+    23:'mid-buckboost-ccm',24:'mid-buckboost-dcm',25:'mid-buckboost-dcm',
+    26:'mid-sepic-zeta',27:'mid-four-switch',28:'mid-bidirectional',
+    29:'mid-quadrants',30:'mid-motor-hbridge',31:'mid-bipolar',32:'mid-unipolar'
+  };
+  const titles=new Set();
+  for(let p=23;p<=32;p++){
+    await visit('middle.html#slide/'+p,'[data-guide-page="'+p+'"]');
+    const guide=page.locator('[data-guide-page="'+p+'"]');
+    assert.equal(await guide.count(),1,'P.'+p+' exactly one guide');
+    const title=await guide.locator('h2').innerText();
+    assert.ok(title.length>16,'P.'+p+' substantive title');
+    titles.add(title);
+    assert.ok(await guide.locator('.guide-steps li').count()>=3,'P.'+p+' physical and signal stages');
+    assert.ok(await guide.locator('.guide-equation').count()>=2,'P.'+p+' formula explanation');
+    assert.ok(await guide.locator('.guide-worked li').count()>=3,'P.'+p+' worked case');
+    assert.ok(await guide.locator('.guide-assumptions li').count()>=2,'P.'+p+' model scope');
+    const href=await guide.locator('.guide-link').getAttribute('href');
+    assert.ok(href.endsWith('/'+ids[p]),'P.'+p+' corresponding existing lesson');
+    assert.equal(await page.locator('#source-pdf-file').count(),1,'P.'+p+' local PDF reader intact');
+    assert.ok((await page.locator('.slide-transcript').innerText()).length>8,'P.'+p+' source summary intact');
+    const eq=guide.locator('.guide-equation').first();
+    const rendered=await eq.evaluate(el=>el.classList.contains('guide-ready'));
+    assert.ok(rendered||await eq.locator('.guide-math-fallback').isVisible(),
+      'P.'+p+' formula KaTeX/fallback must remain readable');
+    const check=guide.locator('details.guide-check');
+    assert.equal(await check.evaluate(el=>el.open),false,'P.'+p+' reveal must start collapsed');
+    await check.locator('summary').click();
+    assert.equal(await check.evaluate(el=>el.open),true,'P.'+p+' answer toggles with click/keyboard semantics');
+    assert.ok((await check.locator('p').innerText()).length>=22,'P.'+p+' real answer');
+    if([23,25,27,29,32].includes(p))await page.screenshot({
+      path:'tests/screenshots/middle-switching-page-'+p+'.png',fullPage:true
+    });
+  }
+  assert.equal(titles.size,10,'Each Buck-Boost/bridge slide must have unique original explanation');
+  await visit('middle.html#slide/33','#source-pdf-file');
+  assert.equal(await page.locator('.page-guide').count(),0,'P.33 must not claim a fabricated guide');
+  await visit('middle.html#home','.subject-card');
+  await page.locator('#search-trigger').click();
+  await page.locator('#search-input').fill('反電勢');
+  assert.ok(await page.locator('#search-results a[href="#slide/30"]').count()>0,
+    'New motor page is searchable by concept');
+  await page.keyboard.press('Escape');
+  for(const width of [320,390]){
+    const mobile=await browser.newPage({viewport:{width,height:720}});
+    for(let p=23;p<=32;p++){
+      await mobile.goto(BASE+'/middle.html#slide/'+p);
+      await mobile.locator('[data-guide-page="'+p+'"]').waitFor({timeout:20000});
+      const size=await mobile.evaluate(()=>{
+        const vw=innerWidth,sw=document.documentElement.scrollWidth;
+        const elements=sw>vw+2?Array.from(document.querySelectorAll('.page-guide *'))
+          .filter(el=>el.getBoundingClientRect().right>vw+2)
+          .slice(0,4).map(el=>({tag:el.tagName,cls:typeof el.className==='string'?el.className.slice(0,55):''})):[];
+        return {vw,sw,elements};
+      });
+      assert.ok(size.sw<=size.vw+2,
+        'P.'+p+' mobile '+width+'px must not overflow '+JSON.stringify(size));
     }
     await mobile.close();
   }
