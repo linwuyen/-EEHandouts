@@ -153,7 +153,7 @@
     return '<div style="--c:'+(c?c.accent:'#4899EF')+'"><a class="back-link" href="'+(c?chapterPath(c):'#home')+'">← 返回'+(c?' '+e(c.title):'總覽')+'</a><header class="page-header"><div class="eyebrow">ORIGINAL LECTURE INDEX</div><h1>'+e(title)+'</h1><p>共 '+cards.length+' 頁。'+e(D.pageTextIntro||'點擊任一頁即可查看原講義抽取文字，並可在本機載入原始 PDF，對照圖片與電路圖。')+'</p></header><div class="content-note">'+e(D.indexNote||'原講義共 107 頁：第 1–2 頁為封面／課表，第 3–106 頁為教材，第 107 頁為結尾。文字來自 PPTX 擷取，公式圖與電路圖請以原始 PDF 視覺內容為準。')+'</div><div class="slides-toolbar"><strong>'+cards.length+' 頁完整標題索引</strong>'+(c?buttonLink('#quiz/'+c.id,'章末測驗 →'):buttonLink('#home','返回主題首頁'))+'</div><div class="slide-grid">'+cards.join('')+'</div></div>';
   }
 
-  function pageGuideData(p){return pageCount===52&&window.EE_PAGE_GUIDES&&window.EE_PAGE_GUIDES[p]||null;}
+  function pageGuideData(p){return pageCount===52?(window.EE_PAGE_GUIDES&&window.EE_PAGE_GUIDES[p]||null):(window.EE_UPPER_PAGE_GUIDES&&window.EE_UPPER_PAGE_GUIDES[p]||null);}
   function pageGuide(p){
     var g=pageGuideData(p);if(!g)return '';
     var linked=flat.find(function(x){return x.lesson.id===g.lesson;});
@@ -161,7 +161,7 @@
       return '<span class="guide-phase-'+i+'" style="width:'+Math.min(100,Math.max(0,Number(x.pct)))+'%"></span>';
     }).join('')+'</div><p class="guide-phases">'+g.phases.map(function(x){return e(x.name)+' '+Number(x.pct.toFixed(2))+'%';}).join(' · ')+'</p>':'';
     return '<section class="page-guide" data-guide-page="'+p+'" aria-labelledby="guide-title-'+p+'">'+
-      '<header class="guide-intro"><small>中冊第 '+p+' 頁 · STEP BY STEP</small><h2 id="guide-title-'+p+'">'+e(g.title)+'</h2>'+
+      '<header class="guide-intro"><small>'+(pageCount===52?'中冊':'上冊')+'第 '+p+' 頁 · STEP BY STEP</small><h2 id="guide-title-'+p+'">'+e(g.title)+'</h2>'+
       '<p><strong>先想：</strong>'+e(g.question)+'</p><p class="guide-takeaway"><strong>一句話記住：</strong>'+e(g.takeaway)+'</p>'+
       '<p class="guide-source">以下是本站另外撰寫的導讀；原講義電路圖與公式請用下方本機 PDF 核對。</p></header>'+
       '<section class="guide-section"><h3>① 用白話想像物理現象</h3>'+g.intuition.map(function(x){return '<p>'+e(x)+'</p>';}).join('')+'</section>'+

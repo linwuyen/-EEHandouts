@@ -91,6 +91,18 @@ for(const [engineName,engine] of [['firefox',firefox],['webkit',webkit]]){
     const size=await page.evaluate(()=>({v:innerWidth,s:document.documentElement.scrollWidth}));
     assert.ok(size.s<=size.v+2,engineName+' middle P.'+p+' horizontal overflow');
   }
+  // Upper-volume new source-grounded AC guides stay usable on mobile Firefox/WebKit.
+  for(const p of [3,4,5,6,7,8,9,10,11]){
+    await page.goto(BASE+'/index.html#slide/'+p);
+    const guide=page.locator('[data-guide-page="'+p+'"]');
+    await guide.waitFor({timeout:15000});
+    assert.ok(await guide.locator('.guide-equation').count()>=2,
+      engineName+' upper P.'+p+' formula or fallback');
+    assert.equal(await page.locator('#source-pdf-file').count(),1,
+      engineName+' upper P.'+p+' original PDF viewer');
+    const sz=await page.evaluate(()=>({v:innerWidth,s:document.documentElement.scrollWidth}));
+    assert.ok(sz.s<=sz.v+2,engineName+' upper P.'+p+' overflow '+JSON.stringify(sz));
+  }
   // Advanced engineering page: no test may silently degrade to a missing lab.
   for (const lab of ['pfc','llc','psfb','loop','timing','nonideal','zvs']){
     await page.goto(BASE+'/advanced.html#'+lab);
