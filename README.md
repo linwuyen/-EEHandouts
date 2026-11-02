@@ -197,7 +197,7 @@ Node.js 22 開發環境：執行 `npm ci --ignore-scripts`，再安裝 Chromium�
 
 此內容由 middle-page-guides.js 管理；app.js 的中冊逐頁路由負責顯示，middle-page-guides.css 負責排版。原講義摘要及使用者本機 PDF 檢視器都保留；導讀不是投影片逐字稿，也不提供公開原投影片圖片。KaTeX 缺少 JS 或 CSS 時仍顯示可閱讀的文字公式。
 
-第一批 P.2–9 已驗收；第二批 Boost P.10–22 也已完成原創逐頁深化。P.33–51 與上冊其他頁面尚未逐頁深化，不應宣稱全部 159 頁已完成。對應的數值及頁碼覆蓋檢查位於 tests/middle-page-guides.mjs、tests/middle-smoke.mjs，並納入既有的 Chromium／Firefox／WebKit CI。
+第一批 P.2–9 已驗收；第二批 Boost P.10–22 也已完成原創逐頁深化。P.41–51 與上冊其他頁面尚未逐頁深化，不應宣稱全部 159 頁已完成。對應的數值及頁碼覆蓋檢查位於 tests/middle-page-guides.mjs、tests/middle-smoke.mjs，並納入既有的 Chromium／Firefox／WebKit CI。
 
 ## 中冊第二批逐頁深化｜Boost P.10–22
 
@@ -212,4 +212,12 @@ Node.js 22 開發環境：執行 `npm ci --ignore-scripts`，再安裝 Chromium�
 - P.23 反相 Buck-Boost CCM：有號負輸出與輸入／輸出不同導通時間；P.24 BCM 電感峰值與臨界輸出電流；P.25 DCM 的 OFF-DIODE 電流面積和負載相關增益；P.26 Ćuk／SEPIC／ZETA 的輸出極性與電流波形差異。
 - P.27 四開關 Buck-Boost：分開推導 Buck／Boost 的兩個橋臂中點與電感伏秒；P.28 雙向端口電流參考與功率符號；P.29 H-Bridge 電壓／電流四象限；P.30 直流馬達電樞 La/Ra/反電勢；P.31 Bipolar 差動兩態 PWM；P.32 Unipolar 的零差動狀態、兩橋臂 Duty 與 Dead Time。
 - 本批不修改既有物理模型或原 PPTX 摘要、PDF 檢視／保存機制、全站路由。新 `tests/middle-bridge-guides.mjs` 使用獨立數值、分段電流／功率計算，`tests/middle-page-guides.mjs` 檢查 P.2–32 無缺頁與正確連結；Chromium、Firefox／WebKit 額外驗證新頁面與手機版。
-- 內容均為理想或明確限定條件下的教學式推導，不是 MOSFET Gate 驅動保護、變壓器隔離、實機回生驗收或系統穩定性保證。P.33–51 尚未逐頁深化；原講義公開散布授權仍須另案確認。
+- 內容均為理想或明確限定條件下的教學式推導，不是 MOSFET Gate 驅動保護、變壓器隔離、實機回生驗收或系統穩定性保證。P.41–51 尚未逐頁深化；原講義公開散布授權仍須另案確認。
+
+## 中冊第四批逐頁深化｜隔離式電源與 Flyback P.33–40
+
+- 本批八頁新增原創白話教學：P.33 Flyback vs Forward 能量時序；P.34 次級 PWM 脈衝變壓器的磁通復位；P.35 次級誤差透過光耦回傳一次側的訊號流；P.36 多路次級 Cross Regulation；P.37 磁化能量；P.38 CCM 反射電壓與次級電流；P.39 DCM 三區間；P.40 DCM 峰值、效率假設與元件應力預算。
+- **中冊 P.2–40 共 39 頁**連續覆蓋，P.41–51 仍未深化。保留原始本機 PDF、摘要、34 節主題、原有互動模型與部署架構；此批只有教學資料、驗收及文件修改，沒有新增模擬引擎。
+- 狀態與適用條件明確區分：CCM 單圈傳能使用 ½Lm(Ipk²−Ivalley²)；DCM 磁化電流谷值為 0 時才使用 ½LmIpk²。效率 80% 是明示的假設，不代表真實開關損耗／耐壓／安規已驗收。多路輸出算例明定同時導通的簡化假設。
+- 使用獨立 `tests/middle-flyback-guides.mjs` 核對磁化儲能、伏秒、次級平均電流、DCM ZERO、匝比反射、控制脈衝 ΔB、光耦 CTR、跨輸出整流與能量帳；Chromium 逐頁測試、320／390px 不溢位及 Firefox／WebKit 新頁面。
+- 參考 TI [Flyback Parameters Design (SNVA761A)](https://www.ti.com/tw/lit/pdf/snva761)、[Designing a CCM Flyback](https://www.ti.com/document-viewer/lit/html/SSZTCY0)、[Designing a DCM Flyback](https://www.ti.com/document-viewer/lit/html/SSZTCW6)、[Gate-drive Transformer Volt-second Reset](https://www.ti.com/document-viewer/lit/html/SSZTBW1)。
