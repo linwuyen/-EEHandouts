@@ -369,7 +369,7 @@ await run('upper P63-70 half-wave, bridge and harmonic original teaching guides'
   assert.equal(await page.locator('.page-guide').count(),0,'P71 source-inductance overlap belongs to next review batch');
   await navigate(page,'#home');
   await page.locator('#search-trigger').click();
-  await page.locator('#search-input').fill('矩形線電流');
+  await page.locator('#search-input').fill('恆定 DC 電流');
   assert.ok(await page.locator('#search-results a[href="#slide/69"]').count()>0,
     'P69 fixed Id line current must be searchable');
   await page.keyboard.press('Escape');
