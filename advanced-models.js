@@ -75,12 +75,16 @@
       var il,stage;if(within<on){il=valley+(peak-valley)*within/on;stage:'ON';stage='TRANSFER';}
       else if(within<on+free){il=peak-(peak-(mode==='CCM'?valley:0))*(within-on)/free;stage='FREEWHEEL';}
       else {il=0;stage='ZERO';}
-      return {gateA:gateA,gateB:gateB,vab:primary,vrect:Math.abs(primary)/n,
+      // vraw is the transformer/rectifier candidate, not the inductor input node.
+      // With all rectifier paths blocked in DCM ZERO, iL is constant at zero;
+      // KVL therefore requires vrect=Vo and vL=0 (no ringing/parasitics modeled).
+      var vraw=Math.abs(primary)/n,vrect=stage==='ZERO'?vo:vraw;
+      return {gateA:gateA,gateB:gateB,vab:primary,vraw:vraw,vrect:vrect,vL:vrect-vo,
         il:il,ip:primary===0?0:Math.sign(primary)*il/n,stage:stage};
     }
     var pout=vo*io,pin=vsec*delta*(peak+valley); // two active pulses, each of length delta*T
     return valid({mode:mode,validity:true,
-      note:'每個全週期有兩段相移功率傳輸脈波。改變相移角會改變整流後有效 Duty，CCM/DCM 使用各自穩態解。',
+      note:'每個全週期有兩段相移功率傳輸脈波。原始整流候選 |vAB|/n 與電感輸入節點 vrect 分開：DCM ZERO 電流不變，故 vrect=Vout、vL=0；CCM/DCM 使用各自穩態解。',
       warning:'此模型未包含變壓器漏感換流重疊、零電壓切換 ZVS、同步整流時序、死區或循環電流。實際有效 Duty 可能低於理想值。',
       assumptions:'理想 50% 雙橋臂相移，全橋一次側 ±Vin／0；理想全波整流、次級非同步 L 濾波、固定輸出電流。忽略漏感與損耗。',
       metrics:[m('有效整流 Duty',d*100,'%'),m('理想輸出 Vout',vo,'V'),m('輸出 IL 峰值',peak,'A',3),m('輸出 IL 谷值',valley,'A',3),
@@ -91,7 +95,9 @@
       traces:[sample('ga','A 臂高側命令','0/1',function(t){return state(t).gateA;},true),
         sample('gb','B 臂高側命令','0/1',function(t){return state(t).gateB;},true),
         sample('vab','一次側差動 vAB','V',function(t){return state(t).vab;},true),
-        sample('vr','次級整流電壓','V',function(t){return state(t).vrect;},true),
+        sample('vr','整流輸出／電感輸入節點 vrect','V',function(t){return state(t).vrect;},true),
+        sample('vraw','次級原始整流候選 |vAB|/n','V',function(t){return state(t).vraw;},true),
+        sample('vl','輸出電感電壓 vL = vrect − Vout','V',function(t){return state(t).vL;},true),
         sample('il','輸出電感 iL','A',function(t){return state(t).il;}),
         sample('ip','一次側理想傳能電流','A',function(t){return state(t).ip;})],
       probe:function(t){return state(t);},data:{d:d,delta:delta,on:on,free:free,zero:zero,peak:peak,valley:valley,vo:vo,pout:pout,pin:pin,io:io}});
@@ -266,7 +272,9 @@
     // ADC tSH=(ACQPS+1)/SYSCLK. The conversion, ISR entry and WCET remain
     // explicit teaching assumptions; this is not a register generator.
     function deviceInvalid(note){
-      var r=unsupported(note);r.mode='OUT_OF_DEVICE_DOMAIN';return r;
+      var r=unsupported(note);r.mode='OUT_OF_DEVICE_DOMAIN';
+      r.validation={clockAndAcquisition:'OUT_OF_DOMAIN',cpuBudget:'NOT_EVALUATED',adcResultRead:'NOT_VERIFIED'};
+      return r;
     }
     var sysclk=v.sysclk,epwmDiv=Number(v.epwmdiv),hsp=Number(v.hspdiv),
       clkDiv=Number(v.clkdiv),adclkDiv=Number(v.adclkdiv),acqps=v.acqps;
@@ -313,6 +321,7 @@
     for(var i=0;i<241;i++)renderTimes.push(i*width/240);
     function counter(t){var z=(t%T)/T;return z<=.5?2*z:2*(1-z);}
     return valid({mode:overrun?'CPU_OVERRUN':samePwm?'SAME_PWM_CYCLE':'NEXT_PWM_CYCLE',validity:!overrun,
+      validation:{clockAndAcquisition:'IN_DOMAIN',cpuBudget:overrun?'OVERRUN':'WITHIN_ASSUMED_BUDGET',adcResultRead:'NOT_VERIFIED'},
       assumptions:'F28004x ePWM UP-DOWN 示意：SYSCLK≤100 MHz，EPWMCLK=SYSCLK/EPWMCLKDIV，TBCLK=EPWMCLK/HSPCLKDIV/CLKDIV；TBPRD、CMPA 整數量化。ADC tSH=(ACQPS+1)/SYSCLK，檢查器件 S+H 下限 75 ns 與一個 ADCCLK 週期。EOC／ISR 進入／WCET 仍是使用者假設值，未模擬 ADCINT 早晚脈衝、ADCRESULT latch、其他中斷或匯流排競用。',
       note:'明確區分兩件事：(1) 計算是否在下一個 SOCA 前完成；(2) CMP Shadow 是同一 PWM 週期內還是下一個 TBCTR ZERO/PERIOD 才載入。',
       warning:overrun?'計算完成時間超過下一次相同 SOCA，可能發生即時預算失敗；不代表 ISR 本身必然排隊。':

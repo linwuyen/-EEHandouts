@@ -52,7 +52,7 @@
     var st=typeof r.probe==='function'?r.probe(cursor):null;
     if(st){
       var a=[];if(st.stage)a.push('區間：'+st.stage);
-      for(var key of ['il','vL','vSW','vab','vrect','ip'])if(Number.isFinite(st[key]))a.push(key+'='+fmt(st[key],3));
+      for(var key of ['il','vL','vSW','vab','vraw','vrect','ip'])if(Number.isFinite(st[key]))a.push(key+'='+fmt(st[key],3));
       return '游標 '+fmt(cursor*100,0)+'% ／ '+a.join('　');
     }
     if(r.events){var t=r.data.width*cursor;var closest=r.events.reduce(function(best,e){return Math.abs(e.at-t)<Math.abs(best.at-t)?e:best;},r.events[0]);
@@ -61,11 +61,22 @@
     if(selected==='zvs')return '此圖為換流能量與時間預算；電流為 0 時換流時間不可定義，不繪成 0 ns。';
     return '游標：'+fmt(cursor*100,0)+'% PWM 週期（LLC 未收斂時顯示最後一週期過渡波形）。';
   }
+  function timingScopeHTML(r){
+    if(selected!=='timing'||!r.validation)return '';
+    var v=r.validation,clock=v.clockAndAcquisition==='IN_DOMAIN',
+      budget=v.cpuBudget==='WITHIN_ASSUMED_BUDGET'?'在使用者假設的預算內':
+        v.cpuBudget==='OVERRUN'?'超過下一次 SOCA':'未計算（時脈／取樣窗不合法）';
+    return '<div class="advanced-warning advanced-timing-scope">'+
+      '<p data-timing-check="clock" data-status="'+esc(v.clockAndAcquisition)+'">時脈／取樣窗：'+
+        (clock?'通過本模型條件檢查':'超出本模型條件')+'</p>'+
+      '<p data-timing-check="budget" data-status="'+esc(v.cpuBudget)+'">假設性運算預算：'+esc(budget)+'</p>'+
+      '<p data-timing-check="result" data-status="NOT_VERIFIED">ADCRESULT 可讀時刻：未驗證；EOC 不等於結果已鎖存，不能作硬體時序驗收。</p></div>';
+  }
   function refresh(){
     if(job){clearTimeout(job);job=null;}
     var r;try{r=calc();}catch(err){root.querySelector('.advanced-panel').textContent='模型計算失敗：'+err.message;console.error(err);return;}
     root.querySelector('.advanced-data').innerHTML=metricHTML(r)+
-      '<div class="advanced-model-status" data-valid="'+String(!!r.validity)+'"><strong>工作模式：</strong>'+esc(r.mode)+' · '+(r.validity?'限定條件下可比較':'超出有效域／不可用於工程判定')+'</div>'+
+      '<div class="advanced-model-status" data-valid="'+String(!!r.validity)+'"><strong>工作模式：</strong>'+esc(r.mode)+' · '+(r.validity?(selected==='timing'?'僅假設性預算可比較；硬體時序未驗證':'限定條件下可比較'):'超出有效域／不可用於工程判定')+'</div>'+timingScopeHTML(r)+
       '<div class="advanced-explain">'+esc(r.note||'')+'</div>'+
       '<div class="advanced-warning" role="status">'+esc(r.warning||'')+'</div>';
     var chart=root.querySelector('.advanced-chart-list');
