@@ -2605,5 +2605,243 @@
       "a": "先求 Iavg=10 A，再估 P=1.8×10=18 W；關斷額定和可取得器件仍需另外核實。"
     },
     "tryIt": "依 P.44 P-MCT 與 N-MCT 對比符號與 ON/OFF 曲線，不把歷史元件的理想模式當成實機規格。"
+  },
+  "45": {
+    "lesson": "legacy",
+    "title": "功率開關比較表：Power Capability 與 Switching Speed 為何不能當現代排名？",
+    "question": "講義舊表 MOSFET 只有 Low Power、GTO High Power，為何不能直接當作今日的元件上限？",
+    "takeaway": "歷史相對表只適合認識器件的控制與載子取捨；現代選型必須用相同額定、電流、溫度與頻率的 datasheet 比較。",
+    "intuition": [
+      "P.45 表格將 BJT／MD、MOSFET、GTO、IGBT、MCT 以 Low/Medium/High 和 Slow/Medium/Fast 分類，這是原講義年代的相對分類，不是永久物理限制。",
+      "功率能力和切換速度並非單一軸：同一家族的電壓等級、晶片面積、封裝、熱阻和導通電流都不同，還可能因並聯或模組化而改變系統能力。"
+    ],
+    "steps": [
+      {
+        "title": "先辨認歷史表格的比較範圍",
+        "detail": "原表主要呈現當時器件技術的概略取捨，例如 GTO 可處理高壓大電流但換流較慢；不能據此排除現代 SiC MOSFET 模組。"
+      },
+      {
+        "title": "把相對標籤轉成可量測規格",
+        "detail": "實際應分別比較 Vblock、Irms、Tj、RDS(on) 或 VCE(sat)、Eon/Eoff、SOA 及 Driver 能力，而非只抄『快／慢』。"
+      },
+      {
+        "title": "用同一工作點計算損耗",
+        "detail": "MOSFET 的導通可用 I²R、IGBT 可用 VCE(sat)I 作一階估算，兩者再搭配各自 Eon/Eoff 才能比較系統效率。"
+      }
+    ],
+    "equations": [
+      {
+        "label": "MOSFET 導通損",
+        "tex": "P_{MOS}\\approx I_{rms}^2R_{DS(on)}",
+        "plain": "MOSFET 平均導通損約 RMS 電流平方乘導通電阻",
+        "why": "以實際 VGS、Tj 的 RDS(on) 及元件整週 RMS 求值。"
+      },
+      {
+        "label": "IGBT 導通損",
+        "tex": "P_{IGBT}\\approx V_{CE(sat)}I_{avg}",
+        "plain": "IGBT 平均導通損約飽和壓降乘平均導通電流",
+        "why": "假設指定工作點下 VCE(sat) 近似固定，不等同 MOSFET 的純電阻模型。"
+      }
+    ],
+    "worked": {
+      "given": "獨立比較：假設兩個可安全承受同一電壓的候選元件，ON 時 20 A、占空 50%；MOSFET 在該溫度 RDS(on)=50 mΩ，IGBT VCE(sat)=1.7 V。",
+      "steps": [
+        "MOSFET 整週 RMS=20√0.5≈14.142 A，因此導通損約 (14.142)²×0.05=10 W。",
+        "IGBT 整週平均導通電流為 20×0.5=10 A，導通損約 1.7×10=17 W。",
+        "在此導通損示例 MOSFET 少 7 W，但沒有提供 Eon/Eoff、價格、SOA、Tj 等條件，不能宣稱整套拓樸一定選 MOSFET。"
+      ],
+      "result": "歷史表格提供學習起點，真正的優劣還要以相同系統邊界及器件資料表完成損失與可靠度驗算。"
+    },
+    "assumptions": [
+      "所有元件電氣數字都屬獨立指定假設，不代表現代 MOSFET 與 IGBT 在相同額定下必然具有此損耗比。",
+      "原教材 P.45 分類偏歷史技術情境，必須避免當成當前產品額定上限、採購建議或所有頻率條件下的普遍結論。"
+    ],
+    "pitfall": "拿講義的 MOSFET Low Power 當成硬體規格上限，或只因 IGBT Medium Speed 就認為不能切換超過某個頻率。",
+    "check": {
+      "q": "ON 20 A、D=0.5，RDS(on)=50 mΩ 與 VCE(sat)=1.7 V 的兩種導通損分別是多少？",
+      "a": "MOSFET 約 10 W，IGBT 約 17 W；只比較導通，不能推斷整個功率級效率、適用頻率或安全額定。"
+    },
+    "tryIt": "把 P.45 五種器件分類改寫成現代工程查表項目，再到既有 IGBT 與 MOSFET 課節比較指定工作點。"
+  },
+  "46": {
+    "lesson": "legacy",
+    "title": "三維能力圖不是永久界線：如何從 Voltage、Current、Frequency 選器件？",
+    "question": "原圖 MOSFET、GTO、IGBT 的立體區塊，能否拿來判定今日 1200 V SiC MOSFET 的工作上限？",
+    "takeaway": "額定電壓、可用電流與切換頻率須同時受電熱與 SOA 限制；P.46 的三維圖屬歷史技術快照，不是現代絕對規格。",
+    "intuition": [
+      "原圖用 Voltage、Current、Frequency 三軸對照早期 Thyristor、GTO、IGBT、BJT 與 MOSFET，當時畫出的能力區塊可幫忙理解不同元件的取捨。",
+      "提高頻率意味著每秒更多切換事件，即使單次切換能量不變也會使 Psw 增加；器件標示的最大電流、最大電壓不能在任意頻率與溫度下同時使用。"
+    ],
+    "steps": [
+      {
+        "title": "先分清三個座標不是同一個額定量",
+        "detail": "Voltage 對應阻斷耐壓，Current 要看連續、脈衝和熱限制，Frequency 則須核對換流損、Driver 與磁性元件設計。"
+      },
+      {
+        "title": "把歷史區塊改成器件工作點檢查",
+        "detail": "對現在的器件應查 datasheet 的 VDS/VCE、SOA、Eon/Eoff、Tj、冷卻與封裝；單憑某家族位在圖中不能判斷能否用於新拓樸。"
+      },
+      {
+        "title": "算切換頻率帶來的熱負擔",
+        "detail": "假設單次 Eon+Eoff 保持固定，開關損 Psw 隨每秒切換事件數增加；頻率提高後還需重驗控制與散熱。"
+      }
+    ],
+    "equations": [
+      {
+        "label": "切換功率估算",
+        "tex": "P_{sw}=(E_{on}+E_{off})f_s",
+        "plain": "每週期一次 ON/OFF 時 Psw=切換能量總和×fs",
+        "why": "須對應工作點及事件數；Eon/Eoff 不會在不同電壓、電流、結溫下完全固定。"
+      },
+      {
+        "label": "電壓額定比",
+        "tex": "m_V=\\frac{V_{rating}}{V_{operating}}",
+        "plain": "標稱阻斷電壓／指定工作電壓的比值",
+        "why": "此比值只是初步估算，不能替代尖峰、降額、故障時 SOA 與壽命要求。"
+      }
+    ],
+    "worked": {
+      "given": "示例額定阻斷 1200 V、指定 Bus 平台 600 V；另假設每週期 Eon+Eoff=1 mJ，在 10 kHz 和 100 kHz 比較。",
+      "steps": [
+        "電壓比 mV=1200/600=2；它不代表有 600 V 可任意用來承受佈局尖峰。",
+        "10 kHz 的假設切換損約 0.001×10000=10 W。",
+        "如果硬把相同 1 mJ 套到 100 kHz，切換損會變為 100 W，相差 10 倍；這只說明頻率效果，不代表實機 E 保持不變。"
+      ],
+      "result": "耐壓、電流與頻率三維限制須加上熱設計和測試工況，不能從原圖直接宣稱器件在某個電壓可用到特定 MHz。"
+    },
+    "assumptions": [
+      "原圖不同元件族群的區域以當時產品能力呈現，未包含現代 SiC／GaN 世代及模組，不可沿用作現代元件邊界。",
+      "忽略 Gate、輸入寄生及損耗隨頻率變動的例題只用來說明 Psw∝fs；熱限及 SOA 仍需驗證。"
+    ],
+    "pitfall": "把三維能力圖上的邊界當成廠商保證值，或直接把 1200 V 額定與 1200 V 母線視為安全匹配。",
+    "check": {
+      "q": "每次 ON+OFF 假設 1 mJ、頻率由 10 kHz 到 100 kHz，Psw 如何變化？",
+      "a": "在 E 不變的教學假設下，由 10 W 變為 100 W，提升十倍；實際還需重查 E、結溫與 SOA。"
+    },
+    "tryIt": "在 P.46 三軸圖標出電壓、電流與頻率各自的工況限制，將歷史技術圖轉成現代資料表檢查。"
+  },
+  "47": {
+    "lesson": "switchloss",
+    "title": "理想開關與實際元件：導通、切換、Gate、Qrr 如何避免重複計帳？",
+    "question": "講義的 Ptotal=Irms²Ron+(Eon+Eoff)fs+QgVgfs，哪些是器件本身的熱、哪些是驅動供電損失？",
+    "takeaway": "先定義系統能量邊界，再分別核對導通、切換、驅動損失；若 Eon 已包含換流 Qrr，就不能再把 QrrVRfs 整項加一次。",
+    "intuition": [
+      "P.47 對比理想 ON=零壓降、OFF=零電流、瞬間切換、無寄生與實體元件的 RDS(on)、漏電、tr/tf、Ciss/Coss/Crss 和 SOA 限制。",
+      "功率損不是一串可無條件相加的名詞。導通的 I²R 發生在通道；Eon/Eoff 可能包含部分 Coss 或 diode recovery；QgVgfs 是 Driver 供電能量尺度，耗散分布在 Driver、Rg 與回路。"
+    ],
+    "steps": [
+      {
+        "title": "先選定量測與損失邊界",
+        "detail": "如果要算整個功率級輸入到輸出的效率，應列出各元件與 Driver 供電；若只算 MOSFET 結溫，不能把所有 Gate 供電當成晶片通道熱損。"
+      },
+      {
+        "title": "用整週 RMS 求 MOSFET 導通損",
+        "detail": "Pcond≈ID,rms²RDS(on)，其中 RMS 已包含無電流區段，不能因 Duty<1 再無條件重複乘一次。"
+      },
+      {
+        "title": "以實測開關能量乘事件頻率",
+        "detail": "Psw≈(Eon+Eoff)fs，Eon/Eoff 應在相同 V、I、Tj、Rg 條件測得；假設已包含 Qrr 時禁止額外重複加恢復尺度。"
+      },
+      {
+        "title": "Gate 損失與保護另獨立列帳",
+        "detail": "Driver 供電尺度 QgVdrivefs 可納入系統功率帳；實際結溫與短路可靠度仍須評估 Coss、反向導通與 SOA。"
+      }
+    ],
+    "equations": [
+      {
+        "label": "通道導通損",
+        "tex": "P_{cond}\\approx I_{rms}^2R_{DS(on)}",
+        "plain": "通道平均損約整週 RMS 電流平方乘 RDS(on)",
+        "why": "以實際 VGS/Tj 的 RDS(on) 且電流 RMS 包含所有導通與零電流時間。"
+      },
+      {
+        "label": "每次換流能量",
+        "tex": "P_{sw}\\approx(E_{on}+E_{off})f_s",
+        "plain": "開關平均損約每次 ON/OFF 能量和乘事件頻率",
+        "why": "如 datasheet Eon 已包含 Qrr 換流，不能再次加入相同事件的 QrrVRfs。"
+      },
+      {
+        "label": "驅動供電尺度",
+        "tex": "P_{gate,supply}\\approx Q_gV_{drive}f_s",
+        "plain": "Gate 驅動供電尺度約 Qg×Vdrive×fs",
+        "why": "表示整個驅動供電端的能量，不能全部當成同一 MOSFET 晶片內的熱。"
+      }
+    ],
+    "worked": {
+      "given": "示例單顆 MOSFET 整週 Irms=15 A、RDS(on)=40 mΩ、Eon=50 µJ、Eoff=40 µJ、fs=100 kHz、Qg=60 nC、Vdrive=10 V。",
+      "steps": [
+        "導通平均損 Pcond=15²×0.04=9 W。",
+        "每週期 Eon+Eoff=90 µJ，假設一開一關，Psw=90 µJ×100k=9 W。",
+        "驅動供電尺度約 60 nC×10 V×100k=0.06 W，屬系統供電帳而不等於全部由 MOSFET 自身發熱。"
+      ],
+      "result": "系統分帳此三項約 18.06 W，但若 Eon 已含二極體反向恢復，不能再把整個 QrrVRfs 額外加入；其他損耗仍待核對。"
+    },
+    "assumptions": [
+      "假設不同損耗項在定義上不重疊；具體 Eon/Eoff 的測試夾具、換流二極體與能量定義必須核對。",
+      "本例忽略電阻溫升、體二極體與動態導通、驅動器靜態耗電和實際冷卻，不能代替結溫或效率驗收。"
+    ],
+    "pitfall": "把 Gate 供電 QgVfs 全部當 MOSFET 晶片結溫，或把已由 Eon 量到的 Qrr 損失重複加總。",
+    "check": {
+      "q": "上述 9 W 導通、9 W 切換、0.06 W Gate 供電相加是什麼邊界？",
+      "a": "約 18.06 W 的簡化系統功率分帳；Gate 熱不完全在 MOSFET，還要避免 Eon／Qrr 重複。"
+    },
+    "tryIt": "對照原 P.47 理想／實際特性表，使用既有損耗互動課節列出每個項目的計算邊界。"
+  },
+  "48": {
+    "lesson": "igbt",
+    "title": "Diode、MOSFET、IGBT、SiC、GaN：如何建立選型決策樹？",
+    "question": "原圖列出五種器件與選型關鍵，怎麼用可控能力、頻率、電流應力和成本收斂？",
+    "takeaway": "先從電壓阻斷、雙向電流、Gate 驅動與損耗需求篩選，再用相同工況 Eon/Eoff、SOA 與熱測試決定，不能只看材料。",
+    "intuition": [
+      "P.48 表格指出 Diode 不可控、MOSFET 是 Gate 電壓控制的多數載子器件、IGBT 具有 MOS Gate 與雙極導電、SiC MOSFET 和 GaN 具較快換流潛力。",
+      "這些是元件家族的概括分類，不代表每個 GaN 元件都可直接使用舊矽 MOSFET Driver，也不表示 IGBT 或 MOSFET 的有效工作頻率有一條固定物理界線。"
+    ],
+    "steps": [
+      {
+        "title": "先確定要主動控制還是自動整流",
+        "detail": "若功能只需要二極體自然導通，可以先檢查 Diode；若必須 PWM 主動開關，則需確認 Gate 強制導通／關斷能力及失效行為。"
+      },
+      {
+        "title": "按最大電壓電流與換流方向篩選",
+        "detail": "反向電流通路、Body diode 或 GaN 的第三象限導通，與阻斷額定和死區一起確認，避免錯把雙向導通當雙向阻斷。"
+      },
+      {
+        "title": "建立完整損耗與保護預算",
+        "detail": "比較 Pcond、Eon/Eoff、Driver、Coss/Qoss、EMI 和 SOA，並在冷卻與工況一致後才談總效率與成本。"
+      }
+    ],
+    "equations": [
+      {
+        "label": "換流寄生尖峰尺度",
+        "tex": "V_{overshoot}\\approx L_{par}\\frac{di}{dt}",
+        "plain": "寄生電感尖峰約 Lpar×電流變化率",
+        "why": "這是瞬態電壓的估算尺度，實際波形還受 Coss、佈局耦合和箝位決定。"
+      },
+      {
+        "label": "器件耐壓初步檢查",
+        "tex": "V_{rating}>V_{bus,max}+V_{overshoot}",
+        "plain": "額定阻斷電壓必須高於最大 Bus 加預估過衝",
+        "why": "僅為最基本的硬邊界，還需額外降額、SOA、壽命、浪湧和測量裕度。"
+      }
+    ],
+    "worked": {
+      "given": "初步示例：Bus=400 V、佈局寄生 Lpar=10 nH、電流上升斜率 di/dt=5 A/ns，候選器件額定 650 V。",
+      "steps": [
+        "寄生尖峰電壓尺度約 10 nH×5 A/ns=50 V。",
+        "Bus 加估算尖峰約 450 V，低於候選額定 650 V，數字上尚有 200 V 差距。",
+        "這不能證明 650 V 器件已安全，仍須核對最壞 Bus、其他振鈴、溫度、降額、SOA 和實測 VDS。"
+      ],
+      "result": "由電壓檢查只完成第一道篩選；是否適合高頻運作，仍需 Eon/Eoff、冷卻與 Gate 驅動驗證。"
+    },
+    "assumptions": [
+      "400 V、10 nH、5 A/ns 及 650 V 都是指定的理想化參考，不構成任何產品額定或推薦。",
+      "原圖分類是教學概觀；GaN、SiC、IGBT 的實際門極電壓、反向導通和短路保護需依特定 datasheet。"
+    ],
+    "pitfall": "看到 GaN 或 SiC 快，就認為可省掉 Gate Driver、Dead Time、EMI 與元件應力驗證。",
+    "check": {
+      "q": "10 nH 寄生電感、5 A/ns 時，過衝電壓尺度是多少？",
+      "a": "約 50 V；仍不能只憑 Bus+50 V 小於額定就宣稱實際開關安全。"
+    },
+    "tryIt": "沿 P.48 的五類器件將所需控制性、耐壓、反向導通和 Gate 驅動畫成檢查順序。"
   }
 };})(window);
