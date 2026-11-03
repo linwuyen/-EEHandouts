@@ -10,7 +10,7 @@ const expected={27:'diodes',28:'diodes',29:'diodes',30:'diodes',
  31:'legacy',32:'legacy',33:'legacy',34:'legacy',35:'legacy',
  36:'mosfet',37:'mosfet',38:'mosfet',39:'mosfet',40:'switchloss'};
 assert.deepEqual(Object.keys(guides).map(Number).sort((a,b)=>a-b),
- Array.from({length:74},(_,i)=>i+3),'Upper page guides must be contiguous P3–76');
+ Array.from({length:80},(_,i)=>i+3),'Upper page guides must be contiguous P3–82');
 const titles=new Set();
 for(let p=27;p<=40;p++){
  const g=guides[p],lesson=lessons.find(l=>l.id===g?.lesson);
