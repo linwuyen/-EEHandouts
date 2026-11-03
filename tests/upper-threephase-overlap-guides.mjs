@@ -6,7 +6,7 @@ const root={},course={};
 runInNewContext(readFileSync('upper-page-guides.js','utf8'),{window:root});
 runInNewContext(readFileSync('data.js','utf8'),{window:course});
 const guides=root.EE_UPPER_PAGE_GUIDES,lessons=course.EE_DATA.chapters.flatMap(c=>c.lessons);
-const expected={89:'harm6',90:'overlap3',91:'overlap3',92:'overlap3'};
+const expected={89:'harmonics',90:'commutation',91:'commutation',92:'commutation'};
 for(let p=89;p<=92;p++){
  const g=guides[p],lesson=lessons.find(l=>l.id===g?.lesson);
  assert.ok(g&&lesson,'P.'+p+' guide with existing lesson required');
