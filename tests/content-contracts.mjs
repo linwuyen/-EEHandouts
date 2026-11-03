@@ -12,7 +12,7 @@ const equations=load('formula-math.js','EE_MATH');
 const guides=load('middle-page-guides.js','EE_PAGE_GUIDES');
 assert.equal(Object.keys(guides).length,50,'Middle P.2–51 original deep guides');
 const upperGuides=load('upper-page-guides.js','EE_UPPER_PAGE_GUIDES');
-assert.equal(Object.keys(upperGuides).length,68,'Upper P3-70 guides');
+assert.equal(Object.keys(upperGuides).length,70,'Upper P3-72 guides');
 const upperSlides=load('slide-text.js','EE_SOURCE_TEXT');
 const middleSlides=load('middle-slide-text.js','EE_SOURCE_TEXT');
 assert.equal(upper.chapters.length,7,'upper chapters');

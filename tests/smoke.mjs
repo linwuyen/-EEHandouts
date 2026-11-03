@@ -366,7 +366,7 @@ await run('upper P63-70 half-wave, bridge and harmonic original teaching guides'
   }
   assert.equal(titles.size,8,'Eight original rectifier pages with unique titles');
   await navigate(page,'#slide/71');
-  assert.equal(await page.locator('.page-guide').count(),0,'P71 source-inductance overlap belongs to next review batch');
+  assert.equal(await page.locator('[data-guide-page="71"]').count(),1,'P71 now has its source-inductance overlap guide');
   await navigate(page,'#home');
   await page.locator('#search-trigger').click();
   await page.locator('#search-input').fill('恆定 DC 電流');
@@ -380,6 +380,55 @@ await run('upper P63-70 half-wave, bridge and harmonic original teaching guides'
       await mobile.locator('[data-guide-page="'+p+'"]').waitFor({timeout:20000});
       const w=await mobile.evaluate(()=>({vw:innerWidth,sw:document.documentElement.scrollWidth}));
       assert.ok(w.sw<=w.vw+2,'P.'+p+' '+width+'px horizontal overflow '+JSON.stringify(w));
+    }
+    await mobile.close();
+  }
+});
+
+
+await run('upper P71-72 commutation source-Ls and simultaneous diode-pair original guides',async()=>{
+  const titles=new Set();
+  for(const p of [71,72]){
+    await navigate(page,'#slide/'+p);
+    const guide=page.locator('[data-guide-page="'+p+'"]');
+    assert.equal(await guide.count(),1,'P.'+p+' exactly one source-guided overlap explanation');
+    const title=await guide.locator('h2').innerText();
+    titles.add(title);assert.ok(title.length>=18,'P.'+p+' source-specific title');
+    assert.ok(await guide.locator('.guide-steps li').count()>=3,'P.'+p+' diode paths and physical stages');
+    assert.ok(await guide.locator('.guide-equation').count()>=2,'P.'+p+' source inductance / current equations');
+    assert.ok(await guide.locator('.guide-worked li').count()>=3,'P.'+p+' numerical steps');
+    assert.ok(await guide.locator('.guide-assumptions li').count()>=2,'P.'+p+' validity boundaries');
+    const href=await guide.locator('.guide-link').getAttribute('href');
+    assert.ok(href.endsWith('/overlap'),'P.'+p+' existing overlap lesson');
+    assert.equal(await page.locator('#source-pdf-file').count(),1,'P.'+p+' original local PDF preserved');
+    for(const row of await guide.locator('.guide-equation').all()){
+      const rendered=await row.evaluate(el=>el.classList.contains('guide-ready'));
+      assert.ok(rendered||await row.locator('.guide-math-fallback').isVisible(),
+        'P.'+p+' KaTeX or readable fallback');
+    }
+    const answer=guide.locator('details.guide-check');
+    assert.equal(await answer.evaluate(n=>n.open),false,'P.'+p+' answer initially hidden');
+    await answer.locator('summary').click();
+    assert.equal(await answer.evaluate(n=>n.open),true,'P.'+p+' answer revealed');
+    assert.ok((await answer.locator('p').innerText()).length>=20,'P.'+p+' substantive answer');
+    await page.screenshot({path:outDir+'/upper-overlap-'+p+'.png',fullPage:true});
+  }
+  assert.equal(titles.size,2,'distinct source page titles');
+  await navigate(page,'#slide/73');
+  assert.equal(await page.locator('.page-guide').count(),0,'P73 DC-side voltage belongs to next batch');
+  await navigate(page,'#home');
+  await page.locator('#search-trigger').click();
+  await page.locator('#search-input').fill('換向重疊');
+  assert.ok(await page.locator('#search-results a[href="#slide/71"]').count()>0,
+    'P71 source overlap explanation searchable');
+  await page.keyboard.press('Escape');
+  for(const width of [320,390]){
+    const mobile=await browser.newPage({viewport:{width,height:720}});
+    for(const p of [71,72]){
+      await mobile.goto(BASE+'/#slide/'+p);
+      await mobile.locator('[data-guide-page="'+p+'"]').waitFor({timeout:20000});
+      const dims=await mobile.evaluate(()=>({vw:innerWidth,sw:document.documentElement.scrollWidth}));
+      assert.ok(dims.sw<=dims.vw+2,'P.'+p+' '+width+'px mobile overflow '+JSON.stringify(dims));
     }
     await mobile.close();
   }
