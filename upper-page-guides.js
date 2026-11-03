@@ -6342,5 +6342,206 @@
         "a": "兩者幅度均約 1；左圖 −90°，右圖 +90°，依原圖接線有 180° 相位差。"
       },
       "tryIt": "在 Figure 9.23 標出 V+ 的高通／低通節點，再用 V−=(Vin+Vo)/2 推公式，最後代入 s=jω 比對幅值與相位。"
+    },
+    "104": {
+      "lesson": "differentiator",
+      "title": "受限微分器：為何輸入串 Ri、回授並 Cf 可以避免高頻無限放大？",
+      "question": "P.104 給 Cin 串 Ri、Rf 並 Cf，為什麼輸出低頻近似微分，高頻卻不會一直增加？",
+      "takeaway": "原圖實用反相微分器的輸入阻抗是 1/(sCin)+Ri，回授阻抗是 Rf||1/(sCf)，因此 H(s)=−RfCin s/[(1+RiCin s)(1+RfCf s)]。低頻近似 −RfCin·dvin/dt，但兩個極點會把高頻放大抑制下來。",
+      "intuition": [
+        "純理想微分器在頻率越高時倍率越大，也會把小量感測雜訊放大。原圖輸入電容 Cin 後刻意串 Ri，先限制輸入高頻電流；輸出端 Rf 並聯 Cf 再降低高頻回授阻抗。",
+        "從 P.101 的有界單極點高通出發，P.104 進一步有輸入與回授各一個極點；若兩個極點接近，高頻時兩個衰減因素一起作用，不應仍用不受限的 |H|∝f 推出 OP 的實際輸出。"
+      ],
+      "steps": [
+        {
+          "title": "由輸入與回授阻抗直接建立傳遞",
+          "detail": "輸入阻抗 Zin=Ri+1/(sCin)，回授 Zf=Rf/(1+sRfCf)，反相閉迴路 H=−Zf/Zin，保留兩個不同極點。"
+        },
+        {
+          "title": "確認低頻微分與高頻衰減兩種極限",
+          "detail": "在 ωRiCin≪1 且 ωRfCf≪1 時 H≈−RfCin s；高頻若兩個極點都遠低於信號，H 的幅度會反而衰減，不能無限升高。"
+        },
+        {
+          "title": "用原講義元件值推極點與增益",
+          "detail": "Ri=1kΩ、Cin=10nF、Rf=10kΩ、Cf=1nF，兩個時間常數都是 10μs，所以兩個極點均約 15.915kHz。"
+        },
+        {
+          "title": "再檢查 OP 實際輸出與量測風險",
+          "detail": "輸出 ±供電幅度、slew rate、GBW、noise gain 與採樣時序都可能限制微分尖峰，不能把公式當作保護故障延遲保證。"
+        }
+      ],
+      "equations": [
+        {
+          "label": "有界反相微分器完整傳遞",
+          "tex": "H(s)=-\\frac{R_f C_{\\rm in}s}{(1+R_i C_{\\rm in}s)(1+R_f C_f s)}",
+          "plain": "H(s)=−RfCin s/[(1+RiCin s)(1+RfCf s)]",
+          "why": "原圖 Cin/Ri 串聯在輸入、Rf/Cf 並聯在反相回授，OP 理想且不飽和。"
+        },
+        {
+          "label": "輸入與回授極點",
+          "tex": "f_1=\\frac{1}{2\\pi R_i C_{\\rm in}},\\quad f_2=\\frac{1}{2\\pi R_f C_f}",
+          "plain": "f1=1/(2πRiCin)、f2=1/(2πRfCf)",
+          "why": "每個 RC 時間常數的單一極點均由圖中確切連線決定；實際元件寄生與 OP 頻寬可能增加其他極點。"
+        },
+        {
+          "label": "低頻微分近似",
+          "tex": "v_o(t)\\approx-R_f C_{\\rm in}\\frac{dv_{\\rm in}(t)}{dt}",
+          "plain": "低於兩個極點，vo≈−RfCin×dvin/dt",
+          "why": "限輸入頻率顯著低於 f1/f2 且 OP 線性；不能在接近頻率極點或快速突波時繼續套用。"
+        }
+      ],
+      "worked": {
+        "given": "P.104 原始示例 Ri=1kΩ、Cin=10nF、Rf=10kΩ、Cf=1nF；輸入為 1kHz、峰值 1V 的正弦，假設理想 OP。",
+        "steps": [
+          "兩個時間常數 RiCin=RfCf=10μs，因此 f1=f2≈15.915kHz。",
+          "低頻近似微分的輸出峰值為 2π×1000×RfCin×1≈0.6283V。",
+          "加入兩個極點後，確切幅值≈0.6283/[1+(1000/15915.5)²]≈0.62585V，四捨五入為講義約 0.626V。"
+        ],
+        "result": "有限微分器在低頻保留斜率訊息、高頻收斂；原圖 0.626V 數字可以由完整兩極點公式獨立驗證。"
+      },
+      "assumptions": [
+        "上式是理想線性小信號 H(s)，仍要確認真實 OP 的輸入共模、輸出飽和、電容 ESR/ESL、雜訊和 slew rate；切換尖峰不一定適用正弦頻率分析。",
+        "本頁兩個 15.9kHz 極點由指定阻值巧合重合，其他元件值不必相同；禁止把它們誤當控制系統的保護反應時間。"
+      ],
+      "pitfall": "仍用理想微分器的無限高頻增益描述此電路，或把低頻 0.6283V 近似值當成含兩個極點的精確 0.626V。",
+      "check": {
+        "q": "Ri=1k、Cin=10n、Rf=10k、Cf=1n、1kHz/1Vpk，原圖微分輸出約幾伏峰值？",
+        "a": "兩極點都在約 15.915kHz，完整公式輸出峰值≈0.62585V，即 0.626V，而非完全不受限的理想微分。"
+      },
+      "tryIt": "對 P.104 先畫輸入 Cin＋Ri 串聯、回授 Rf||Cf，令 H=−Zf/Zin，再將 s=jω 帶入 1kHz 驗算幅度。"
+    },
+    "105": {
+      "lesson": "pi",
+      "title": "類比 PI 誤差放大器：回授 Rf 串 C 如何產生 Kp 與 Ki？",
+      "question": "P.105 圖片把 Rf 與 C 串聯接於反相 OP 回授，為何傳遞函數同時有比例項與 1/s 積分項？",
+      "takeaway": "理想反相 OP 的回授阻抗 Zf=Rf+1/(sC)，輸入阻抗 Rin，所以 H(s)=−[Rf/Rin+1/(sRinC)]=−(Kp+Ki/s)。增益符號取決於如何定義 Vin/控制誤差，PI 不能不檢查功率級方向與控制迴路穩定度。",
+      "intuition": [
+        "圖上的電容與 Rf 是串聯，不是並聯；高頻時電容阻抗下降，回授近似 Rf，產生比例增益 −Rf/Rin；低頻時 1/(sC) 變大，積分項開始主導穩態誤差。",
+        "若真實誤差 e=Vref−Vfb 直接作 Vin，反相 OP 會產生負號；原講義建議若要求正向 PI，可將 Vin 反定義為 Vfb−Vref。這是控制方向的選擇，不是改變物理電容極性。"
+      ],
+      "steps": [
+        {
+          "title": "先確認 Rf 與 C 是串聯回授",
+          "detail": "Zf=Rf+1/(sC)，若誤畫成 Rf||C，分子零點與積分特性就完全不同；必須回到原圖確認連線。"
+        },
+        {
+          "title": "以 OP 反相增益式分離 Kp/Ki",
+          "detail": "H=−Zf/Rin=−Rf/Rin−1/(sRinC)，因此 Kp=Rf/Rin、Ki=1/(RinC)，注意 Ki 的連續時間單位是 s⁻¹。"
+        },
+        {
+          "title": "用極零圖找到比例與積分交界",
+          "detail": "PI 零點 ωz=Ki/Kp，fz=Ki/(2πKp)。零點以上比例效應漸增，低頻積分主導，還需計算實際 power stage 的相位裕量。"
+        },
+        {
+          "title": "落到數位電源前重新定義取樣時序",
+          "detail": "此頁只談類比 PI，不代表 C2000 100kHz ISR 可直接套類比 Kp/Ki；離散化、飽和、anti-windup、fault reset 和 PWM 延遲都要另證明。"
+        }
+      ],
+      "equations": [
+        {
+          "label": "反相 PI 完整傳遞",
+          "tex": "H(s)=-\\left(K_p+\\frac{K_i}{s}\\right)",
+          "plain": "Vo/Vin=−(Kp+Ki/s)",
+          "why": "原圖 Rf 與 C 串聯作反相回授、OP 未飽和且負回授在線性工作區。"
+        },
+        {
+          "label": "比例與積分係數",
+          "tex": "K_p=\\frac{R_f}{R_{\\rm in}},\\quad K_i=\\frac{1}{R_{\\rm in}C}",
+          "plain": "Kp=Rf/Rin、Ki=1/(RinC)；Ki 單位 s⁻¹",
+          "why": "理想連續時間 OP，未包含實際電容漏電、飽和恢復、有限頻寬或數位採樣週期。"
+        },
+        {
+          "label": "PI 零點",
+          "tex": "f_z=\\frac{K_i}{2\\pi K_p}",
+          "plain": "PI 的零點 fz=Ki/(2πKp)",
+          "why": "零點只由此 PI 的類比參數決定，並非閉迴路交越頻率或功率級的共振頻率。"
+        }
+      ],
+      "worked": {
+        "given": "依 P.105 原始示例 Rin=10kΩ、Rf=20kΩ、C=100nF，假設理想 OP 且誤差小到輸出未飽和。",
+        "steps": [
+          "比例項 Kp=20k/10k=2；積分係數 Ki=1/(10000×100nF)=1000s⁻¹。",
+          "PI 零點 fz=Ki/(2πKp)=1000/(4π)≈79.577Hz。",
+          "以 10Hz 作比對，積分分量大小 Ki/ω≈15.915，較 Kp=2 更大；真正控制環路是否穩定仍需加上功率級與延遲。"
+        ],
+        "result": "同一組 Rf/C 就產生比例與積分行為，公式符號及零點只在指定類比架構成立；實機迴路增益、限幅和 fault policy 不可省略。"
+      },
+      "assumptions": [
+        "原圖只有類比反相 PI，並未涵蓋數位化演算法的數值積分、anti-windup、輸出限幅、故障停機或 ADC/PWM 延遲；不能當韌體直接實作合約。",
+        "Rf/C 與 Rin 誤差、OP GBW、噪聲、輸出電壓裕量、功率級方向會改變實際穩定度；增大 Kp/Ki 不一定改善控制。"
+      ],
+      "pitfall": "將 Rf 串 C 畫成並 C 而誤算 PI，或忽略反相負號、把 fz=79.6Hz 當成閉迴路交越頻率。",
+      "check": {
+        "q": "Rin=10kΩ、Rf=20kΩ、C=100nF，類比 PI 的 Kp、Ki、fz 各是多少？",
+        "a": "Kp=2、Ki=1000s⁻¹、fz≈79.6Hz；傳遞函數前有反相負號，不能當作完整閉迴路穩定度證明。"
+      },
+      "tryIt": "沿 P.105 電路畫出 Zf=Rf+1/(sC)，先分離 Kp/Ki，再畫誤差 e 的定義和功率級控制方向，避免反饋極性接反。"
+    },
+    "106": {
+      "lesson": "adc",
+      "title": "雙向 Shunt 到 0–3V ADC：偏壓、差動增益、範圍與取樣裕量怎麼算？",
+      "question": "P.106 3.3V OP 供電、5mΩ Shunt、1.5V 參考與 k=14，如何把 ±20A 轉成安全可讀的 ADC 電壓？",
+      "takeaway": "理想差動感測 VADC=Vref+k(V2−V1)，當 Shunt=5mΩ、Vref=1.5V、k=14 時 VADC=1.5+0.07I(A)。±20A 對應 0.1–2.9V，保留 0–3V ADC 量測邊界；但實際仍須檢查 OP 的共模、輸出 headroom、Vref 緩衝與 ADC 取樣建立時間。",
+      "intuition": [
+        "原圖用 R1/R3 和 Rf/R4 成比例配對的差動 OP，負電流在 Shunt 上產生負差壓，若直接送入單極性 ADC 就越界；先用低阻抗 1.5V 參考當中心，再加上 k 倍差值才可看見正負電流。",
+        "上方標示 3.3V OP 供電與 0–3V ADC，實用 k=14 讓 ±20A 落在 0.1–2.9V，而理想 k=15 恰落在 0–3V 端點，對 OP 飽和、offset 與 ADC 誤差沒有裕量。"
+      ],
+      "steps": [
+        {
+          "title": "先從 Shunt 物理電壓確認極性",
+          "detail": "V2−V1=I×5mΩ，當 I 為負時差壓也為負；感測線的 Kelvin 配對與接線方向必須對應韌體正負電流定義。"
+        },
+        {
+          "title": "確認差動電阻比例與參考緩衝",
+          "detail": "理想 k=Rf/R1=R4/R3，原圖 R1=R3=10kΩ、Rf=R4=140kΩ 可得 k=14，低阻抗 Vref=1.5V 才能建立穩定 ADC 中央偏壓。"
+        },
+        {
+          "title": "計算端點與偏壓裕量",
+          "detail": "VADC=1.5+14×0.005I=1.5+0.07I；+20A→2.9V、−20A→0.1V，保留相對 0–3V 端點各 0.1V 的理想裕量。"
+        },
+        {
+          "title": "再檢查真實 ADC 與快速保護",
+          "detail": "OP 的輸入共模、輸出擺幅、感測噪聲、RC 濾波、ADC S/H 電容與取樣時間都會影響量測；OCP 不能只以理想轉碼式假設故障延遲。"
+        }
+      ],
+      "equations": [
+        {
+          "label": "雙向 Shunt 與差動偏壓",
+          "tex": "V_{\\rm ADC}=V_{\\rm ref}+k(V_2-V_1)=V_{\\rm ref}+kR_{\\rm shunt}I",
+          "plain": "VADC=Vref+k(V2−V1)=Vref+kRshunt I",
+          "why": "原圖匹配四電阻的差動放大與緩衝參考，OP 在共模與輸出可用範圍內，Shunt 極性依示意方向。"
+        },
+        {
+          "label": "實用增益 k=14 的映射",
+          "tex": "V_{\\rm ADC}=1.5+0.07\\,I_{\\rm[A]}\\quad\\mathrm{V}",
+          "plain": "I 以 A 代入：VADC[V]=1.5+0.07I[A]",
+          "why": "只限 Shunt=5mΩ、Vref=1.5V、理想 k=14；端點和 offset 需要實測校準並限制於 ADC 有效範圍。"
+        },
+        {
+          "label": "以 ADC 結果還原電流",
+          "tex": "I_{\\rm est}=\\frac{V_{\\rm ADC}-V_{\\rm ref}}{kR_{\\rm shunt}}",
+          "plain": "電流估計=(VADC−Vref)/(k×Rshunt)",
+          "why": "理想線性且沒有 ADC 增益/offset 誤差，必須先確認硬體 0–3V 的有效範圍與取樣參考電壓。"
+        }
+      ],
+      "worked": {
+        "given": "P.106 的 Shunt=5mΩ、R1=R3=10kΩ、Rf=R4=140kΩ、Vref=1.5V、OP 供電 3.3V，ADC 教學有效輸入為 0–3V。",
+        "steps": [
+          "匹配比例 k=140k/10k=14，所以 VADC=1.5+14×0.005I=1.5+0.07I。",
+          "I=+10A→2.20V，I=−10A→0.80V，I=0→1.50V；在沒有失調誤差時，以 1.5V 為正負電流分界。",
+          "I=±20A 對應 0.10V/2.90V，較 k=15 的 0/3V 理想滿刻度設計保留 0.1V 裕量；仍不能保證 3.3V OP 真能達到這兩端輸出。"
+        ],
+        "result": "理想 ADC 映射提供可逆的 signed-current 計算；要進入 MCU 控制與 OCP，還需要實際 sensor/ADC offset、雜訊、共模、settling、同步與 fault latency 證據。"
+      },
+      "assumptions": [
+        "3.3V OP 供電與 0–3V ADC 範圍是講義給定背景，並非對任何指定 C2000/STM32 型號的實際輸入規格或 ADCRESULT 公式作出保證。",
+        "實際必須核對 OP 輸入共模、負向輸入及輸出靠近上下軌的 headroom、Vref 參考緩衝、Shunt 熱漂、Kelvin routing、ADC S/H acquisition 和 OCP latency。"
+      ],
+      "pitfall": "把 1.5V ADC 當成 1.5A，或只看 ±20A 的理想 0.1–2.9V 就認定 OP 共模與輸出擺幅一定合法、安全。",
+      "check": {
+        "q": "5mΩ、k=14、Vref=1.5V，ADC 電壓 0.80V 與 2.20V 分別代表多少電流？",
+        "a": "I=(VADC−1.5)/0.07，0.80V→−10A、2.20V→+10A；實機還須校正 offset 與感測延遲。"
+      },
+      "tryIt": "從 P.106 的 Shunt 差壓推到 1.5V 偏壓與 k=14，再計算 ±20A 映射，最後對照 OP 共模、輸出裕量和 ADC 有效輸入。"
     }
 };})(window);
