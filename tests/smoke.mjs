@@ -212,7 +212,7 @@ await run('upper P41-48 GTO IGBT MCT switch-loss and family guides',async()=>{
   }
   assert.equal(titles.size,8,'distinct original explanatory titles');
   await navigate(page,'#slide/49');
-  assert.equal(await page.locator('.page-guide').count(),0,'P49 is not yet part of current PR');
+  assert.equal(await page.locator('[data-guide-page="49"]').count(),1,'P49 is now covered by WBG original guide');
   await navigate(page,'#home');
   await page.locator('#search-trigger').click();
   await page.locator('#search-input').fill('Snubber');
@@ -226,6 +226,57 @@ await run('upper P41-48 GTO IGBT MCT switch-loss and family guides',async()=>{
       await mobile.locator('[data-guide-page="'+p+'"]').waitFor({timeout:20000});
       const dims=await mobile.evaluate(()=>({vw:innerWidth,sw:document.documentElement.scrollWidth}));
       assert.ok(dims.sw<=dims.vw+2,'P.'+p+' '+width+'px horizontal overflow '+JSON.stringify(dims));
+    }
+    await mobile.close();
+  }
+});
+
+
+await run('upper P49-58 WBG SiC GaN device and topology original deep guides',async()=>{
+  const titles=new Set();
+  for(let p=49;p<=58;p++){
+    await navigate(page,'#slide/'+p);
+    const guide=page.locator('[data-guide-page="'+p+'"]');
+    assert.equal(await guide.count(),1,'P.'+p+' unique source-grounded deep guide');
+    const title=await guide.locator('h2').innerText();
+    assert.ok(title.length>=18,'P.'+p+' substantive WBG title');
+    titles.add(title);
+    assert.ok(await guide.locator('.guide-steps li').count()>=3,'P.'+p+' physics/driver energy stages');
+    assert.ok(await guide.locator('.guide-equation').count()>=2,'P.'+p+' bounded formulas');
+    assert.ok(await guide.locator('.guide-worked li').count()>=3,'P.'+p+' numeric examples');
+    assert.ok(await guide.locator('.guide-assumptions li').count()>=2,'P.'+p+' limitations');
+    const href=await guide.locator('.guide-link').getAttribute('href');
+    assert.ok(href.endsWith('/wbg'),'P.'+p+' existing SiC/GaN lesson');
+    assert.equal(await page.locator('#source-pdf-file').count(),1,'P.'+p+' original local PDF viewer');
+    for(const row of await guide.locator('.guide-equation').all()){
+      const ready=await row.evaluate(el=>el.classList.contains('guide-ready'));
+      assert.ok(ready||await row.locator('.guide-math-fallback').isVisible(),
+        'P.'+p+' readable KaTeX or fallback');
+    }
+    const check=guide.locator('details.guide-check');
+    assert.equal(await check.evaluate(el=>el.open),false,'P.'+p+' quiz hidden');
+    await check.locator('summary').click();
+    assert.equal(await check.evaluate(el=>el.open),true,'P.'+p+' reveals answer');
+    assert.ok((await check.locator('p').innerText()).length>=20,'P.'+p+' proper answer');
+    if([49,50,51,53,54,55,56,58].includes(p))
+      await page.screenshot({path:outDir+'/upper-wbg-'+p+'.png',fullPage:true});
+  }
+  assert.equal(titles.size,10,'All ten WBG page titles are distinct');
+  await navigate(page,'#slide/59');
+  assert.equal(await page.locator('.page-guide').count(),0,'P59 is next untouched instructional chapter');
+  await navigate(page,'#home');
+  await page.locator('#search-trigger').click();
+  await page.locator('#search-input').fill('Baliga');
+  assert.ok(await page.locator('#search-results a[href="#slide/50"]').count()>0,
+    'P50 Baliga material limits should be searchable');
+  await page.keyboard.press('Escape');
+  for(const width of [320,390]){
+    const mobile=await browser.newPage({viewport:{width,height:720}});
+    for(let p=49;p<=58;p++){
+      await mobile.goto(BASE+'/#slide/'+p);
+      await mobile.locator('[data-guide-page="'+p+'"]').waitFor({timeout:20000});
+      const dims=await mobile.evaluate(()=>({vw:innerWidth,sw:document.documentElement.scrollWidth}));
+      assert.ok(dims.sw<=dims.vw+2,'P.'+p+' '+width+'px overflow '+JSON.stringify(dims));
     }
     await mobile.close();
   }
