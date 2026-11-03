@@ -47,7 +47,7 @@ assert.ok(g[64].assumptions.some(s=>s.includes('完整')||s.includes('正弦')),
 // P65: DC-voltage load turn-on threshold != current extinction angle.
 const peak=100,Ed=60,omega=2*Math.PI*50;
 near(Math.asin(Ed/peak),.6435011087932844,1e-12,'P65 threshold angle');
-near(Math.asin(Ed/peak)/omega,.002048310887,1e-9,'P65 threshold in seconds');
+near(Math.asin(Ed/peak)/omega,.002048327647,1e-10,'P65 threshold in seconds');
 assert.ok(g[65].pitfall.includes('截止')||g[65].assumptions.some(s=>s.includes('截止')),
  'P65 source-below-Ed instant is NOT automatically diode turn-off');
 // P66: bridge peak minus two forward drops and physical stored capacitor energy.
