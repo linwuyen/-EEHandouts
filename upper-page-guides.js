@@ -2601,5 +2601,241 @@
       "a": "不能。基本阻斷能力已不足；對 1200 V 額定仍須另做過衝、降額與熱驗證。"
     },
     "tryIt": "在原 P.52 圖上先畫最大 Bus 與候選 rating，再把 Eon/Eoff 及熱限制補成第三個選型條件。"
+  },
+  "53": {
+    "lesson": "wbg",
+    "title": "SiC MOSFET 高 dv/dt／di/dt：為什麼 Kelvin Source 與 Gate Driver 很重要？",
+    "question": "原講義說 SiC 常見 +15～18 V、0～−5 V Gate，這是所有 SiC 器件都必須照抄的驅動電壓嗎？",
+    "takeaway": "SiC 的高速換流會把寄生 Ldi/dt 與 Miller 耦合放大；Gate 電壓、Kelvin Source、CMTI 和保護時序都要依具體元件與布局設計。",
+    "intuition": [
+      "P.53 把高壓低導通阻抗與高速換流的優點並列，但同時強調高 dv/dt 可能透過 Cgd 注入 Gate、共模瞬變也可能超過 Driver 抗擾能力。",
+      "Kelvin Source 能把 Gate 回流與高 di/dt 的主功率 Source 回路部分分開，減少共源寄生造成的 VGS 誤差；特定 SiC MOSFET 可能允許 0 V 關斷，也可能要求負壓，不能通用複製 +18/−5 V。"
+    ],
+    "steps": [
+      {
+        "title": "先畫主功率迴路與 Gate 回流",
+        "detail": "高速 ID 變化流經共源寄生電感時，會使 Source 端跳動；若 Driver Return 接錯，示波器看見的 VGS 與真正晶片 Gate–Source 不一致。"
+      },
+      {
+        "title": "估 Lpar 對 VDS 的過衝尺度",
+        "detail": "在換流電流斜率一定時，縮短 Power Loop 或採低寄生封裝可減小 Lpar×di/dt；並須搭配 Coss、Clamp 和實際量測。"
+      },
+      {
+        "title": "再看 Miller 注入與 CMTI",
+        "detail": "高 dv/dt 透過 Cgd 帶來注入電流，Gate OFF 應避免假導通，隔離驅動器要具備實際共模瞬變下的裕度。"
+      },
+      {
+        "title": "由 datasheet 定義 Gate 與短路保護",
+        "detail": "正／負 VGS 絕對值、短路耐受時間、DESAT/過流檢測與受控 turn-off 都必須逐顆按資料表確認。"
+      }
+    ],
+    "equations": [
+      {
+        "label": "寄生電感瞬態電壓",
+        "tex": "V_{L}=L_{par}\\frac{di}{dt}",
+        "plain": "寄生 L 上的瞬態電壓=Lpar×di/dt",
+        "why": "僅估單一寄生項，最終 VDS 尖峰由多個 L／C 和換流路徑共同決定。"
+      },
+      {
+        "label": "Gate 驅動供電尺度",
+        "tex": "P_{gate}\\approx Q_gV_{drive}f_s",
+        "plain": "Gate 供電功率尺度≈Qg×驅動電壓擺幅×fs",
+        "why": "供電能量分配在 Driver、Rg 和 Gate 迴路，不等於全部成為 MOSFET 晶片的熱。"
+      }
+    ],
+    "worked": {
+      "given": "獨立示例：主功率回路寄生 Lpar=20 nH、di/dt=5 A/ns；另假設 Gate Qg=100 nC、Vdrive 擺幅 18 V、fs=100 kHz。",
+      "steps": [
+        "寄生瞬態壓降尺度為 20 nH×5 A/ns=100 V，代表布局容易影響額定安全裕度。",
+        "Gate 供電尺度約 100 nC×18 V×100 kHz=0.18 W，與主功率切換 Eon/Eoff 不是相同項目。",
+        "若某器件資料表指定 OFF=0 V 可以抗誤觸發，就不應毫無理由增加負壓；若特定器件要求負壓則必須滿足其完整 Gate 規格。"
+      ],
+      "result": "最終是否安全仍要量實際 VGS、VDS、ID、Driver CMTI 和保護反應，不能只由 100 V／0.18 W 兩個數字判定。"
+    },
+    "assumptions": [
+      "20 nH、5 A/ns 與 Qg 是教育示例；器件 Gate 電壓窗口和短路時間必須以實際型號的 datasheet 為準。",
+      "Kelvin Source 有其封裝與走線前提，不能把 Driver GND 接在 Power Source 後就宣稱已隔離共源電感。"
+    ],
+    "pitfall": "把所有 SiC 都固定使用 +18/−5 V，或以為只靠 MCU PWM 腳位就能保證 SiC 的實際 VGS 與 Gate-off 安全。",
+    "check": {
+      "q": "20 nH 寄生與 5 A/ns 電流斜率的瞬態電壓尺度？",
+      "a": "約 100 V；這不是元件的全體過衝，也不代表必須採某個固定負向 Gate 電壓。"
+    },
+    "tryIt": "對照 P.53 的 Kelvin Source、CMTI、Rg(on/off) 與保護，延伸既有 SiC/GaN 課節。"
+  },
+  "54": {
+    "lesson": "wbg",
+    "title": "GaN E-mode 與 Cascode D-mode：為何 Normally-off 的結構不只有一種？",
+    "question": "原講義 E-mode 低 Gate 電壓窗口、Cascode 使用低壓矽 MOSFET，兩者在上電和驅動上有什麼差別？",
+    "takeaway": "E-mode GaN 直接利用增強型通道實現 0 V 常關；Cascode 用內部常開 D-mode GaN 與低壓 Si MOSFET 配合實現系統常關，但 Gate 驅動規格不能互換。",
+    "intuition": [
+      "P.54 說明 E-mode GaN 是常關型，但常見 Gate 絕對額定窗口比傳統矽 MOSFET 窄，需要專用或具正確穩壓、CMTI 的 Driver。",
+      "Cascode 結構讓常開 D-mode GaN 與低壓 Si MOSFET 串接，由低壓 MOSFET 控制整個端口，並不能保證所有 Cascode 都完全相容任意老式驅動器。"
+    ],
+    "steps": [
+      {
+        "title": "從 E-mode 零偏關閉理解安全狀態",
+        "detail": "未施加正向 Gate 偏壓時，增強型器件保持關閉；實際閾值、可用導通 VGS 與最大額定不能混為同一數字。"
+      },
+      {
+        "title": "追 Cascode 內部兩顆器件的開關順序",
+        "detail": "低壓矽 MOSFET 關閉時，整個 Cascode 可以常關；其封裝內的電壓分配、換流和反向導通需要依實際器件規格判斷。"
+      },
+      {
+        "title": "辨認 Gate 窗口與實際瞬態",
+        "detail": "Driver 標稱電壓不是器件接腳實際 VGS，需檢查寄生過衝、負向振鈴、啟動 UVLO、CMTI 和 Gate 絕對最大值。"
+      }
+    ],
+    "equations": [
+      {
+        "label": "Gate 上界電壓的必要比較",
+        "tex": "V_{GS,peak}<V_{GS,max}",
+        "plain": "Gate 實際峰值需在該型號允許額定內",
+        "why": "仍須考慮負向容限、瞬態脈寬、結溫與器件可靠度；並非所有 E-mode 額定皆相同。"
+      },
+      {
+        "label": "寄生 Gate 電壓峰值示意",
+        "tex": "V_{GS,peak}=V_{drive}+V_{ring}",
+        "plain": "VGS 峰值示意≈Driver 命令電壓+寄生振鈴",
+        "why": "僅作最壞同方向幅值疊加的簡化檢查，實際波形由 Gate Loop 和驅動供電決定。"
+      }
+    ],
+    "worked": {
+      "given": "假設某 E-mode GaN 的指定 Gate 正向絕對上界為 +6 V、期望導通命令為 +5 V；示意 Gate 過衝為 +1.5 V。",
+      "steps": [
+        "該例 Gate 峰值約 5+1.5=6.5 V，已超過假設額定上界 0.5 V。",
+        "即使 Driver 標稱 +5 V 沒超額定，Gate–Source 接腳實際過衝仍可能不合格。",
+        "如果某 Cascode 器件的外部 Gate 規格允許較大範圍，也必須查該型號，而不能直接套此 +6 V 數字。"
+      ],
+      "result": "這是驅動窗口的風險例題，不代表市售 GaN 的絕對最大 VGS 均為 +6 V。"
+    },
+    "assumptions": [
+      "+6 V 上界與 +5 V 驅動是指定假設，不可作任何 GaN 產品的通用 Gate 定義或操作建議。",
+      "Cascode 和 E-mode 的反向導通、啟動安全、Gate 絕對額定及可靠度取決於實際結構與 datasheet。"
+    ],
+    "pitfall": "認為所有 GaN Gate 都能用傳統 +10/+12 V MOSFET Driver，或認為 Cascode 的常關必然免除啟動與過壓檢查。",
+    "check": {
+      "q": "+5 V 標稱驅動但接腳多 +1.5 V 過衝，假設額定 +6 V，是否通過？",
+      "a": "不能。峰值 6.5 V 超過假設額定 0.5 V，必須調整器件／驅動／布局並依資料表評估。"
+    },
+    "tryIt": "依 P.54 E-mode 與 Cascode 的結構，畫出真正的 Gate 控制端及 0 V 停機狀態。"
+  },
+  "55": {
+    "lesson": "wbg",
+    "title": "Direct-Drive D-mode 與整合 GaN：開機時 Gate 偏壓為何比 PWM 還重要？",
+    "question": "GaN D-mode 若 0 V 是常開，系統上電初期尚未建立負壓偏置會發生什麼事？",
+    "takeaway": "Direct-Drive D-mode 的系統安全要求先建立有效負壓 Gate 關斷與互鎖，再允許高壓功率級；整合 GaN 需查其 UVLO、故障與控制輸入，而非假定自動安全。",
+    "intuition": [
+      "P.55 區分 Direct-Drive D-mode GaN 和整合式 GaN Power Stage：前者若為常開型，0 V Gate 偏壓時主通道可能導通，因此上電順序是電力電子的安全條件而不只是控制軟體細節。",
+      "整合 Power Stage 可能包含 Driver、電源與保護，能縮短 Gate Loop 和改善可使用性，但不同產品的 UVLO、Fault、OCP 與電源掉電行為皆不相同。"
+    ],
+    "steps": [
+      {
+        "title": "先確認 Gate=0 的功率狀態",
+        "detail": "Direct D-mode 在 Gate 偏壓未建立時可能是 ON，若母線已施加而控制器尚未啟動，可能出現未受控功率電流。"
+      },
+      {
+        "title": "以硬體有效偏壓作啟動互鎖",
+        "detail": "必須先由硬體確認 Gate-off 電源有效、Driver 故障狀態可接受，然後才能解除 HV 使能與允許 PWM。"
+      },
+      {
+        "title": "對整合式 Power Stage 重讀功能表",
+        "detail": "整合 Driver 與保護不等於所有危險都被消除，仍需實際核對其 UVLO 門檻、短路反應、過溫和 fault latch/reset 方式。"
+      }
+    ],
+    "equations": [
+      {
+        "label": "Gate-off 比較的示意條件",
+        "tex": "V_{GS,actual}\\le V_{GS,off,req}",
+        "plain": "實際 Gate-off 偏壓必須符合該 D-mode 器件要求",
+        "why": "僅以特定型號規定的有效關斷條件為準；負向 VGS 絕對值及脈衝應力也要核對。"
+      },
+      {
+        "label": "Gate 寄生偏移簡化",
+        "tex": "V_{GS,actual}=V_{bias}+V_{noise}",
+        "plain": "實際關斷 Gate 偏壓≈負偏壓供應+寄生正向抬升",
+        "why": "此式示意同方向耦合的最壞電壓，並不能替代高頻 VGS 實測與開機互鎖設計。"
+      }
+    ],
+    "worked": {
+      "given": "假設某 Direct D-mode 的可靠關斷條件是 VGS≤−4 V，設計提供 −5 V 靜態偏壓，但受開關噪聲可能短暫上升 +1.5 V。",
+      "steps": [
+        "最壞 Gate-off 偏壓變成 −5+1.5=−3.5 V。",
+        "−3.5 V 高於假設要求的 −4 V，因此不能視為已保證關斷。",
+        "若系統 HV enable 仍允許在偏壓尚未建立時輸出，屬硬體啟動風險，不能只依 MCU 程式下一個週期會送 OFF 命令來補救。"
+      ],
+      "result": "此例需要的是依 datasheet 建立安全偏壓裕度與硬體互鎖，並不代表所有 GaN D-mode 要求相同負壓。"
+    },
+    "assumptions": [
+      "−4／−5 V 是純示例的特定型號假設，不可直接複製到任何 Direct-drive GaN 產品或 Gate Driver。",
+      "整合 GaN 的 OCP、UVLO、故障鎖存、可用反向導流和最大 VGS 應依實際料號確認，不能一概而論。"
+    ],
+    "pitfall": "以為 MCU 上電很快就能補送 Gate-off，所以不用硬體互鎖；或把整合 Driver 誤當成免除失效模式分析。",
+    "check": {
+      "q": "假設要求 VGS≤−4 V，供應 −5 V 被雜訊抬升 +1.5 V，能保證 OFF 嗎？",
+      "a": "不能，實際為 −3.5 V，沒有符合題目指定的關斷條件，需先確保硬體關斷裕度與互鎖。"
+    },
+    "tryIt": "針對 P.55 Direct D-mode 與 Integrated Stage，列出電源先後、Gate-off 供電與 Fault 回復的檢查表。"
+  },
+  "56": {
+    "lesson": "wbg",
+    "title": "GaN 低 Qg／Qoss 與 Dead Time：為何極快開關不代表零換流損失？",
+    "question": "GaN 沒有傳統矽 PN Body Diode Qrr，為何仍需考慮第三象限導通、Dead Time 與佈局 EMI？",
+    "takeaway": "GaN 高速切換可降低部分 Gate 與電荷損耗，但關斷死區中的第三象限壓降、Coss/Qoss 能量、Gate Loop 與測量寄生仍不可忽略。",
+    "intuition": [
+      "P.56 對照 GaN HEMT 的 lateral 2DEG、高遷移率、低 Qg/Qgd/Qoss 和 Gate Driver 的短迴路需求；小電荷意味 Driver 較容易搬運，但不能無限制提高頻率。",
+      "GaN 無傳統 PN Body Diode 型 Qrr 不代表反向電流消失，Dead Time 期間第三象限可能有明顯反向壓降；過短 Dead Time 又可能使上下管 shoot-through。"
+    ],
+    "steps": [
+      {
+        "title": "從 Gate 電荷與 Driver 電流估時間尺度",
+        "detail": "Gate 電壓變化須搬運 Qg，Miller Qgd 又與 Drain dv/dt 耦合；兩者會受 Driver 有效電流、Rg 和寄生影響。"
+      },
+      {
+        "title": "在 Dead Time 找反向通道",
+        "detail": "當上下管暫時都關閉，電感電流仍需要通道，GaN 的第三象限可能產生反向壓降與耗散，並非傳統 Si Body Diode 的零恢復就零熱。"
+      },
+      {
+        "title": "最小化但不能消除互鎖死區",
+        "detail": "太長 Dead Time 增加反向導通損，太短 Dead Time 則會受 propagation delay mismatch、Miller 誤觸發與 PCB 寄生影響導致直通。"
+      },
+      {
+        "title": "選擇低寄生量測與元件佈局",
+        "detail": "快速 dv/dt/di/dt 需要短 Power/Gate Loop、低寄生探測與足夠 CMTI；示波器看見尖峰需排除探棒迴路誤差。"
+      }
+    ],
+    "equations": [
+      {
+        "label": "簡化第三象限 Dead Time 損",
+        "tex": "P_{dt}\\approx nV_{rev}I_Lt_df_s",
+        "plain": "Pdt≈每週期 Dead Time 區段數×反向壓降×電流×單段時間×fs",
+        "why": "假設區間內 Vrev、I 固定且沒有 ZVS 轉換動態，僅能作簡化損耗尺度。"
+      },
+      {
+        "label": "Driver 電荷轉換時間尺度",
+        "tex": "t_g\\approx Q_g/I_{G,avg}",
+        "plain": "Gate 轉換時間約 Gate 電荷／平均 Driver 電流",
+        "why": "Gate 電荷與電流隨波形與器件非線性變動，不能直接當完整 VDS 切換時間或 Dead Time 設定。"
+      }
+    ],
+    "worked": {
+      "given": "假設一個 GaN 半橋每週期有兩段第三象限續流，每段 Dead Time=50 ns，反向壓降 3 V、電流 8 A、fs=200 kHz。",
+      "steps": [
+        "總反向導流時間占空=2×50 ns×200 kHz=0.02。",
+        "簡化 Dead Time 損失 Pdt≈3×8×0.02=0.48 W。",
+        "若每段 Dead Time 變成 100 ns，其餘固定，估算 Pdt≈0.96 W，增加一倍。"
+      ],
+      "result": "縮短 Dead Time 可能降低此項損耗，但若過短使兩管瞬間同開則不可接受；實際必須驗證 Gate、VDS、ID 與最壞傳播延遲。"
+    },
+    "assumptions": [
+      "示例固定 Vrev、I、兩個完整區間，忽略 ZVS 對 VDS、電流及反向導通時間的影響。",
+      "GaN Gate 電壓及 Driver CMTI、Dead Time 匹配由實際器件／封裝和控制規格決定，不能直接照搬 50 ns。"
+    ],
+    "pitfall": "把『沒有 PN body diode Qrr』等同『沒有反向導通損』，或以為 Dead Time 一定可以設成零。",
+    "check": {
+      "q": "兩段各 50 ns、fs=200 kHz、8 A、反向壓降 3 V，Dead Time 損耗近似多少？",
+      "a": "約 0.48 W，僅為固定電流電壓的示例，不等於全部換流損耗。"
+    },
+    "tryIt": "依 P.56 原圖，把 Qg/Qoss、第三象限、Gate Loop、Dead Time 和探測方法各自列成工程檢查項目。"
   }
 };})(window);
