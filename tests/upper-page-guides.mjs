@@ -17,7 +17,7 @@ const links={3:'power',4:'rms',5:'pqs',6:'threephase',7:'fourier',8:'fourier',9:
 49:'wbg',50:'wbg',51:'wbg',52:'wbg',53:'wbg',54:'wbg',55:'wbg',56:'wbg',57:'wbg',58:'wbg',
 59:'blocks',60:'linear',61:'linear',62:'pwm',
 63:'half',64:'half',65:'half',66:'bridge',67:'bridge',68:'bridge',69:'bridge',70:'bridge',71:'overlap',72:'overlap',73:'capacitor',74:'capacitor',75:'capacitor',76:'capacitor',77:'capacitor',78:'capacitor',79:'capacitor',80:'notching',81:'notching',82:'notching',
-83:'neutral',84:'neutral',85:'neutral',86:'sixpulse',87:'sixpulse',88:'sixpulse',89:'harm6',90:'overlap3',91:'overlap3',92:'overlap3'};
+83:'neutral',84:'neutral',85:'neutral',86:'sixpulse',87:'sixpulse',88:'sixpulse',89:'harmonics',90:'commutation',91:'commutation',92:'commutation'};
 for(let p=3;p<=92;p++){
  const x=g[p];assert.equal(x.lesson,links[p],'wrong page lesson '+p);
  assert.ok(lessons.some(l=>l.id===x.lesson),'broken lesson link '+p);
