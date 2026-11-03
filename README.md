@@ -257,3 +257,13 @@ Node.js 22 開發環境：執行 `npm ci --ignore-scripts`，再安裝 Chromium�
 - `tests/upper-semiconductor-guides.mjs` 提供 14 頁獨立電路與功率數值；`tests/upper-page-guides.mjs` 驗證上冊 P.3–40 **38 頁**連續覆蓋。Chromium、Firefox／WebKit 驗證公式可讀備援、搜尋、問答、本機 PDF、手機 320/390px 不溢位及下一批 P.41 邊界。
 - 工程參考：[Infineon MOSFET Datasheet Explanation](https://www.infineon.com/assets/row/public/documents/24/42/infineon-mosfet-optimos-datasheet-explanation-applicationnotes-en.pdf)、[Infineon Hard Commutation Application Note](https://www.infineon.com/assets/row/public/documents/24/42/infineon-power-mosfet-optimos-fd-200v-250v-hard-diode-commutation-an-en.pdf?fileId=db3a304344ae06150144b1d2f8250165)、[TI MOSFET Miller Plateau and Gate Driver](https://www.ti.com/document-viewer/lit/html/SSZT070/GUID-C487B538-63ED-4542-B1B2-618D8EDEC16F)。
 - 本批為教育用近似模型，沒有確認任何器件實際 SOA、tq、Qrr、dv/dt、熱分布、保護或實機示波器波形。
+
+## 上冊第五批逐頁深化｜Si／SiC／GaN、Gate 驅動與 Topology 選型 P.49–58
+
+- 核對原始 R2 PPTX 的 P.49–58，包括 P.52 圖片內容（原始擷取文字僅有頁碼）。**P.49–50**：能隙 Eg 與臨界電場 Ec、理想漂移層厚度尺度、Baliga `Ron,sp∝BV²/(εµEc³)` 理論極限及熱導率與封裝熱阻的差異。
+- **P.51–52**：Si MOSFET、IGBT、SiC MOSFET、GaN HEMT 的載子與第三象限反向導通，原表的典型電壓與頻率**不是所有當代型號的絕對上限**，電壓×頻率座標只能用於初步篩選。
+- **P.53–56**：SiC Gate/Source Kelvin、Miller／CMTI／寄生 Ldi/dt、E-mode GaN／Cascode D-mode、Direct-drive D-mode 的上電負壓互鎖、整合 GaN Power Stage 的 UVLO、GaN 低 Qg/Qoss 與 Dead Time／第三象限熱損。**各種 SiC/GaN 的 VGS 最大值、負偏壓需求與短路耐受必須依具體器件 datasheet**；不將講義例示數值當作通用規格。
+- **P.57–58**：四種器件在同一工作點下的導通／切換損耗比較，以及 Buck、Totem-Pole PFC、LLC／CLLC、DAB/SST 的能流先行選型。ZVS 的 `½LI²≥Eoss` 是必要能量尺度檢查之一，**不保證 Qoss 在 Dead Time 內完成轉移**，更不能當作各負載的 ZVS PASS。
+- `tests/upper-wbg-guides.mjs` 提供十頁獨立數值參考：阻斷電場、Baliga 極限、第三象限耗散、Gate 窗口、SiC Ldi/dt、Direct D-mode 關斷偏壓、Dead Time 損失、器件導通損比較與 ZVS 能量／時序條件。正式整合時須同時驗證上冊 P.3–58 **56 頁**連續覆蓋、Chromium、Firefox／WebKit、公式、測驗、搜尋與手機 320／390px。
+- 不新增模擬器、不修改既有課節／互動引擎／進階實驗／本機原始 PDF 檢視器。所有算例是教育上有明確條件的簡化示意，不是硬體選型、熱、SOA、EMI 或安規驗收。
+- 廠商第一手延伸資料：[TI GaN device gate driver considerations](https://www.ti.com/document-viewer/lit/html/SSZT092/GUID-DE35FC6E-02C7-459F-B843-9D7786DAFC5F)、[TI Third quadrant operation of GaN](https://www.ti.com/lit/snoaa36)、[Infineon CoolSiC Kelvin Source](https://www.infineon.com/assets/row/public/documents/24/42/infineon-infineon-coolsic-400-v-and-440-v-g2-mosfets-an-en-applicationnotes-en.pdf)。
