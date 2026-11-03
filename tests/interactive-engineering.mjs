@@ -257,9 +257,24 @@ eq(moreDuty.metrics[4].value,45,1e-9,'Zero-state duration decreases when A duty 
 assert.ok(make('threeRect').note.includes('上橋二極體')&&
   make('threeRect').note.includes('下橋二極體'),
   'Three-phase bridge must name the current-conducting diode pair');
-assert.ok(models.multiSecondary.assumption.includes('純電阻負載')&&
-  models.multiSecondary.assumption.includes('同相'),
-  'Multi-output current arithmetic requires explicitly same-phase resistive loads');
+// F03: declared invariant is same-phase secondary RMS CURRENT at each point;
+// equivalent load resistances change when voltage or turns ratio changes.
+assert.ok(models.multiSecondary.assumption.includes('各工作點指定')&&
+  models.multiSecondary.assumption.includes('RMS 電流')&&
+  models.multiSecondary.assumption.includes('並非固定電阻'),
+  'F03 must declare per-point secondary current, not fixed load resistance');
+for(const [vp,r2,wantV1,wantV2,wantVA,wantIp] of [
+ [96,4,48,24,60,.625],[192,4,96,48,120,.625],[96,5,48,19.2,57.6,.6]
+]){
+ const r=make('multiSecondary',{vp,r1:2,r2});
+ [wantV1,wantV2,wantVA,wantIp].forEach((want,i)=>
+  eq(r.metrics[i].value,want,1e-9,'F03 fixed-current fixture metric '+i));
+ eq(vp*r.metrics[3].value,r.metrics[2].value,1e-9,'F03 transformer VA balance');
+ eq(r.metrics[2].value,r.metrics[0].value*1+r.metrics[1].value*.5,1e-9,
+  'F03 fixed secondary RMS currents 1 A and .5 A');
+}
+assert.equal(catalog['mid-multi-output'][2],'r2','F03 keep predicted turns-ratio variable');
+assert.equal(catalog['mid-multi-output'][3],1,'F03 prediction still targets secondary 2 voltage');
 
 
 /* Third-review numerical contracts: the same phase and cursor determine all
