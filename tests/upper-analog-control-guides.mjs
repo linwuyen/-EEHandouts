@@ -93,3 +93,16 @@ for(const i of [-20,-10,0,10,20]){
 assert.ok(g[106].assumptions.some(s=>s.includes('共模'))&&g[106].takeaway.includes('0.1–2.9V'),
  'P106 offset, headroom and OP common-mode bounds');
 console.log('PASS upper P101–106: RC/Bode, Sallen-Key, allpass, differentiator, analog PI, bipolar ADC sense');
+
+// F04: validate displayed coefficients, units, worked examples and calculator
+// against independent literal physical references, not another isolated formula.
+const mathRoot={},modelRoot={};
+runInNewContext(readFileSync('formula-math.js','utf8'),{window:mathRoot});
+runInNewContext(readFileSync('interactive-lessons.js','utf8'),{window:modelRoot});
+const {assertAdcPage106,assertAdcLesson,assertAdcModel}=await import('./helpers/adc-page-contract.mjs');
+const adcPage=g[106],adcLesson=lessons.find(l=>l.id==='adc');
+assertAdcPage106({tex:adcPage.equations[1].tex,plain:adcPage.equations[1].plain,
+ given:adcPage.worked.given,worked:adcPage.worked.steps,answer:adcPage.check.a});
+assertAdcLesson({mathTex:mathRoot.EE_MATH.adc[0].tex,formula:adcLesson.formula,example:adcLesson.example});
+assertAdcModel(modelRoot.EE_INTERACTIVE.models.adc);
+console.log('PASS F04: actual ADC page/lesson formula, units, examples and interactive calculator');
