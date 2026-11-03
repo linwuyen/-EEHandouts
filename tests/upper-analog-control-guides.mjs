@@ -33,7 +33,7 @@ const R=1000,C=10e-9,tau=R*C,fc=1/(2*Math.PI*tau);
 near(fc,15915.494309189537,1e-9,'P101 cutoff');
 const x=2*Math.PI*1000*tau;
 near(1/Math.hypot(1,x),0.9980319045036449,1e-12,'P101 1 kHz low pass');
-near(x/Math.hypot(1,x),0.06270819262525788,1e-12,'P101 1 kHz bounded differentiator');
+near(x/Math.hypot(1,x),0.06270819398473762,1e-12,'P101 1 kHz bounded differentiator');
 near(1/Math.hypot(1,1),Math.SQRT1_2,1e-15,'P101 LP at corner');
 near(1/Math.hypot(1,1),Math.SQRT1_2,1e-15,'P101 HP at corner');
 assert.ok(g[101].pitfall.includes('低通')&&g[101].pitfall.includes('高通'),'P101 distinct two signs and filters');
@@ -77,7 +77,7 @@ const Kp=RF/Rin,Ki=1/(Rin*Cpi),fz=Ki/(2*Math.PI*Kp);
 near(Kp,2,1e-12,'P105 proportional gain');
 near(Ki,1000,1e-10,'P105 integrator coefficient');
 near(fz,79.57747154594767,1e-10,'P105 PI zero');
-assert.ok(g[105].takeaway.includes('負')&&g[105].assumptions.some(s=>s.includes('離散')),
+assert.ok(g[105].equations.some(x=>x.tex.includes('H(s)=-'))&&g[105].assumptions.some(s=>s.includes('數位化')||s.includes('離散')),
  'P105 analog sign and discrete control must remain explicit');
 // P106: 5mOhm and matched 14x input gain with 1.5V offset and ±20A range.
 const Rshunt=.005,Vref=1.5,G=140000/10000;
