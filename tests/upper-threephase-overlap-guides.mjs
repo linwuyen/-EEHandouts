@@ -65,7 +65,9 @@ assert.ok(guides[90].pitfall.includes('四顆'),'P90 threephase commutation not 
 const Ls=.001,Vdiff=100;
 near(Vdiff/(2*Ls),50000,1e-12,'P91 di/dt via two per-phase inductors');
 near(Vdiff/(2*Ls)*.0001,5,1e-12,'P91 0.1ms local current step');
-assert.ok(guides[91].pitfall.includes('2'),'P91 half-V pair sharing cannot be omitted');
+assert.ok(guides[91].equations.some(e=>e.tex.includes('2L_s') && e.plain.includes('2Ls'))
+ && guides[91].pitfall.includes('兩倍'),
+ 'P91 two-source-inductor KVL and incorrect single-Ls slope must remain explicit');
 // P92: integrate source sinusoidal line-line difference in equal source inductances.
 const VLL=400,f=50,w=2*Math.PI*f,VLLpk=VLL*Math.SQRT2,Iout=10;
 const ratio=2*w*Ls*Iout/VLLpk;
