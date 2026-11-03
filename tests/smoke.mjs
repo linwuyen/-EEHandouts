@@ -314,7 +314,7 @@ await run('upper P59-62 power system, linear, SMPS and PWM original deep guides'
   }
   assert.equal(titles.size,4,'Four distinct page teaching titles');
   await navigate(page,'#slide/63');
-  assert.equal(await page.locator('.page-guide').count(),0,'P63 belongs to next rectifier batch');
+  assert.equal(await page.locator('[data-guide-page="63"]').count(),1,'P63 now has its source-specific half-wave guide');
   await navigate(page,'#home');
   await page.locator('#search-trigger').click();
   await page.locator('#search-input').fill('串聯調節');
@@ -328,6 +328,58 @@ await run('upper P59-62 power system, linear, SMPS and PWM original deep guides'
       await mobile.locator('[data-guide-page="'+p+'"]').waitFor({timeout:20000});
       const dims=await mobile.evaluate(()=>({vw:innerWidth,sw:document.documentElement.scrollWidth}));
       assert.ok(dims.sw<=dims.vw+2,'P.'+p+' '+width+'px overflow '+JSON.stringify(dims));
+    }
+    await mobile.close();
+  }
+});
+
+
+await run('upper P63-70 half-wave, bridge and harmonic original teaching guides',async()=>{
+  const mapping={63:'half',64:'half',65:'half',66:'bridge',67:'bridge',68:'bridge',69:'bridge',70:'bridge'};
+  const titles=new Set();
+  for(let p=63;p<=70;p++){
+    await navigate(page,'#slide/'+p);
+    const guide=page.locator('[data-guide-page="'+p+'"]');
+    assert.equal(await guide.count(),1,'P.'+p+' unique original rectifier guide');
+    const title=await guide.locator('h2').innerText();
+    assert.ok(title.length>=18,'P.'+p+' detailed title');
+    titles.add(title);
+    assert.ok(await guide.locator('.guide-steps li').count()>=3,'P.'+p+' physical diode loops');
+    assert.ok(await guide.locator('.guide-equation').count()>=2,'P.'+p+' bounded wave equations');
+    assert.ok(await guide.locator('.guide-worked li').count()>=3,'P.'+p+' numeric example');
+    assert.ok(await guide.locator('.guide-assumptions li').count()>=2,'P.'+p+' model conditions');
+    const href=await guide.locator('.guide-link').getAttribute('href');
+    assert.ok(href.endsWith('/'+mapping[p]),'P.'+p+' original lesson link');
+    assert.equal(await page.locator('#source-pdf-file').count(),1,'P.'+p+' original local source PDF');
+    for(const eq of await guide.locator('.guide-equation').all()){
+      const ready=await eq.evaluate(el=>el.classList.contains('guide-ready'));
+      assert.ok(ready||await eq.locator('.guide-math-fallback').isVisible(),
+        'P.'+p+' readable formula/KaTeX fallback');
+    }
+    const check=guide.locator('details.guide-check');
+    assert.equal(await check.evaluate(n=>n.open),false,'P.'+p+' answer initially hidden');
+    await check.locator('summary').click();
+    assert.equal(await check.evaluate(n=>n.open),true,'P.'+p+' answer reveals');
+    assert.ok((await check.locator('p').innerText()).length>=20,'P.'+p+' answer adequate');
+    if([63,64,65,66,68,69,70].includes(p))
+      await page.screenshot({path:outDir+'/upper-rectifier-'+p+'.png',fullPage:true});
+  }
+  assert.equal(titles.size,8,'Eight original rectifier pages with unique titles');
+  await navigate(page,'#slide/71');
+  assert.equal(await page.locator('.page-guide').count(),0,'P71 source-inductance overlap belongs to next review batch');
+  await navigate(page,'#home');
+  await page.locator('#search-trigger').click();
+  await page.locator('#search-input').fill('矩形線電流');
+  assert.ok(await page.locator('#search-results a[href="#slide/69"]').count()>0,
+    'P69 fixed Id line current must be searchable');
+  await page.keyboard.press('Escape');
+  for(const width of [320,390]){
+    const mobile=await browser.newPage({viewport:{width,height:720}});
+    for(let p=63;p<=70;p++){
+      await mobile.goto(BASE+'/#slide/'+p);
+      await mobile.locator('[data-guide-page="'+p+'"]').waitFor({timeout:20000});
+      const w=await mobile.evaluate(()=>({vw:innerWidth,sw:document.documentElement.scrollWidth}));
+      assert.ok(w.sw<=w.vw+2,'P.'+p+' '+width+'px horizontal overflow '+JSON.stringify(w));
     }
     await mobile.close();
   }
