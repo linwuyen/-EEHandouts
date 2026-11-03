@@ -566,7 +566,7 @@ await run('upper P83-88 three-phase neutral harmonics and six-pulse diode bridge
   }
   assert.equal(titles.size,6,'Every three-phase source slide has a unique title');
   await navigate(page,'#slide/89');
-  assert.equal(await page.locator('.page-guide').count(),0,'P89 characteristic harmonics left for next batch');
+  assert.equal(await page.locator('[data-guide-page="89"]').count(),1,'P89 now has characteristic harmonics guide');
   await navigate(page,'#home');
   await page.locator('#search-trigger').click();
   await page.locator('#search-input').fill('Triplen');
@@ -580,6 +580,56 @@ await run('upper P83-88 three-phase neutral harmonics and six-pulse diode bridge
       await mobile.locator('[data-guide-page="'+p+'"]').waitFor({timeout:20000});
       const dims=await mobile.evaluate(()=>({vw:innerWidth,sw:document.documentElement.scrollWidth}));
       assert.ok(dims.sw<=dims.vw+2,'P.'+p+' '+width+'px horizontal overflow '+JSON.stringify(dims));
+    }
+    await mobile.close();
+  }
+});
+
+
+await run('upper P89-92 six-pulse characteristic harmonics and source Ls commutation',async()=>{
+  const mapping={89:'harm6',90:'overlap3',91:'overlap3',92:'overlap3'};
+  const titles=new Set();
+  for(let p=89;p<=92;p++){
+    await navigate(page,'#slide/'+p);
+    const guide=page.locator('[data-guide-page="'+p+'"]');
+    assert.equal(await guide.count(),1,'P.'+p+' one original guide');
+    const title=await guide.locator('h2').innerText();
+    assert.ok(title.length>=18,'P.'+p+' unique specific title');titles.add(title);
+    assert.ok(await guide.locator('.guide-steps li').count()>=3,'P.'+p+' staged current paths');
+    assert.ok(await guide.locator('.guide-equation').count()>=2,'P.'+p+' bounded formulas');
+    assert.ok(await guide.locator('.guide-worked li').count()>=3,'P.'+p+' worked numbers');
+    assert.ok(await guide.locator('.guide-assumptions li').count()>=2,'P.'+p+' operating boundaries');
+    assert.ok((await guide.locator('.guide-link').getAttribute('href')).endsWith('/'+mapping[p]),
+      'P.'+p+' existing matching lesson link');
+    assert.equal(await page.locator('#source-pdf-file').count(),1,'P.'+p+' local original PDF');
+    for(const eq of await guide.locator('.guide-equation').all()){
+      const rendered=await eq.evaluate(n=>n.classList.contains('guide-ready'));
+      assert.ok(rendered||await eq.locator('.guide-math-fallback').isVisible(),
+        'P.'+p+' math KaTeX or readable fallback');
+    }
+    const quiz=guide.locator('details.guide-check');
+    assert.equal(await quiz.evaluate(n=>n.open),false,'P.'+p+' quiz hidden initially');
+    await quiz.locator('summary').click();
+    assert.equal(await quiz.evaluate(n=>n.open),true,'P.'+p+' quiz opens');
+    assert.ok((await quiz.locator('p').innerText()).length>=20,'P.'+p+' adequate answer');
+    await page.screenshot({path:outDir+'/upper-threephase-overlap-'+p+'.png',fullPage:true});
+  }
+  assert.equal(titles.size,4,'P89–92 distinct original titles');
+  await navigate(page,'#slide/93');
+  assert.equal(await page.locator('.page-guide').count(),0,'P93 capacitor threephase input belongs to next batch');
+  await navigate(page,'#home');
+  await page.locator('#search-trigger').click();
+  await page.locator('#search-input').fill('6n');
+  assert.ok(await page.locator('#search-results a[href="#slide/89"]').count()>0,
+    'P89 characteristic harmonic formula searchable');
+  await page.keyboard.press('Escape');
+  for(const width of [320,390]){
+    const mobile=await browser.newPage({viewport:{width,height:720}});
+    for(let p=89;p<=92;p++){
+      await mobile.goto(BASE+'/#slide/'+p);
+      await mobile.locator('[data-guide-page="'+p+'"]').waitFor({timeout:20000});
+      const size=await mobile.evaluate(()=>({vw:innerWidth,sw:document.documentElement.scrollWidth}));
+      assert.ok(size.sw<=size.vw+2,'P.'+p+' '+width+'px horizontal overflow '+JSON.stringify(size));
     }
     await mobile.close();
   }
