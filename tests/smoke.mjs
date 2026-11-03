@@ -587,7 +587,7 @@ await run('upper P83-88 three-phase neutral harmonics and six-pulse diode bridge
 
 
 await run('upper P89-92 six-pulse characteristic harmonics and source Ls commutation',async()=>{
-  const mapping={89:'harm6',90:'overlap3',91:'overlap3',92:'overlap3'};
+  const mapping={89:'harmonics',90:'commutation',91:'commutation',92:'commutation'};
   const titles=new Set();
   for(let p=89;p<=92;p++){
     await navigate(page,'#slide/'+p);
