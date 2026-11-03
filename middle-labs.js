@@ -151,9 +151,12 @@
     for(var lane=0;lane<3;lane++){
       var o=[48,111,169][lane],path='';
       for(var i=0;i<=N;i++){
-        var t=i===N?0:i/N,va=t<a?1:0,vb=bipolar?1-va:(t<b?1:0);
+        // At x=356, draw the next period's reset as a vertical edge.
+        // Only the electrical phase wraps; display time must keep increasing.
+        var displayTime=i/N,phaseTime=i===N?0:displayTime;
+        var va=phaseTime<a?1:0,vb=bipolar?1-va:(phaseTime<b?1:0);
         var n=lane===0?va:lane===1?vb:va-vb;
-        var x=38+318*t;
+        var x=38+318*displayTime;
         // Step waveform: ideal bridge-leg voltage jumps at the switching instant.
          path+=(i?' H':'M')+f(x,2)+(i?' V':' ')+f(y(n,o),2);
       }
