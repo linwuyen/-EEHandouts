@@ -615,8 +615,6 @@ await run('upper P89-92 six-pulse characteristic harmonics and source Ls commuta
     await page.screenshot({path:outDir+'/upper-threephase-overlap-'+p+'.png',fullPage:true});
   }
   assert.equal(titles.size,4,'P89–92 distinct original titles');
-  await navigate(page,'#slide/93');
-  assert.equal(await page.locator('.page-guide').count(),0,'P93 capacitor threephase input belongs to next batch');
   await navigate(page,'#home');
   await page.locator('#search-trigger').click();
   await page.locator('#search-input').fill('6n');
@@ -626,6 +624,56 @@ await run('upper P89-92 six-pulse characteristic harmonics and source Ls commuta
   for(const width of [320,390]){
     const mobile=await browser.newPage({viewport:{width,height:720}});
     for(let p=89;p<=92;p++){
+      await mobile.goto(BASE+'/#slide/'+p);
+      await mobile.locator('[data-guide-page="'+p+'"]').waitFor({timeout:20000});
+      const size=await mobile.evaluate(()=>({vw:innerWidth,sw:document.documentElement.scrollWidth}));
+      assert.ok(size.sw<=size.vw+2,'P.'+p+' '+width+'px horizontal overflow '+JSON.stringify(size));
+    }
+    await mobile.close();
+  }
+});
+
+
+await run('upper P93-96 three-phase fixed DC cap and source-L input guides',async()=>{
+  const titles=new Set();
+  for(let p=93;p<=96;p++){
+    await navigate(page,'#slide/'+p);
+    const guide=page.locator('[data-guide-page="'+p+'"]');
+    assert.equal(await guide.count(),1,'P.'+p+' one original deep guide');
+    const title=await guide.locator('h2').innerText();
+    assert.ok(title.length>=18,'P.'+p+' source-linked title');
+    titles.add(title);
+    assert.ok(await guide.locator('.guide-steps li').count()>=3,'P.'+p+' physical model steps');
+    assert.ok(await guide.locator('.guide-equation').count()>=2,'P.'+p+' formula and assumptions');
+    assert.ok(await guide.locator('.guide-worked li').count()>=3,'P.'+p+' numeric worked steps');
+    assert.ok(await guide.locator('.guide-assumptions li').count()>=2,'P.'+p+' model bounds');
+    assert.ok((await guide.locator('.guide-link').getAttribute('href')).endsWith('/bus'),
+      'P.'+p+' mapped to existing bus lesson');
+    assert.equal(await page.locator('#source-pdf-file').count(),1,'P.'+p+' original local PDF reader');
+    for(const eq of await guide.locator('.guide-equation').all()){
+      const rendered=await eq.evaluate(n=>n.classList.contains('guide-ready'));
+      assert.ok(rendered||await eq.locator('.guide-math-fallback').isVisible(),
+        'P.'+p+' math KaTeX or readable fallback');
+    }
+    const quiz=guide.locator('details.guide-check');
+    assert.equal(await quiz.evaluate(n=>n.open),false,'P.'+p+' quiz initially hidden');
+    await quiz.locator('summary').click();
+    assert.equal(await quiz.evaluate(n=>n.open),true,'P.'+p+' quiz reveals answer');
+    assert.ok((await quiz.locator('p').innerText()).length>=20,'P.'+p+' adequate quiz explanation');
+    await page.screenshot({path:outDir+'/upper-threephase-cap-'+p+'.png',fullPage:true});
+  }
+  assert.equal(titles.size,4,'P93–96 distinct original titles');
+  await navigate(page,'#slide/97');
+  assert.equal(await page.locator('.page-guide').count(),0,'P97 analog source is future batch');
+  await navigate(page,'#home');
+  await page.locator('#search-trigger').click();
+  await page.locator('#search-input').fill('峰值因數');
+  assert.ok(await page.locator('#search-results a[href="#slide/95"]').count()>0,
+    'P95 crest factor source guide searchable');
+  await page.keyboard.press('Escape');
+  for(const width of [320,390]){
+    const mobile=await browser.newPage({viewport:{width,height:720}});
+    for(let p=93;p<=96;p++){
       await mobile.goto(BASE+'/#slide/'+p);
       await mobile.locator('[data-guide-page="'+p+'"]').waitFor({timeout:20000});
       const size=await mobile.evaluate(()=>({vw:innerWidth,sw:document.documentElement.scrollWidth}));
