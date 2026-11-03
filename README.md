@@ -371,3 +371,15 @@ Node.js 22 開發環境：執行 `npm ci --ignore-scripts`，再安裝 Chromium�
 - **P.100**：負回授反相積分器 `dvo/dt=−vi/(RC)` 與正回授 Schmitt 比較器嚴格區分。R=10kΩ、C=100nF、vi=0.1V 則輸出斜率 −100V/s；Schmitt Eref=0、R1=10kΩ、R2=90kΩ、VOH/VOL=±10V 的切換門檻為 ±1V，磁滯寬度 2V。
 - `tests/upper-analog-op-guides.mjs` 驗證虛地 KCL、T 中點 KCL、可變增益、差動／儀表放大器共模不變性、電容積分與 Schmitt 閾值。Chromium、Firefox/WebKit 檢查 P.97–100 的導讀、公式、問答、原講義 PDF、搜尋與 320/390px。未改動 72 節課、47 個互動模型或既有進階實驗。
 - 上冊 P.3–100 共 **98 張連續原始頁導讀**。下一個獨立 PR 為 P.101–106 的低通、微分、Sallen-Key、移相、PI、ADC。
+
+## 上冊第十五批逐頁深化｜RC 濾波、Sallen-Key、移相、PI 與 ADC P.101–106
+
+- 對照原始上冊 R2 P.101–103 電路圖，並依 P.104–106 原投影片提供的元件接法、阻值和公式逐頁建立獨立導讀。原 PPTX/PDF 圖片不提交公開網站；P.104–106 沒有額外聲稱已完成影像細節 OCR/臨摹。
+- **P.101**：左上反相低通 `−1/(1+sRC)`、左下 RC Buffer 低通 `1/(1+sRC)`；右側串聯 C/R 有界高通／微分 `−sRC/(1+sRC)` 等與有限通帶的差別。R=1kΩ、C=10nF 得 fc≈15.915kHz，−3dB 不是瞬間截止。
+- **P.102**：Figure Sallen-Key 傳遞分母的 s² 項 `R1R2C1C2`、s 項 `R1C1+R2C1+R1C2(1−K)`，K=1+R4/R3。原圖 R1=3.3kΩ、R2=1kΩ、C1=6.8nF、C2=2.3nF、K=3.2 得 f0≈22.154kHz、Q≈0.5728，與原講義的四捨五入 22.16kHz／0.572 相符。**f0 在一般 Q 下不必等於 −3dB。**
+- **P.103**：Figure 9.23 左側 RC 低通接同相端、右側 RC 高通接同相端，反相端皆以等值 R 同時接 Vin、Vo；分別得到 `HL=(1−sR′C)/(1+sR′C)`、`HR=−HL`。理想兩式幅度皆為 1，R′=10kΩ/C=10nF 在 f≈1.5915kHz 時相位為 −90°／+90°；**兩個電路不能忽略輸出極性差異**。
+- **P.104**：輸入 Cin 串 Ri，回授 Rf 並 Cf 的有界微分器 `H=−RfCin·s/[(1+RiCin s)(1+RfCf s)]`；Ri=1k/Cin=10n、Rf=10k/Cf=1n 的兩個極點都約 15.915kHz；1kHz、1Vpk 正弦的輸出約 0.62585Vpk，對應講義 0.626V。
+- **P.105**：反相 PI 回授 Rf 與 C **串聯**，理想 `H=−(Kp+Ki/s)`、`Kp=Rf/Rin`、`Ki=1/(Rin C)`；Rin=10k、Rf=20k、C=100n→Kp=2、Ki=1000s⁻¹、fz≈79.577Hz。回授極性、OP 飽和與數位離散化需另行定義。
+- **P.106**：5mΩ Shunt、Vref=1.5V、匹配的 R1=R3=10kΩ、Rf=R4=140kΩ → 差動增益 k=14，`VADC=1.5+0.07I[A]`。±20A 映射理想 0.1–2.9V、±10A 映射 0.8/2.2V；3.3V OP 供電**不能保證共模或輸出 headroom 足夠**，仍需核對 ADC 取樣充電與 OCP latency。
+- `tests/upper-analog-control-guides.mjs` 以獨立 RC 頻率響應、Sallen-Key 極點/Q、兩種全通幅相、有限微分器正弦振幅、PI 零點及 ADC 正反向映射做數值驗證。Chromium／Firefox／WebKit 回歸 P.101–106 公式、例題、測驗、PDF、搜尋與手機 320/390px。
+- 上冊 P.3–106 共 **104 張連續逐頁深入導讀**，覆蓋除封面、課表、結語外的每一張原始講義頁。保留既有 72 節課、47 種互動模型和 7 個進階實驗。下一步為整冊物理一致性 Review、網站回歸與正式 Pages SHA 驗收。
