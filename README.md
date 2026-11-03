@@ -234,7 +234,7 @@ Node.js 22 開發環境：執行 `npm ci --ignore-scripts`，再安裝 Chromium�
 - 對照原始 R2 PPTX 的 P.3–11 圖片逐頁建立九份原創導讀：功率符號、效率與 RMS、R-L 複數功率、平衡三相、非正弦波、傅立葉係數、對稱性、輸入電流失真、THD／CF／DPF／PF。
 - 三層教學沿用中冊現有逐頁導讀，包含白話直覺、物理及訊號流、公式及適用條件、數值例題、常見誤解與理解測驗。既有 38 節上冊主題課程、47 個互動模型與本機 PDF 閱讀器不變。
 - 新增 `upper-page-guides.js`、`tests/upper-page-guides.mjs`，同一個 `app.js` 依分冊選擇獨立導讀資料；避免把上冊導讀誤套到中冊。
-- P.3–11 九頁為本次深化範圍，P.12–26 與 P.27–58 已由後續獨立批次深化；P.59–106 尚待後續批次；原始 PPTX 和原圖不公開再散布，真實儀器量測與安全額定仍需工程驗證。
+- P.3–11 九頁為本次深化範圍，P.12–26 與 P.27–58 已由後續獨立批次深化；P.59–62 已於第六批深化，P.63–106 尚待後續批次；原始 PPTX 和原圖不公開再散布，真實儀器量測與安全額定仍需工程驗證。
 
 ## 上冊第二批逐頁深化｜磁路、自感與變壓器 P.12–26
 
@@ -275,3 +275,12 @@ Node.js 22 開發環境：執行 `npm ci --ignore-scripts`，再安裝 Chromium�
 - `tests/upper-wbg-guides.mjs` 提供十頁獨立數值參考：阻斷電場、Baliga 極限、第三象限耗散、Gate 窗口、SiC Ldi/dt、Direct D-mode 關斷偏壓、Dead Time 損失、器件導通損比較與 ZVS 能量／時序條件。正式整合時須同時驗證上冊 P.3–58 **56 頁**連續覆蓋、Chromium、Firefox／WebKit、公式、測驗、搜尋與手機 320／390px。
 - 不新增模擬器、不修改既有課節／互動引擎／進階實驗／本機原始 PDF 檢視器。所有算例是教育上有明確條件的簡化示意，不是硬體選型、熱、SOA、EMI 或安規驗收。
 - 廠商第一手延伸資料：[TI GaN device gate driver considerations](https://www.ti.com/document-viewer/lit/html/SSZT092/GUID-DE35FC6E-02C7-459F-B843-9D7786DAFC5F)、[TI Third quadrant operation of GaN](https://www.ti.com/lit/snoaa36)、[Infineon CoolSiC Kelvin Source](https://www.infineon.com/assets/row/public/documents/24/42/infineon-infineon-coolsic-400-v-and-440-v-g2-mosfets-an-en-applicationnotes-en.pdf)。
+
+## 上冊第六批逐頁深化｜功率系統、線性電源、SMPS 與 PWM P.59–62
+
+- 已核對原始 R2 PPTX P.59–62 的電路和圖面。P.59 Power processor/Controller/Measurements/Reference 清楚分開功率流、回授與控制訊號，暫態能量帳需另計儲能變化。
+- **P.60**：100／120 Vac 經低頻變壓器及整流後的 DC 代表電壓 7／8.4 V，在 5 V 線性調節器下的導通損、熱和 `ηreg≈Vo/Vd`；**原圖 5/7、5/8.4 只是理想調節級效率，絕非整機 AC-to-DC 效率**。還須檢查整流濾波後 Vd(t) 谷值、Dropout、變壓器與整流器實際損失。
+- **P.61**：原圖上方高頻變壓器、次級整流和 LC，下方簡化非隔離開關、二極體及 LC，不能未核對繞組與復位就宣稱它們全是同一種 Flyback、Forward 或 Buck。開關／整流／磁件、電容及回授各自有損失與動態。
+- **P.62**：原圖兩狀態 PWM、固定 fs、電感電流三角漣波、LC 濾波及開關頻譜。限定在**理想 Buck CCM 週期穩態**推導 `Vo≈D Vin`，再用 `ΔIL=(Vin−Vo)D/(Lfs)` 與電感 valley 驗證 CCM；電容的 `ΔVo≈ΔIL/(8fsC)` 僅限理想三角漣波、忽略 ESR／ESL 的近似。
+- 新增 `tests/upper-architecture-guides.mjs` 獨立驗證 P.59–62 數值、效率邊界、損失分帳、CCM 條件及輸出漣波；上冊 P.3–62 **60 張連續教學頁**的原始課節 mapping、Chromium、Firefox／WebKit、公式／備援、問答、搜尋、本機 PDF 和 320/390px 手機版也納入 CI。
+- 本批不新增模擬器、不改動原有 72 節主題、47 個模型、7 個進階實驗、共用渲染器或正式部署流程。原始講義仍須由使用者本機載入，未公開散布。
