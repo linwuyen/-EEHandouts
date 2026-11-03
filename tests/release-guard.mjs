@@ -34,7 +34,7 @@ assert.ok(verify.includes('run: bash scripts/prepare-pdfjs.sh'),'CI must prepare
 assert.ok(publish.includes('run: bash scripts/prepare-pdfjs.sh'),'Pages must bundle verified PDF.js assets');
 
 assert.ok(pkg.scripts['test:browser'].includes('tests/middle-engineering.mjs'), 'Keep the newer middle-volume DCM engineering regression in the suite');
-assert.equal(pkg.scripts['test:cross-browser'],'node tests/cross-browser.mjs','Firefox/WebKit smoke is a separate CI job');
+assert.equal(pkg.scripts['test:cross-browser'],'node tests/cross-browser.mjs && node tests/review-fixes-smoke.mjs --cross-browser','Firefox/WebKit original and review suites run in the separate CI job');
 assert.ok(verify.includes('  cross-browser:'),'Firefox/WebKit job must exist');
 assert.ok(verify.includes('npx playwright install --with-deps firefox webkit'),'Firefox/WebKit binaries must be installed');
 assert.ok(verify.includes('npm run test:cross-browser'),'Cross-browser smoke must actually execute');
