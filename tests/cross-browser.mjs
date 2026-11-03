@@ -272,6 +272,23 @@ for(const [engineName,engine] of [['firefox',firefox],['webkit',webkit]]){
     const sz=await page.evaluate(()=>({v:innerWidth,s:document.documentElement.scrollWidth}));
     assert.ok(sz.s<=sz.v+2,engineName+' upper P.'+p+' mobile overflow');
   }
+  // Upper P97-100: feedback, T networks, matched differential and positive hysteresis.
+  const analogMap={97:'op',98:'op',99:'diff',100:'filter'};
+  for(let p=97;p<=100;p++){
+    await page.goto(BASE+'/index.html#slide/'+p);
+    const guide=page.locator('[data-guide-page="'+p+'"]');
+    await guide.waitFor({timeout:15000});
+    assert.ok(await guide.locator('.guide-equation').count()>=2,
+      engineName+' upper P.'+p+' OP formulas/fallback');
+    assert.ok(await guide.locator('.guide-worked li').count()>=3,
+      engineName+' upper P.'+p+' numeric worked steps');
+    assert.ok((await guide.locator('.guide-link').getAttribute('href')).endsWith('/'+analogMap[p]),
+      engineName+' upper P.'+p+' existing lesson');
+    assert.equal(await page.locator('#source-pdf-file').count(),1,
+      engineName+' upper P.'+p+' local original PPTX PDF');
+    const sz=await page.evaluate(()=>({v:innerWidth,s:document.documentElement.scrollWidth}));
+    assert.ok(sz.s<=sz.v+2,engineName+' upper P.'+p+' mobile overflow');
+  }
   // Advanced engineering page: no test may silently degrade to a missing lab.
   for (const lab of ['pfc','llc','psfb','loop','timing','nonideal','zvs']){
     await page.goto(BASE+'/advanced.html#'+lab);
