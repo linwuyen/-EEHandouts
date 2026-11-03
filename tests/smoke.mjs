@@ -263,7 +263,7 @@ await run('upper P49-58 WBG SiC GaN device and topology original deep guides',as
   }
   assert.equal(titles.size,10,'All ten WBG page titles are distinct');
   await navigate(page,'#slide/59');
-  assert.equal(await page.locator('.page-guide').count(),0,'P59 is next untouched instructional chapter');
+  assert.equal(await page.locator('[data-guide-page="59"]').count(),1,'P59 power/control guide is now covered');
   await navigate(page,'#home');
   await page.locator('#search-trigger').click();
   await page.locator('#search-input').fill('Baliga');
@@ -273,6 +273,57 @@ await run('upper P49-58 WBG SiC GaN device and topology original deep guides',as
   for(const width of [320,390]){
     const mobile=await browser.newPage({viewport:{width,height:720}});
     for(let p=49;p<=58;p++){
+      await mobile.goto(BASE+'/#slide/'+p);
+      await mobile.locator('[data-guide-page="'+p+'"]').waitFor({timeout:20000});
+      const dims=await mobile.evaluate(()=>({vw:innerWidth,sw:document.documentElement.scrollWidth}));
+      assert.ok(dims.sw<=dims.vw+2,'P.'+p+' '+width+'px overflow '+JSON.stringify(dims));
+    }
+    await mobile.close();
+  }
+});
+
+
+await run('upper P59-62 power system, linear, SMPS and PWM original deep guides',async()=>{
+  const mapping={59:'blocks',60:'linear',61:'linear',62:'pwm'};
+  const titles=new Set();
+  for(let p=59;p<=62;p++){
+    await navigate(page,'#slide/'+p);
+    const guide=page.locator('[data-guide-page="'+p+'"]');
+    assert.equal(await guide.count(),1,'P.'+p+' exactly one source-grounded guide');
+    const title=await guide.locator('h2').innerText();
+    titles.add(title);
+    assert.ok(title.length>=18,'P.'+p+' substantive original title');
+    assert.ok(await guide.locator('.guide-steps li').count()>=3,'P.'+p+' physical stages');
+    assert.ok(await guide.locator('.guide-equation').count()>=2,'P.'+p+' bounded formulas');
+    assert.ok(await guide.locator('.guide-worked li').count()>=3,'P.'+p+' worked steps');
+    assert.ok(await guide.locator('.guide-assumptions li').count()>=2,'P.'+p+' assumptions');
+    const href=await guide.locator('.guide-link').getAttribute('href');
+    assert.ok(href.endsWith('/'+mapping[p]),'P.'+p+' source-lesson link');
+    assert.equal(await page.locator('#source-pdf-file').count(),1,'P.'+p+' original local PDF');
+    for(const row of await guide.locator('.guide-equation').all()){
+      const ready=await row.evaluate(el=>el.classList.contains('guide-ready'));
+      assert.ok(ready||await row.locator('.guide-math-fallback').isVisible(),
+        'P.'+p+' KaTeX or readable text fallback');
+    }
+    const check=guide.locator('details.guide-check');
+    assert.equal(await check.evaluate(el=>el.open),false,'P.'+p+' quiz initially hidden');
+    await check.locator('summary').click();
+    assert.equal(await check.evaluate(el=>el.open),true,'P.'+p+' quiz answer revealed');
+    assert.ok((await check.locator('p').innerText()).length>=20,'P.'+p+' answer explanatory');
+    await page.screenshot({path:outDir+'/upper-architecture-'+p+'.png',fullPage:true});
+  }
+  assert.equal(titles.size,4,'Four distinct page teaching titles');
+  await navigate(page,'#slide/63');
+  assert.equal(await page.locator('.page-guide').count(),0,'P63 belongs to next rectifier batch');
+  await navigate(page,'#home');
+  await page.locator('#search-trigger').click();
+  await page.locator('#search-input').fill('串聯調節');
+  assert.ok(await page.locator('#search-results a[href="#slide/60"]').count()>0,
+    'P60 linear pass-regulator details are searchable');
+  await page.keyboard.press('Escape');
+  for(const width of [320,390]){
+    const mobile=await browser.newPage({viewport:{width,height:720}});
+    for(let p=59;p<=62;p++){
       await mobile.goto(BASE+'/#slide/'+p);
       await mobile.locator('[data-guide-page="'+p+'"]').waitFor({timeout:20000});
       const dims=await mobile.evaluate(()=>({vw:innerWidth,sw:document.documentElement.scrollWidth}));

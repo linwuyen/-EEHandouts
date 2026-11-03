@@ -158,6 +158,20 @@ for(const [engineName,engine] of [['firefox',firefox],['webkit',webkit]]){
     const sz=await page.evaluate(()=>({v:innerWidth,s:document.documentElement.scrollWidth}));
     assert.ok(sz.s<=sz.v+2,engineName+' upper WBG P.'+p+' mobile width overflow');
   }
+  // Upper P59–62 power/control architecture, linear and PWM on mobile Firefox/WebKit.
+  for(let p=59;p<=62;p++){
+    await page.goto(BASE+'/index.html#slide/'+p);
+    const guide=page.locator('[data-guide-page="'+p+'"]');
+    await guide.waitFor({timeout:15000});
+    assert.ok(await guide.locator('.guide-equation').count()>=2,
+      engineName+' upper P.'+p+' math/fallback');
+    assert.ok(await guide.locator('.guide-worked li').count()>=3,
+      engineName+' upper P.'+p+' numerical explanation');
+    assert.equal(await page.locator('#source-pdf-file').count(),1,
+      engineName+' upper P.'+p+' original PDF reader');
+    const size=await page.evaluate(()=>({v:innerWidth,s:document.documentElement.scrollWidth}));
+    assert.ok(size.s<=size.v+2,engineName+' upper P.'+p+' horizontal overflow');
+  }
   // Advanced engineering page: no test may silently degrade to a missing lab.
   for (const lab of ['pfc','llc','psfb','loop','timing','nonideal','zvs']){
     await page.goto(BASE+'/advanced.html#'+lab);
