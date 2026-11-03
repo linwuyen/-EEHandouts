@@ -5,7 +5,7 @@ const u={},c={};
 runInNewContext(readFileSync('upper-page-guides.js','utf8'),{window:u});
 runInNewContext(readFileSync('data.js','utf8'),{window:c});
 const g=u.EE_UPPER_PAGE_GUIDES,lessons=c.EE_DATA.chapters.flatMap(c=>c.lessons);
-assert.deepEqual(Object.keys(g).map(Number).sort((a,b)=>a-b),Array.from({length:46},(_,i)=>i+3));
+assert.deepEqual(Object.keys(g).map(Number).sort((a,b)=>a-b),Array.from({length:56},(_,i)=>i+3));
 const links={3:'power',4:'rms',5:'pqs',6:'threephase',7:'fourier',8:'fourier',9:'fourier',10:'thd',11:'thd',12:'ampere',13:'ampere',14:'bh',
 15:'reluctance',16:'reluctance',17:'reluctance',18:'reluctance',19:'reluctance',
 20:'faraday',21:'inductor',22:'transformer',23:'transformer',24:'transformer',
@@ -13,8 +13,9 @@ const links={3:'power',4:'rms',5:'pqs',6:'threephase',7:'fourier',8:'fourier',9:
 27:'diodes',28:'diodes',29:'diodes',30:'diodes',
 31:'legacy',32:'legacy',33:'legacy',34:'legacy',35:'legacy',
 36:'mosfet',37:'mosfet',38:'mosfet',39:'mosfet',40:'switchloss',
-41:'legacy',42:'legacy',43:'igbt',44:'legacy',45:'legacy',46:'legacy',47:'switchloss',48:'igbt'};
-for(let p=3;p<=48;p++){
+41:'legacy',42:'legacy',43:'igbt',44:'legacy',45:'legacy',46:'legacy',47:'switchloss',48:'igbt',
+49:'wbg',50:'wbg',51:'wbg',52:'wbg',53:'wbg',54:'wbg',55:'wbg',56:'wbg',57:'wbg',58:'wbg'};
+for(let p=3;p<=58;p++){
  const x=g[p];assert.equal(x.lesson,links[p],'wrong page lesson '+p);
  assert.ok(lessons.some(l=>l.id===x.lesson),'broken lesson link '+p);
  assert.ok(x.intuition.length===2&&x.intuition.every(t=>t.length>=32),'thin intuition '+p);
@@ -36,4 +37,4 @@ near(1/Math.sqrt(1+.75**2),.8,'P11 THD PF');
 const html=readFileSync('index.html','utf8'),app=readFileSync('app.js','utf8');
 assert.ok(html.includes('./upper-page-guides.js')&&html.includes('./middle-page-guides.css'));
 assert.ok(app.includes('EE_UPPER_PAGE_GUIDES')&&app.includes("pageCount===52?'中冊':'上冊'"));
-console.log('PASS upper volume P.3-48 contiguous page coverage and chapter-link contracts');
+console.log('PASS upper volume P.3-58 contiguous page coverage and chapter-link contracts');

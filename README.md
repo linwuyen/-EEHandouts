@@ -234,7 +234,7 @@ Node.js 22 開發環境：執行 `npm ci --ignore-scripts`，再安裝 Chromium�
 - 對照原始 R2 PPTX 的 P.3–11 圖片逐頁建立九份原創導讀：功率符號、效率與 RMS、R-L 複數功率、平衡三相、非正弦波、傅立葉係數、對稱性、輸入電流失真、THD／CF／DPF／PF。
 - 三層教學沿用中冊現有逐頁導讀，包含白話直覺、物理及訊號流、公式及適用條件、數值例題、常見誤解與理解測驗。既有 38 節上冊主題課程、47 個互動模型與本機 PDF 閱讀器不變。
 - 新增 `upper-page-guides.js`、`tests/upper-page-guides.mjs`，同一個 `app.js` 依分冊選擇獨立導讀資料；避免把上冊導讀誤套到中冊。
-- P.3–11 九頁為本次深化範圍，P.12–26 與 P.27–40 已由後續獨立批次深化；P.41–106 尚待後續批次；原始 PPTX 和原圖不公開再散布，真實儀器量測與安全額定仍需工程驗證。
+- P.3–11 九頁為本次深化範圍，P.12–26 與 P.27–58 已由後續獨立批次深化；P.59–106 尚待後續批次；原始 PPTX 和原圖不公開再散布，真實儀器量測與安全額定仍需工程驗證。
 
 ## 上冊第二批逐頁深化｜磁路、自感與變壓器 P.12–26
 
@@ -265,3 +265,13 @@ Node.js 22 開發環境：執行 `npm ci --ignore-scripts`，再安裝 Chromium�
 - RCD Snubber 的 `½CV²` 首先是電容儲能變化，不能在未知回收路徑時直接當作電阻發熱；`Qg×Vdrive×fs` 代表 Driver 供電能量尺度，**不全是 MOSFET 晶片內熱**；`QrrVRfs` 與 Eon 需避免計入同一換流事件兩次。
 - `tests/upper-device-guides.mjs` 對 GTO 負向 Gate 驅動比、Snubber 電荷能量、IGBT 導通／Eoff、MCT、歷史選型表、電熱限制、Gate 供電分帳及 Lpar di/dt 做獨立算例。上冊 P.3–48 46 頁連續資料契約及 Chromium、Firefox/WebKit、原始 PDF、320/390px 手機版測試也已納入 CI。
 - 本批不修改既有模擬器、72 節主題、47 個互動模型、7 個進階實驗、路由、PDF.js 或正式發布流程。講義是物理／工程教育近似，不能替代特定器件的 SOA、RBSOA、datasheet 或實機熱測。
+
+## 上冊第五批逐頁深化｜Si／SiC／GaN、Gate 驅動與 Topology 選型 P.49–58
+
+- 核對原始 R2 PPTX 的 P.49–58，包括 P.52 圖片內容（原始擷取文字僅有頁碼）。**P.49–50**：能隙 Eg 與臨界電場 Ec、理想漂移層厚度尺度、Baliga `Ron,sp∝BV²/(εµEc³)` 理論極限及熱導率與封裝熱阻的差異。
+- **P.51–52**：Si MOSFET、IGBT、SiC MOSFET、GaN HEMT 的載子與第三象限反向導通，原表的典型電壓與頻率**不是所有當代型號的絕對上限**，電壓×頻率座標只能用於初步篩選。
+- **P.53–56**：SiC Gate/Source Kelvin、Miller／CMTI／寄生 Ldi/dt、E-mode GaN／Cascode D-mode、Direct-drive D-mode 的上電負壓互鎖、整合 GaN Power Stage 的 UVLO、GaN 低 Qg/Qoss 與 Dead Time／第三象限熱損。**各種 SiC/GaN 的 VGS 最大值、負偏壓需求與短路耐受必須依具體器件 datasheet**；不將講義例示數值當作通用規格。
+- **P.57–58**：四種器件在同一工作點下的導通／切換損耗比較，以及 Buck、Totem-Pole PFC、LLC／CLLC、DAB/SST 的能流先行選型。ZVS 的 `½LI²≥Eoss` 是必要能量尺度檢查之一，**不保證 Qoss 在 Dead Time 內完成轉移**，更不能當作各負載的 ZVS PASS。
+- `tests/upper-wbg-guides.mjs` 提供十頁獨立數值參考：阻斷電場、Baliga 極限、第三象限耗散、Gate 窗口、SiC Ldi/dt、Direct D-mode 關斷偏壓、Dead Time 損失、器件導通損比較與 ZVS 能量／時序條件。正式整合時須同時驗證上冊 P.3–58 **56 頁**連續覆蓋、Chromium、Firefox／WebKit、公式、測驗、搜尋與手機 320／390px。
+- 不新增模擬器、不修改既有課節／互動引擎／進階實驗／本機原始 PDF 檢視器。所有算例是教育上有明確條件的簡化示意，不是硬體選型、熱、SOA、EMI 或安規驗收。
+- 廠商第一手延伸資料：[TI GaN device gate driver considerations](https://www.ti.com/document-viewer/lit/html/SSZT092/GUID-DE35FC6E-02C7-459F-B843-9D7786DAFC5F)、[TI Third quadrant operation of GaN](https://www.ti.com/lit/snoaa36)、[Infineon CoolSiC Kelvin Source](https://www.infineon.com/assets/row/public/documents/24/42/infineon-infineon-coolsic-400-v-and-440-v-g2-mosfets-an-en-applicationnotes-en.pdf)。
