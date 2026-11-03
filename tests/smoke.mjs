@@ -464,7 +464,7 @@ await run('upper P73-76 fixed Vd current pulses and THD/DPF/PF/CF original deep 
   }
   assert.equal(titles.size,4,'P73–76 must have distinct page titles');
   await navigate(page,'#slide/77');
-  assert.equal(await page.locator('.page-guide').count(),0,'P77 practical capacitor circuit is the next batch');
+  assert.equal(await page.locator('[data-guide-page="77"]').count(),1,'P77 practical capacitor rectifier is now covered');
   await navigate(page,'#home');
   await page.locator('#search-trigger').click();
   await page.locator('#search-input').fill('Crest Factor');
@@ -474,6 +474,56 @@ await run('upper P73-76 fixed Vd current pulses and THD/DPF/PF/CF original deep 
   for(const width of [320,390]){
     const mobile=await browser.newPage({viewport:{width,height:720}});
     for(let p=73;p<=76;p++){
+      await mobile.goto(BASE+'/#slide/'+p);
+      await mobile.locator('[data-guide-page="'+p+'"]').waitFor({timeout:20000});
+      const dims=await mobile.evaluate(()=>({vw:innerWidth,sw:document.documentElement.scrollWidth}));
+      assert.ok(dims.sw<=dims.vw+2,'P.'+p+' '+width+'px mobile overflow '+JSON.stringify(dims));
+    }
+    await mobile.close();
+  }
+});
+
+
+await run('upper P77-82 practical capacitor rectifier, PCC and doubler original guides',async()=>{
+  const mappings={77:'capacitor',78:'capacitor',79:'capacitor',80:'notching',81:'notching',82:'notching'};
+  const titles=new Set();
+  for(let p=77;p<=82;p++){
+    await navigate(page,'#slide/'+p);
+    const guide=page.locator('[data-guide-page="'+p+'"]');
+    assert.equal(await guide.count(),1,'P.'+p+' unique original source page guide');
+    const title=await guide.locator('h2').innerText();
+    assert.ok(title.length>=18,'P.'+p+' substantive title');titles.add(title);
+    assert.ok(await guide.locator('.guide-steps li').count()>=3,'P.'+p+' physical energy/signal stages');
+    assert.ok(await guide.locator('.guide-equation').count()>=2,'P.'+p+' equations');
+    assert.ok(await guide.locator('.guide-worked li').count()>=3,'P.'+p+' numeric examples');
+    assert.ok(await guide.locator('.guide-assumptions li').count()>=2,'P.'+p+' safety and model restrictions');
+    const href=await guide.locator('.guide-link').getAttribute('href');
+    assert.ok(href.endsWith('/'+mappings[p]),'P.'+p+' correct original lesson');
+    assert.equal(await page.locator('#source-pdf-file').count(),1,'P.'+p+' local original PDF retained');
+    for(const row of await guide.locator('.guide-equation').all()){
+      const ready=await row.evaluate(n=>n.classList.contains('guide-ready'));
+      assert.ok(ready||await row.locator('.guide-math-fallback').isVisible(),
+        'P.'+p+' readable math or text fallback');
+    }
+    const answer=guide.locator('details.guide-check');
+    assert.equal(await answer.evaluate(n=>n.open),false,'P.'+p+' quiz initially hidden');
+    await answer.locator('summary').click();
+    assert.equal(await answer.evaluate(n=>n.open),true,'P.'+p+' answer reveals');
+    assert.ok((await answer.locator('p').innerText()).length>=20,'P.'+p+' nontrivial answer');
+    await page.screenshot({path:outDir+'/upper-practical-rectifier-'+p+'.png',fullPage:true});
+  }
+  assert.equal(titles.size,6,'distinct source page titles');
+  await navigate(page,'#slide/83');
+  assert.equal(await page.locator('.page-guide').count(),0,'P83 three-phase system starts the next batch');
+  await navigate(page,'#home');
+  await page.locator('#search-trigger').click();
+  await page.locator('#search-input').fill('PCC');
+  assert.ok(await page.locator('#search-results a[href="#slide/80"]').count()>0,
+    'P80 shared-line voltage-distortion guide searchable');
+  await page.keyboard.press('Escape');
+  for(const width of [320,390]){
+    const mobile=await browser.newPage({viewport:{width,height:720}});
+    for(let p=77;p<=82;p++){
       await mobile.goto(BASE+'/#slide/'+p);
       await mobile.locator('[data-guide-page="'+p+'"]').waitFor({timeout:20000});
       const dims=await mobile.evaluate(()=>({vw:innerWidth,sw:document.documentElement.scrollWidth}));
