@@ -2837,5 +2837,123 @@
       "a": "約 0.48 W，僅為固定電流電壓的示例，不等於全部換流損耗。"
     },
     "tryIt": "依 P.56 原圖，把 Qg/Qoss、第三象限、Gate Loop、Dead Time 和探測方法各自列成工程檢查項目。"
+  },
+  "57": {
+    "lesson": "wbg",
+    "title": "Si MOSFET、IGBT、SiC MOSFET、GaN HEMT：為何選型必須回到同一工作點？",
+    "question": "講義表格將高頻能力和 Gate 難度排名，實際元件能否只以某材料屬性決定優劣？",
+    "takeaway": "不同材料與載子機制決定設計取捨，但真正的比較應在相同 Bus、電流、溫度、頻率與熱條件下核對完整損失及可靠度。",
+    "intuition": [
+      "P.57 列出四類主力元件的高壓、高頻、Gate 驅動難度、Qrr 和應用領域：MOSFET 有多數載子通道，IGBT 受少數載子拖尾影響，SiC 改善高壓高速能力，GaN 常具低 Gate／輸出電荷。",
+      "表格是分類視角而不是所有型號的絕對排名。GaN 沒有傳統 PN Body Diode 少子 Qrr，仍可能有第三象限損失；IGBT 的反向路徑也須區分內建／共封裝／外接整流器。"
+    ],
+    "steps": [
+      {
+        "title": "固定同一負載而不是只選單一器件參數",
+        "detail": "先鎖定 Vbus,max、ID 波形、fs、Tj 和冷卻，再檢查各器件通道或 VCE(sat) 的導通損估算。"
+      },
+      {
+        "title": "把 Eon、Eoff 和 Driver 供電一起納入",
+        "detail": "MOSFET／GaN 的高頻潛力不等於一定最低系統損耗；應比較實際測試 V、I、Rg、結溫下的完整換流事件。"
+      },
+      {
+        "title": "另檢查反向導通及保護資源",
+        "detail": "Body diode、GaN 第三象限、IGBT freewheel diode、Dead Time 和 Driver CMTI/UVLO 都可能決定真實效率與故障安全。"
+      }
+    ],
+    "equations": [
+      {
+        "label": "MOSFET 類導通損",
+        "tex": "P_{MOS}\\approx I_{rms}^2R_{DS(on)}",
+        "plain": "通道導通平均損≈整週 RMS²×指定 RDS(on)",
+        "why": "適用指定工作點充分增強且用完整元件 RMS；跨材料不可只比較標稱常溫典型值。"
+      },
+      {
+        "label": "IGBT 類導通損",
+        "tex": "P_{IGBT}\\approx V_{CE(sat)}I_{avg}",
+        "plain": "IGBT 導通平均損≈指定 VCE(sat)×週期平均電流",
+        "why": "同一工作點的簡化固定壓降近似，未包含 Tail Eoff 或二極體及 Driver。"
+      }
+    ],
+    "worked": {
+      "given": "純示意：同一支路 ON 電流 10 A、Duty=50%；候選 Si MOSFET R=100 mΩ、SiC MOSFET R=80 mΩ、GaN R=60 mΩ、IGBT VCE(sat)=2 V。",
+      "steps": [
+        "三種 MOS 類器件整週 Irms²=10²×0.5=50 A²，導通損分別約 5 W、4 W、3 W。",
+        "IGBT 整週平均導通電流為 10×0.5=5 A，導通損約 2×5=10 W。",
+        "這些結果只比較指定數字的通道／導通壓降，未提供實際型號的 Eon/Eoff、額定電壓、Gate、反向導通或溫升。"
+      ],
+      "result": "若相同頻率下某候選切換損大於別款，上述 3 W 的導通優勢可能無法轉化為系統最佳效率，因此不能由表格直接決定材料。"
+    },
+    "assumptions": [
+      "所有 R、VCE(sat) 是人為指定的例題數字，完全不代表現代市售 Si、SiC、GaN、IGBT 在任何電壓電流額定下的真實典型值。",
+      "不同材料器件的 Gate 上下界、Coss/Qoss、SOA 和短路耐受條件差異大，真正選型須逐顆確認資料與實機量測。"
+    ],
+    "pitfall": "看到 GaN 的例題 3 W 就宣稱所有 GaN 必然最有效率，忽視換流、Drive、熱以及可能更高的第三象限壓降。",
+    "check": {
+      "q": "ON 10 A、D=50%、RDS(on)=60 mΩ 的簡化通道損是多少？",
+      "a": "整週 Irms²=50 A²，Pcond≈50×0.06=3 W；仍不代表實際高頻功率級總效率最高。"
+    },
+    "tryIt": "依 P.57 表格對每種器件補上同工作點 Eon/Eoff、Vds 額定、反向路徑與保護成本，建立完整比較表。"
+  },
+  "58": {
+    "lesson": "wbg",
+    "title": "Topology × Device：如何從 Buck、Totem-Pole、LLC、DAB 的能流反推器件？",
+    "question": "為何同樣 650/1200 V 額定的 SiC 或 GaN，在硬切換 PFC 和 ZVS LLC／DAB 下適合條件不同？",
+    "takeaway": "先決定拓樸換流能流、硬切換／軟切換、Bus 與反向電流條件，再篩選器件；ZVS 要檢查可用換流能量、Coss/Qoss 電荷與 Dead Time，而不是只看材料名稱。",
+    "intuition": [
+      "P.58 按低壓同步 Buck、650 V Totem-Pole PFC、800 V EV Inverter、低頻馬達、LLC/CLLC、DAB/SST 列出候選器件家族。這些是拓樸示意而不是所有應用都唯一適用的器件方案。",
+      "軟切換仰賴電感與漏感在換流瞬間提供足夠能量與電荷，把開關節點電容充放電到指定狀態；Eoss 是否有足夠能量只是必要檢查的一部分，還要看 Qoss、Dead Time 和極性。"
+    ],
+    "steps": [
+      {
+        "title": "先依拓樸確定阻斷與電流方向",
+        "detail": "Buck、Totem-Pole、LLC、DAB 的元件角色不同，要先標出哪個開關在何時阻斷 Bus、何時提供反向續流或 ZVS 換流路徑。"
+      },
+      {
+        "title": "再檢查硬切換與 ZVS 能量條件",
+        "detail": "硬切換要算 Eon/Eoff 與回復電流；軟切換需檢查指定工作點可用的換流能量與 Coss/Qoss、死區時間及極性。"
+      },
+      {
+        "title": "同時考慮保護與冷卻",
+        "detail": "高速 SiC/GaN 也可能因 Gate Window、CMTI、短路耐受、RDS(on) 溫升和封裝佈局不合格而不適用。"
+      },
+      {
+        "title": "回頭對照資料表和實際波形",
+        "detail": "各種材料或拓樸都要驗證 Eoss、Qoss、電壓應力、ZVS 範圍、EMI 與偏載；不能只看『SiC/GaN 優先』的表格。"
+      }
+    ],
+    "equations": [
+      {
+        "label": "理想可用電感換流能量",
+        "tex": "E_L=\\frac12 LI^2",
+        "plain": "可用電感能量上界尺度=0.5×換流等效 L×電流²",
+        "why": "只作指定換流電流時刻的儲能估算；不代表全部能轉移到開關節點電容，且須確認方向和路徑。"
+      },
+      {
+        "label": "固定電容的參考能量",
+        "tex": "E_{oss}\\approx\\frac12 C_{oss}V^2",
+        "plain": "假設固定 Coss 時的電容儲能近似=0.5×Coss×V²",
+        "why": "真實 Coss(V) 非線性，設計應使用器件 Eoss(V)／Qoss(V) 曲線，不能僅用單一小訊號 Coss 值。"
+      }
+    ],
+    "worked": {
+      "given": "獨立示例：LLC／DAB 類換流時等效 L=20 µH、電流 I=4 A，假設待切換節點需移轉的總 Coss 能量尺度為 100 µJ。",
+      "steps": [
+        "理想電感儲能尺度 EL=½×20 µH×4²=160 µJ。",
+        "單看能量差 160−100=60 µJ，表面上 EL 足以覆蓋指定 Coss 能量。",
+        "但這仍不能宣稱 ZVS PASS：還必須確定電流方向正確、死區內有足夠時間搬運 Qoss、沒有其他寄生與耗損，並在輕載及各 Bus 條件檢查。"
+      ],
+      "result": "若可用能量低於 100 µJ，這個簡化能量測試就會 FAIL；能量大於門檻僅表示可進入下一項時序與波形驗證。"
+    },
+    "assumptions": [
+      "20 µH、4 A、100 µJ 是完全獨立的教育數值，不是實際 LLC、DAB 或 PSFB 的可用 ZVS 範圍與器件選型結論。",
+      "真實 Coss 強烈依電壓變化，必須使用 Eoss/Qoss／Dead Time／寄生損失及在高低 Bus、空滿載下的實測 ZVS 證據。"
+    ],
+    "pitfall": "以為 Coss 低就保證 ZVS，或單看材料頻率優勢直接選 SiC/GaN 而忽略 Topology、Dead Time 和低載換流失效。",
+    "check": {
+      "q": "EL=160 µJ、大約需 100 µJ 的 Eoss，是否已證明所有工作點可 ZVS？",
+      "a": "沒有。能量條件看似足夠，但必須另證實 Qoss 電荷轉移、換流電流方向、Dead Time 和最壞負載／Bus 狀態。"
+    },
+    "tryIt": "沿 P.58 的 Buck、Totem-Pole、LLC/CLLC、DAB/SST，逐項寫出換流方向、能量、額定與 ZVS 檢查，連到既有進階實驗。"
   }
 };})(window);
