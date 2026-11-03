@@ -156,7 +156,7 @@ await run('upper P27-40 source-grounded semiconductor deep guides, math, quiz, P
   }
   assert.equal(titles.size,14,'Unique original page title per semiconductor slide');
   await navigate(page,'#slide/41');
-  assert.equal(await page.locator('.page-guide').count(),0,'P41 left unreviewed by this batch');
+  assert.equal(await page.locator('[data-guide-page="41"]').count(),1,'P41 GTO guide now belongs to next verified batch');
   await navigate(page,'#home');
   await page.locator('#search-trigger').click();
   await page.locator('#search-input').fill('Miller');
@@ -171,6 +171,61 @@ await run('upper P27-40 source-grounded semiconductor deep guides, math, quiz, P
       const dims=await mobile.evaluate(()=>({vw:innerWidth,sw:document.documentElement.scrollWidth}));
       assert.ok(dims.sw<=dims.vw+2,
         'P.'+p+' width '+width+'px overflow '+JSON.stringify(dims));
+    }
+    await mobile.close();
+  }
+});
+
+
+await run('upper P41-48 GTO IGBT MCT switch-loss and family guides',async()=>{
+  const mapping={
+    41:'legacy',42:'legacy',43:'igbt',44:'legacy',
+    45:'legacy',46:'legacy',47:'switchloss',48:'igbt'
+  };
+  const titles=new Set();
+  for(let p=41;p<=48;p++){
+    await navigate(page,'#slide/'+p);
+    const guide=page.locator('[data-guide-page="'+p+'"]');
+    assert.equal(await guide.count(),1,'P.'+p+' unique original teaching guide');
+    const title=await guide.locator('h2').innerText();
+    assert.ok(title.length>=18,'P.'+p+' unique title');
+    titles.add(title);
+    assert.ok(await guide.locator('.guide-steps li').count()>=3,'P.'+p+' circuit and energy flow stages');
+    assert.ok(await guide.locator('.guide-equation').count()>=2,'P.'+p+' equations');
+    assert.ok(await guide.locator('.guide-worked li').count()>=3,'P.'+p+' numeric worked steps');
+    assert.ok(await guide.locator('.guide-assumptions li').count()>=2,'P.'+p+' validity boundaries');
+    const href=await guide.locator('.guide-link').getAttribute('href');
+    assert.ok(href.endsWith('/'+mapping[p]),'P.'+p+' linked original lesson');
+    assert.equal(await page.locator('#source-pdf-file').count(),1,'P.'+p+' original local source reader');
+    for(const eq of await guide.locator('.guide-equation').all()){
+      const ready=await eq.evaluate(el=>el.classList.contains('guide-ready'));
+      assert.ok(ready||await eq.locator('.guide-math-fallback').isVisible(),
+        'P.'+p+' math rendered or fallback text available');
+    }
+    const check=guide.locator('details.guide-check');
+    assert.equal(await check.evaluate(n=>n.open),false,'P.'+p+' answer initially hidden');
+    await check.locator('summary').click();
+    assert.equal(await check.evaluate(n=>n.open),true,'P.'+p+' answer revealed');
+    assert.ok((await check.locator('p').innerText()).length>=20,'P.'+p+' full answer');
+    if([41,42,43,44,46,47,48].includes(p))
+      await page.screenshot({path:outDir+'/upper-device-'+p+'.png',fullPage:true});
+  }
+  assert.equal(titles.size,8,'distinct original explanatory titles');
+  await navigate(page,'#slide/49');
+  assert.equal(await page.locator('.page-guide').count(),0,'P49 is not yet part of current PR');
+  await navigate(page,'#home');
+  await page.locator('#search-trigger').click();
+  await page.locator('#search-input').fill('Snubber');
+  assert.ok(await page.locator('#search-results a[href="#slide/42"]').count()>0,
+    'GTO snubber page should be searchable');
+  await page.keyboard.press('Escape');
+  for(const width of [320,390]){
+    const mobile=await browser.newPage({viewport:{width,height:720}});
+    for(let p=41;p<=48;p++){
+      await mobile.goto(BASE+'/#slide/'+p);
+      await mobile.locator('[data-guide-page="'+p+'"]').waitFor({timeout:20000});
+      const dims=await mobile.evaluate(()=>({vw:innerWidth,sw:document.documentElement.scrollWidth}));
+      assert.ok(dims.sw<=dims.vw+2,'P.'+p+' '+width+'px horizontal overflow '+JSON.stringify(dims));
     }
     await mobile.close();
   }
