@@ -289,6 +289,23 @@ for(const [engineName,engine] of [['firefox',firefox],['webkit',webkit]]){
     const sz=await page.evaluate(()=>({v:innerWidth,s:document.documentElement.scrollWidth}));
     assert.ok(sz.s<=sz.v+2,engineName+' upper P.'+p+' mobile overflow');
   }
+  // Upper P101-106: RC / Sallen-Key / allpass / bounded differentiator / PI / ADC.
+  const analogControlMap={101:'filter',102:'filter',103:'filter',104:'differentiator',105:'pi',106:'adc'};
+  for(let p=101;p<=106;p++){
+    await page.goto(BASE+'/index.html#slide/'+p);
+    const guide=page.locator('[data-guide-page="'+p+'"]');
+    await guide.waitFor({timeout:15000});
+    assert.ok(await guide.locator('.guide-equation').count()>=2,
+      engineName+' upper P.'+p+' math/fallback');
+    assert.ok(await guide.locator('.guide-worked li').count()>=3,
+      engineName+' upper P.'+p+' numeric steps');
+    assert.ok((await guide.locator('.guide-link').getAttribute('href')).endsWith('/'+analogControlMap[p]),
+      engineName+' upper P.'+p+' correct existing lesson');
+    assert.equal(await page.locator('#source-pdf-file').count(),1,
+      engineName+' upper P.'+p+' local original PDF');
+    const sz=await page.evaluate(()=>({v:innerWidth,s:document.documentElement.scrollWidth}));
+    assert.ok(sz.s<=sz.v+2,engineName+' upper P.'+p+' responsive overflow');
+  }
   // Advanced engineering page: no test may silently degrade to a missing lab.
   for (const lab of ['pfc','llc','psfb','loop','timing','nonideal','zvs']){
     await page.goto(BASE+'/advanced.html#'+lab);

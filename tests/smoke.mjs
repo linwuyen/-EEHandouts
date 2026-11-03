@@ -710,8 +710,6 @@ await run('upper P97-100 OP feedback, differences, integration and hysteresis gu
     await page.screenshot({path:outDir+'/upper-analog-op-'+p+'.png',fullPage:true});
   }
   assert.equal(titles.size,4,'P97–100 distinct source slide titles');
-  await navigate(page,'#slide/101');
-  assert.equal(await page.locator('.page-guide').count(),0,'P101 filter pages belong to next source batch');
   await navigate(page,'#home');
   await page.locator('#search-trigger').click();
   await page.locator('#search-input').fill('磁滯比較器');
@@ -721,6 +719,57 @@ await run('upper P97-100 OP feedback, differences, integration and hysteresis gu
   for(const width of [320,390]){
     const mobile=await browser.newPage({viewport:{width,height:720}});
     for(let p=97;p<=100;p++){
+      await mobile.goto(BASE+'/#slide/'+p);
+      await mobile.locator('[data-guide-page="'+p+'"]').waitFor({timeout:20000});
+      const sz=await mobile.evaluate(()=>({vw:innerWidth,sw:document.documentElement.scrollWidth}));
+      assert.ok(sz.sw<=sz.vw+2,'P.'+p+' '+width+'px mobile overflow '+JSON.stringify(sz));
+    }
+    await mobile.close();
+  }
+});
+
+
+await run('upper P101-106 RC filters, Sallen-Key, bounded differentiation, PI and ADC source guides',async()=>{
+  const mapping={101:'filter',102:'filter',103:'filter',104:'differentiator',105:'pi',106:'adc'};
+  const titles=new Set();
+  for(let p=101;p<=106;p++){
+    await navigate(page,'#slide/'+p);
+    const guide=page.locator('[data-guide-page="'+p+'"]');
+    assert.equal(await guide.count(),1,'P.'+p+' one source-specific deep guide');
+    const title=await guide.locator('h2').innerText();
+    assert.ok(title.length>=18,'P.'+p+' descriptive title');
+    titles.add(title);
+    assert.ok(await guide.locator('.guide-steps li').count()>=3,'P.'+p+' physical steps');
+    assert.ok(await guide.locator('.guide-equation').count()>=2,'P.'+p+' bounded formulas');
+    assert.ok(await guide.locator('.guide-worked li').count()>=3,'P.'+p+' numerically verified example');
+    assert.ok(await guide.locator('.guide-assumptions li').count()>=2,'P.'+p+' model limits');
+    assert.ok((await guide.locator('.guide-link').getAttribute('href')).endsWith('/'+mapping[p]),
+      'P.'+p+' real matching lesson');
+    assert.equal(await page.locator('#source-pdf-file').count(),1,'P.'+p+' original local PDF reader');
+    for(const eq of await guide.locator('.guide-equation').all()){
+      const rendered=await eq.evaluate(n=>n.classList.contains('guide-ready'));
+      assert.ok(rendered||await eq.locator('.guide-math-fallback').isVisible(),
+        'P.'+p+' math KaTeX or readable fallback');
+    }
+    const quiz=guide.locator('details.guide-check');
+    assert.equal(await quiz.evaluate(n=>n.open),false,'P.'+p+' quiz closed at start');
+    await quiz.locator('summary').click();
+    assert.equal(await quiz.evaluate(n=>n.open),true,'P.'+p+' quiz toggle');
+    assert.ok((await quiz.locator('p').innerText()).length>=20,'P.'+p+' substantive answer');
+    await page.screenshot({path:outDir+'/upper-analog-control-'+p+'.png',fullPage:true});
+  }
+  assert.equal(titles.size,6,'P101-106 distinct original guide titles');
+  await navigate(page,'#slide/107');
+  assert.equal(await page.locator('.page-guide').count(),0,'P107 closing slide has no new guide');
+  await navigate(page,'#home');
+  await page.locator('#search-trigger').click();
+  await page.locator('#search-input').fill('Sallen-Key');
+  assert.ok(await page.locator('#search-results a[href="#slide/102"]').count()>0,
+    'P102 source filter searchable');
+  await page.keyboard.press('Escape');
+  for(const width of [320,390]){
+    const mobile=await browser.newPage({viewport:{width,height:720}});
+    for(let p=101;p<=106;p++){
       await mobile.goto(BASE+'/#slide/'+p);
       await mobile.locator('[data-guide-page="'+p+'"]').waitFor({timeout:20000});
       const sz=await mobile.evaluate(()=>({vw:innerWidth,sw:document.documentElement.scrollWidth}));
