@@ -2843,5 +2843,591 @@
       "a": "約 50 V；仍不能只憑 Bus+50 V 小於額定就宣稱實際開關安全。"
     },
     "tryIt": "沿 P.48 的五類器件將所需控制性、耐壓、反向導通和 Gate 驅動畫成檢查順序。"
+  },
+  "49": {
+    "lesson": "wbg",
+    "title": "Si、SiC、GaN 的能隙與臨界電場：為何高壓元件的漂移區可以變薄？",
+    "question": "SiC／GaN 的 Eg 與 Ec 較大，是否表示同一耐壓下 RDS(on) 一定低 1000 倍？",
+    "takeaway": "高臨界電場使理想阻斷層可變薄並提高允許摻雜，降低高壓單極器件漂移阻抗的理論極限，但實際 RDS(on) 還受材料、接面及封裝限制。",
+    "intuition": [
+      "原講義 P.49 的材料表列 Si、4H-SiC、GaN 的能隙與臨界電場，物理上較高的臨界崩潰電場可讓器件在較短的漂移距離承受相同的阻斷電壓。",
+      "能隙 Eg 影響本徵載子濃度與高溫漏電趨勢，臨界電場 Ec 影響崩潰條件；兩者不是相同參數，不能單靠 Eg 宣稱某款實際元件的額定耐壓、工作溫度或導通損耗。"
+    ],
+    "steps": [
+      {
+        "title": "先沿阻斷電場方向理解漂移區",
+        "detail": "OFF 時主端口阻斷高電壓，漂移層必須承受內部電場；理想均勻電場模型可用 V≈E×t 建立長度尺度。"
+      },
+      {
+        "title": "比較 Si 與 SiC 的理想場強能力",
+        "detail": "對相同阻斷電壓，若 SiC 的臨界電場約為 Si 的十倍，在其他條件簡化下其理想有效阻斷長度可降至十分之一。"
+      },
+      {
+        "title": "補上真實阻抗與器件限制",
+        "detail": "實際耐壓還取決於摻雜、結構、終端電場擁擠、封裝、溫度和生產工藝；GaN HEMT 與 SiC MOSFET 也不共用相同垂直漂移結構。"
+      }
+    ],
+    "equations": [
+      {
+        "label": "理想均勻電場的阻斷尺度",
+        "tex": "t_{min}\\sim V_B/E_c",
+        "plain": "理想阻斷長度尺度≈阻斷電壓／臨界電場",
+        "why": "只有等效均勻電場的物理尺度示意，實際接面有非均勻電場，不能直接用作層厚設計值。"
+      },
+      {
+        "label": "漂移層耗散尺度",
+        "tex": "R\\sim \\rho\\frac{\\ell}{A}",
+        "plain": "阻抗尺度=材料電阻率×通流長度／截面積",
+        "why": "需同時知道摻雜與載子遷移率，單把厚度變薄不表示實際元件總 RDS(on) 固定降低同倍率。"
+      }
+    ],
+    "worked": {
+      "given": "假設同一阻斷需求 1200 V，簡化比較 Si 臨界電場 0.3 MV/cm 與 SiC 3.0 MV/cm 的均勻場尺度。",
+      "steps": [
+        "Si 的等效長度尺度為 1200/(0.3×10⁶) cm=0.004 cm=40 µm。",
+        "SiC 的尺度為 1200/(3×10⁶) cm=0.0004 cm=4 µm。",
+        "兩者在這個理想尺度下相差十倍，但不代表實際晶片層厚必然為 40／4 µm，也不能直接推導整顆器件 RDS(on) 比例。"
+      ],
+      "result": "先用場強判斷材料潛力，再使用特定器件在工作溫度與 Gate 驅動下的資料表檢查真實性能。"
+    },
+    "assumptions": [
+      "臨界電場取教學用約數，場強視為均勻且忽略終端電場集中、摻雜與界面缺陷，僅展示長度尺度。",
+      "GaN lateral HEMT、SiC vertical MOSFET 與不同世代器件的結構不一致，不能按材料 Ec 直接推導相同元件 RDS(on)。"
+    ],
+    "pitfall": "把能隙 Eg、Ec 和耐壓等同同一件事，或把理想 10 倍場強直接換算成某產品固定 10 倍效率。",
+    "check": {
+      "q": "若相同 BV 下材料 Ec 假設提升十倍，理想阻斷長度尺度如何變化？",
+      "a": "在均勻電場近似下降至原來十分之一，但這不是實際器件層厚或導通電阻的保證。"
+    },
+    "tryIt": "回看原講義 P.49 的 Si／SiC／GaN 三欄，明確分開 Eg、Ec 與真正 datasheet 額定值。"
+  },
+  "50": {
+    "lesson": "wbg",
+    "title": "Baliga 極限與熱導率：為何 Ec 三次方不是實際 RDS(on) 保證？",
+    "question": "講義寫 Ron,sp∝BV²/(εµEc³)，是否可由 Ec 十倍直接宣稱 SiC MOSFET 的真實損耗降一千倍？",
+    "takeaway": "Baliga 關係描述特定理想單極漂移區的材料極限；實際器件導通電阻還有通道、J-FET、接觸與封裝項，熱導率也不等於系統散熱能力。",
+    "intuition": [
+      "P.50 左側材料表列 Si、4H-SiC、GaN 能隙與熱導率，右側強調在相同阻斷電壓 BV 下，漂移區的理論比導通電阻對臨界場強 Ec 具有三次方關係。",
+      "高材料熱導率能改善晶片內部導熱的部分環節，但系統溫升還有晶片尺寸、基板、介面材料、封裝與散熱器，不可只看材料表排名。"
+    ],
+    "steps": [
+      {
+        "title": "先固定相同阻斷電壓與理論器件假設",
+        "detail": "Baliga 型理論式是在單極漂移層極限、相同 BV 的基礎上比較材料的 ε、µ 與 Ec，不是現成 datasheet RDS(on) 計算器。"
+      },
+      {
+        "title": "將材料場強比放入三次方關係",
+        "detail": "若純粹為隔離 Ec 影響而固定 ε、µ、BV，Ec 提升十倍使理論漂移層 Rsp 比例變為 1/1000。"
+      },
+      {
+        "title": "把漂移極限和實際器件串聯項分開",
+        "detail": "真實 RDS(on) 會疊加 Channel、JFET、Contact、Substrate 和封裝，且隨 Tj 與驅動偏壓變動。"
+      },
+      {
+        "title": "最後由材料傳熱走向熱阻與熱點",
+        "detail": "材料導熱率較高可能有幫助，但接面到環境的 θJA、實際功率密度與散熱界面才是熱驗收條件。"
+      }
+    ],
+    "equations": [
+      {
+        "label": "理想單極漂移層比導通電阻",
+        "tex": "R_{on,sp}\\propto\\frac{BV^2}{\\epsilon\\mu E_c^3}",
+        "plain": "Ron,sp 理論漂移限制∝BV²/(ε×µ×Ec³)",
+        "why": "僅理想單極漂移極限，實際製程、結構與溫度不能以此式直接預測。"
+      },
+      {
+        "label": "等條件下臨界場比的影響",
+        "tex": "\\frac{R_{sp,2}}{R_{sp,1}}=\\left(\\frac{E_{c,1}}{E_{c,2}}\\right)^3",
+        "plain": "在 BV、ε、µ 假設相同時 Rsp 比例=(Ec1/Ec2)³",
+        "why": "只為隔離 Ec 一個變數的比較，不是 Si／SiC 產品在同功率級的實測損耗比。"
+      }
+    ],
+    "worked": {
+      "given": "固定 BV、ε、µ 並假設 Ec2=10Ec1；另比較材料表的 Si 150 與假設 SiC 400 W/(m·K)。",
+      "steps": [
+        "理論漂移區 Rsp2/Rsp1=(1/10)³=0.001，也就是該部分可低一千倍的數學尺度。",
+        "材料熱導率示例 400/150≈2.667 倍，但整個模組 θJA 未必變成原來 1/2.667。",
+        "若接觸、通道和封裝成為主要阻抗，實際總 RDS(on) 不會跟著理論漂移項等比縮小。"
+      ],
+      "result": "上述計算只是在相同假設下比較材料極限與導熱能力，真正元件仍要用實際 datasheet／熱模擬／硬體量測。"
+    },
+    "assumptions": [
+      "原圖熱導率是代表性的材料資料，會隨晶向、基板、溫度與材料品質變化，不能當作封裝熱阻。",
+      "Baliga 理論式不涵蓋非理想接面、Channel、JFET、封裝以及 lateral GaN 結構，不得拿來做產品效率承諾。"
+    ],
+    "pitfall": "把 1/1000 的理論漂移區數值誤寫成實際整顆元件必定只有 1/1000 導通損，或把高熱導率直接當低 Tj。",
+    "check": {
+      "q": "如果其他量固定、Ec 比值為 10，理論漂移層 Ron,sp 比例是多少？",
+      "a": "為 1/1000，但只限該理論項；實際器件及散熱仍需重新驗證。"
+    },
+    "tryIt": "拿原講義 P.50 的表格，對照 Baliga 式每個變數與導熱率，再找出其對實際器件不成立的假設。"
+  },
+  "51": {
+    "lesson": "wbg",
+    "title": "四種元件的載子與反向導通：GaN 沒有傳統 Body Diode 代表沒有損耗嗎？",
+    "question": "Si IGBT 需要反並聯二極體，SiC MOSFET 有 body diode，GaN HEMT 沒傳統 Si PN diode 時反向電流怎麼流？",
+    "takeaway": "IGBT、Si/SiC MOSFET 與 GaN HEMT 的導電機理與第三象限路徑不同；GaN 沒有傳統 PN body-diode Qrr，仍可能在 Dead Time 產生較高反向導通損。",
+    "intuition": [
+      "P.51 比較多數載子 MOSFET、含少子電導調變的 IGBT、SiC MOSFET 與由 2DEG 通道導流的 GaN HEMT。原講義列出的典型電壓帶與頻率是分類示意，不可當現代器件的絕對上限。",
+      "某些 GaN HEMT 沒有矽 MOSFET 傳統 PN body diode，卻能藉第三象限通道導流；在 Gate OFF 的 Dead Time 仍可能有反向壓降與損耗。IGBT 在逆變器常須配合反並聯二極體，但不一定是元件晶片內天然二極體。"
+    ],
+    "steps": [
+      {
+        "title": "先分辨少數載子與多數載子器件",
+        "detail": "IGBT 的尾電流與雙極導電相關，Si／SiC MOSFET 以多數載子通道工作，GaN HEMT 可用 2DEG 通道提供高遷移率通道。"
+      },
+      {
+        "title": "沿第三象限正確找出電流路徑",
+        "detail": "Si/SiC MOSFET 可能有 Body diode 與同步通道；GaN 則依器件 Gate 狀態以通道反向導流，不能把『無 Qrr』寫成『無 Dead Time 損』。"
+      },
+      {
+        "title": "依指定量測區間估反向損耗",
+        "detail": "若在 Dead Time 期間以固定反向壓降 Vrev、電流 I 近似，平均損耗依該時段占空比例計算，並與 ZVS 和驅動狀態區分。"
+      }
+    ],
+    "equations": [
+      {
+        "label": "反向導通耗散尺度",
+        "tex": "P_{rev}\\approx V_{rev}I_{rev}D_{rev}",
+        "plain": "反向導通平均損≈反向壓降×電流×該區段占空",
+        "why": "適用給定 Vrev、Irev、Drev 的簡化平均，GaN 第三象限 Vrev 與 Gate off bias 有關。"
+      },
+      {
+        "label": "反向導通占空",
+        "tex": "D_{rev}=\\frac{t_{rev,total}}{T_s}",
+        "plain": "Drev=每週期反向導通總時間／週期",
+        "why": "須把全部 Dead Time 導流區段加總，不能與後續 ON 通道的同一電流重複算損。"
+      }
+    ],
+    "worked": {
+      "given": "獨立示例：第三象限反向電流 8 A、壓降 Vrev=3 V、總導通占空 0.05；不指定實際 SiC 或 GaN 產品。",
+      "steps": [
+        "平均反向耗散估 P=3×8×0.05=1.2 W。",
+        "若同樣 8 A、同樣占空但 Vrev=4 V，估算 P=4×8×0.05=1.6 W，差 0.4 W。",
+        "反向壓降不是固定家族值，必須根據實際 VGS(off)、電流、結溫、封裝與器件資料重新計算。"
+      ],
+      "result": "即使某 GaN 沒有 PN body diode 的少子 Qrr，也不能把上述第三象限熱損宣稱為零。"
+    },
+    "assumptions": [
+      "本例用固定壓降、固定導通占空近似，尚未包含換流電荷、Coss、ZVS/硬切換及實際 Dead Time 自適應控制。",
+      "GaN HEMT、Cascode GaN 與不同 SiC MOSFET 的反向導流及 Gate 結構不同；原表不可作跨世代規格保證。"
+    ],
+    "pitfall": "把『GaN 沒有傳統體二極體』誤寫成『GaN 不能反向導流』或『反向導通不耗能』。",
+    "check": {
+      "q": "8 A 反向電流、壓降 3 V、占空 5%，平均第三象限耗散多少？",
+      "a": "約 1.2 W，仍須依該器件反向導通特性和 Gate 狀態確認。"
+    },
+    "tryIt": "逐項對照 P.51 的載子型態、Tail Current 與反向導通，連結既有 IGBT vs MOSFET 和 SiC/GaN 課節。"
+  },
+  "52": {
+    "lesson": "wbg",
+    "title": "選型座標：耐壓 × 頻率的相對位置為何不能代替額定與損耗驗證？",
+    "question": "圖中 SiC、GaN 偏高頻區，可否只靠座標就決定 800 V Bus 應用採哪個元件？",
+    "takeaway": "耐壓與可用頻率都是工作點約束；先排除阻斷能力不足，再估 Eon/Eoff、SOA、Driver 與熱，原圖只是定性示意。",
+    "intuition": [
+      "P.52 以縱軸 Voltage、橫軸 Switching frequency 放置 Si MOSFET、IGBT、SiC MOSFET、GaN HEMT。這不是完整的現代 datasheet 圖，更沒有畫出電流與 Tj 限制。",
+      "同一高壓 Bus 下，若候選元件靜態耐壓就不足，不能因高頻性能佳而選用；即使靜態耐壓足夠，也要用換流能量與降額驗證開關過衝。"
+    ],
+    "steps": [
+      {
+        "title": "先把最大 Bus 和尖峰寫成阻斷需求",
+        "detail": "任何正常或保護前的工作狀態都可能使 VDS/VCE 瞬間高於 Bus，需將最大母線電壓、寄生過衝和降額合併檢查。"
+      },
+      {
+        "title": "再用 Eon/Eoff 與頻率估算熱損",
+        "detail": "Eon/Eoff 與 V、I、Rg、Tj 和換流條件相關；在相同每次能量的示例下，提高頻率會線性增加平均切換損。"
+      },
+      {
+        "title": "回頭比較驅動／短路／熱與可取得性",
+        "detail": "相同 800 V Bus 的拓樸仍要比較每個候選器件的 VDS rating、SOA、保護時序、熱結構與供應成本，不能依圖上位置選。"
+      }
+    ],
+    "equations": [
+      {
+        "label": "基本阻斷篩選",
+        "tex": "V_{rating}>V_{bus,max}+V_{overshoot}",
+        "plain": "額定阻斷電壓需大於最大 Bus 加預估尖峰",
+        "why": "這只是初步必要條件，非等同已完成降額、振鈴與異常 SOA 安全驗證。"
+      },
+      {
+        "label": "開關平均功率",
+        "tex": "P_{sw}\\approx(E_{on}+E_{off})f_s",
+        "plain": "平均切換損≈每次 ON/OFF 總能量×切換頻率",
+        "why": "須核對器件測試工況與每秒切換事件數，ZVS／ZCS 可能改變能量分布。"
+      }
+    ],
+    "worked": {
+      "given": "假設 Bus 最大 800 V，初步比較候選 650 V 與 1200 V 額定；另設每週期總換流能量 100 µJ、fs=100 kHz。",
+      "steps": [
+        "650 V 額定連 800 V Bus 平台都無法阻斷，未計尖峰就已不符合基本電壓檢查。",
+        "1200 V 額定與 800 V Bus 名義差 400 V，但仍需要確認最壞過衝、降額、SOA 和溫度。",
+        "假設每次 Eon+Eoff=100 µJ，100 kHz 的平均切換損約 100 µJ×100k=10 W，尚未包含導通熱。"
+      ],
+      "result": "因此座標圖只能做選型起點，不能宣稱 1200 V 器件必然可安全工作或擁有指定效率。"
+    },
+    "assumptions": [
+      "資料僅為兩個假設額定和固定切換能量，未指定實際器件、封裝或真實 800 V 系統的最壞 Bus 變化。",
+      "歷史及示意圖中的材料頻率範圍不是物理或產品絕對限制，必須以相同工作點資料和測試重新判定。"
+    ],
+    "pitfall": "用 650 V GaN 的高頻優勢否定 800 V Bus 的電壓限制，或認為 1200 V 額定就代表可任意承受 1200 V 事件。",
+    "check": {
+      "q": "800 V Bus 配 650 V 阻斷額定是否能因工作頻率高而通過基本篩選？",
+      "a": "不能。基本阻斷能力已不足；對 1200 V 額定仍須另做過衝、降額與熱驗證。"
+    },
+    "tryIt": "在原 P.52 圖上先畫最大 Bus 與候選 rating，再把 Eon/Eoff 及熱限制補成第三個選型條件。"
+  },
+  "53": {
+    "lesson": "wbg",
+    "title": "SiC MOSFET 高 dv/dt／di/dt：為什麼 Kelvin Source 與 Gate Driver 很重要？",
+    "question": "原講義說 SiC 常見 +15～18 V、0～−5 V Gate，這是所有 SiC 器件都必須照抄的驅動電壓嗎？",
+    "takeaway": "SiC 的高速換流會把寄生 Ldi/dt 與 Miller 耦合放大；Gate 電壓、Kelvin Source、CMTI 和保護時序都要依具體元件與布局設計。",
+    "intuition": [
+      "P.53 把高壓低導通阻抗與高速換流的優點並列，但同時強調高 dv/dt 可能透過 Cgd 注入 Gate、共模瞬變也可能超過 Driver 抗擾能力。",
+      "Kelvin Source 能把 Gate 回流與高 di/dt 的主功率 Source 回路部分分開，減少共源寄生造成的 VGS 誤差；特定 SiC MOSFET 可能允許 0 V 關斷，也可能要求負壓，不能通用複製 +18/−5 V。"
+    ],
+    "steps": [
+      {
+        "title": "先畫主功率迴路與 Gate 回流",
+        "detail": "高速 ID 變化流經共源寄生電感時，會使 Source 端跳動；若 Driver Return 接錯，示波器看見的 VGS 與真正晶片 Gate–Source 不一致。"
+      },
+      {
+        "title": "估 Lpar 對 VDS 的過衝尺度",
+        "detail": "在換流電流斜率一定時，縮短 Power Loop 或採低寄生封裝可減小 Lpar×di/dt；並須搭配 Coss、Clamp 和實際量測。"
+      },
+      {
+        "title": "再看 Miller 注入與 CMTI",
+        "detail": "高 dv/dt 透過 Cgd 帶來注入電流，Gate OFF 應避免假導通，隔離驅動器要具備實際共模瞬變下的裕度。"
+      },
+      {
+        "title": "由 datasheet 定義 Gate 與短路保護",
+        "detail": "正／負 VGS 絕對值、短路耐受時間、DESAT/過流檢測與受控 turn-off 都必須逐顆按資料表確認。"
+      }
+    ],
+    "equations": [
+      {
+        "label": "寄生電感瞬態電壓",
+        "tex": "V_{L}=L_{par}\\frac{di}{dt}",
+        "plain": "寄生 L 上的瞬態電壓=Lpar×di/dt",
+        "why": "僅估單一寄生項，最終 VDS 尖峰由多個 L／C 和換流路徑共同決定。"
+      },
+      {
+        "label": "Gate 驅動供電尺度",
+        "tex": "P_{gate}\\approx Q_gV_{drive}f_s",
+        "plain": "Gate 供電功率尺度≈Qg×驅動電壓擺幅×fs",
+        "why": "供電能量分配在 Driver、Rg 和 Gate 迴路，不等於全部成為 MOSFET 晶片的熱。"
+      }
+    ],
+    "worked": {
+      "given": "獨立示例：主功率回路寄生 Lpar=20 nH、di/dt=5 A/ns；另假設 Gate Qg=100 nC、Vdrive 擺幅 18 V、fs=100 kHz。",
+      "steps": [
+        "寄生瞬態壓降尺度為 20 nH×5 A/ns=100 V，代表布局容易影響額定安全裕度。",
+        "Gate 供電尺度約 100 nC×18 V×100 kHz=0.18 W，與主功率切換 Eon/Eoff 不是相同項目。",
+        "若某器件資料表指定 OFF=0 V 可以抗誤觸發，就不應毫無理由增加負壓；若特定器件要求負壓則必須滿足其完整 Gate 規格。"
+      ],
+      "result": "最終是否安全仍要量實際 VGS、VDS、ID、Driver CMTI 和保護反應，不能只由 100 V／0.18 W 兩個數字判定。"
+    },
+    "assumptions": [
+      "20 nH、5 A/ns 與 Qg 是教育示例；器件 Gate 電壓窗口和短路時間必須以實際型號的 datasheet 為準。",
+      "Kelvin Source 有其封裝與走線前提，不能把 Driver GND 接在 Power Source 後就宣稱已隔離共源電感。"
+    ],
+    "pitfall": "把所有 SiC 都固定使用 +18/−5 V，或以為只靠 MCU PWM 腳位就能保證 SiC 的實際 VGS 與 Gate-off 安全。",
+    "check": {
+      "q": "20 nH 寄生與 5 A/ns 電流斜率的瞬態電壓尺度？",
+      "a": "約 100 V；這不是元件的全體過衝，也不代表必須採某個固定負向 Gate 電壓。"
+    },
+    "tryIt": "對照 P.53 的 Kelvin Source、CMTI、Rg(on/off) 與保護，延伸既有 SiC/GaN 課節。"
+  },
+  "54": {
+    "lesson": "wbg",
+    "title": "GaN E-mode 與 Cascode D-mode：為何 Normally-off 的結構不只有一種？",
+    "question": "原講義 E-mode 低 Gate 電壓窗口、Cascode 使用低壓矽 MOSFET，兩者在上電和驅動上有什麼差別？",
+    "takeaway": "E-mode GaN 直接利用增強型通道實現 0 V 常關；Cascode 用內部常開 D-mode GaN 與低壓 Si MOSFET 配合實現系統常關，但 Gate 驅動規格不能互換。",
+    "intuition": [
+      "P.54 說明 E-mode GaN 是常關型，但常見 Gate 絕對額定窗口比傳統矽 MOSFET 窄，需要專用或具正確穩壓、CMTI 的 Driver。",
+      "Cascode 結構讓常開 D-mode GaN 與低壓 Si MOSFET 串接，由低壓 MOSFET 控制整個端口，並不能保證所有 Cascode 都完全相容任意老式驅動器。"
+    ],
+    "steps": [
+      {
+        "title": "從 E-mode 零偏關閉理解安全狀態",
+        "detail": "未施加正向 Gate 偏壓時，增強型器件保持關閉；實際閾值、可用導通 VGS 與最大額定不能混為同一數字。"
+      },
+      {
+        "title": "追 Cascode 內部兩顆器件的開關順序",
+        "detail": "低壓矽 MOSFET 關閉時，整個 Cascode 可以常關；其封裝內的電壓分配、換流和反向導通需要依實際器件規格判斷。"
+      },
+      {
+        "title": "辨認 Gate 窗口與實際瞬態",
+        "detail": "Driver 標稱電壓不是器件接腳實際 VGS，需檢查寄生過衝、負向振鈴、啟動 UVLO、CMTI 和 Gate 絕對最大值。"
+      }
+    ],
+    "equations": [
+      {
+        "label": "Gate 上界電壓的必要比較",
+        "tex": "V_{GS,peak}<V_{GS,max}",
+        "plain": "Gate 實際峰值需在該型號允許額定內",
+        "why": "仍須考慮負向容限、瞬態脈寬、結溫與器件可靠度；並非所有 E-mode 額定皆相同。"
+      },
+      {
+        "label": "寄生 Gate 電壓峰值示意",
+        "tex": "V_{GS,peak}=V_{drive}+V_{ring}",
+        "plain": "VGS 峰值示意≈Driver 命令電壓+寄生振鈴",
+        "why": "僅作最壞同方向幅值疊加的簡化檢查，實際波形由 Gate Loop 和驅動供電決定。"
+      }
+    ],
+    "worked": {
+      "given": "假設某 E-mode GaN 的指定 Gate 正向絕對上界為 +6 V、期望導通命令為 +5 V；示意 Gate 過衝為 +1.5 V。",
+      "steps": [
+        "該例 Gate 峰值約 5+1.5=6.5 V，已超過假設額定上界 0.5 V。",
+        "即使 Driver 標稱 +5 V 沒超額定，Gate–Source 接腳實際過衝仍可能不合格。",
+        "如果某 Cascode 器件的外部 Gate 規格允許較大範圍，也必須查該型號，而不能直接套此 +6 V 數字。"
+      ],
+      "result": "這是驅動窗口的風險例題，不代表市售 GaN 的絕對最大 VGS 均為 +6 V。"
+    },
+    "assumptions": [
+      "+6 V 上界與 +5 V 驅動是指定假設，不可作任何 GaN 產品的通用 Gate 定義或操作建議。",
+      "Cascode 和 E-mode 的反向導通、啟動安全、Gate 絕對額定及可靠度取決於實際結構與 datasheet。"
+    ],
+    "pitfall": "認為所有 GaN Gate 都能用傳統 +10/+12 V MOSFET Driver，或認為 Cascode 的常關必然免除啟動與過壓檢查。",
+    "check": {
+      "q": "+5 V 標稱驅動但接腳多 +1.5 V 過衝，假設額定 +6 V，是否通過？",
+      "a": "不能。峰值 6.5 V 超過假設額定 0.5 V，必須調整器件／驅動／布局並依資料表評估。"
+    },
+    "tryIt": "依 P.54 E-mode 與 Cascode 的結構，畫出真正的 Gate 控制端及 0 V 停機狀態。"
+  },
+  "55": {
+    "lesson": "wbg",
+    "title": "Direct-Drive D-mode 與整合 GaN：開機時 Gate 偏壓為何比 PWM 還重要？",
+    "question": "GaN D-mode 若 0 V 是常開，系統上電初期尚未建立負壓偏置會發生什麼事？",
+    "takeaway": "Direct-Drive D-mode 的系統安全要求先建立有效負壓 Gate 關斷與互鎖，再允許高壓功率級；整合 GaN 需查其 UVLO、故障與控制輸入，而非假定自動安全。",
+    "intuition": [
+      "P.55 區分 Direct-Drive D-mode GaN 和整合式 GaN Power Stage：前者若為常開型，0 V Gate 偏壓時主通道可能導通，因此上電順序是電力電子的安全條件而不只是控制軟體細節。",
+      "整合 Power Stage 可能包含 Driver、電源與保護，能縮短 Gate Loop 和改善可使用性，但不同產品的 UVLO、Fault、OCP 與電源掉電行為皆不相同。"
+    ],
+    "steps": [
+      {
+        "title": "先確認 Gate=0 的功率狀態",
+        "detail": "Direct D-mode 在 Gate 偏壓未建立時可能是 ON，若母線已施加而控制器尚未啟動，可能出現未受控功率電流。"
+      },
+      {
+        "title": "以硬體有效偏壓作啟動互鎖",
+        "detail": "必須先由硬體確認 Gate-off 電源有效、Driver 故障狀態可接受，然後才能解除 HV 使能與允許 PWM。"
+      },
+      {
+        "title": "對整合式 Power Stage 重讀功能表",
+        "detail": "整合 Driver 與保護不等於所有危險都被消除，仍需實際核對其 UVLO 門檻、短路反應、過溫和 fault latch/reset 方式。"
+      }
+    ],
+    "equations": [
+      {
+        "label": "Gate-off 比較的示意條件",
+        "tex": "V_{GS,actual}\\le V_{GS,off,req}",
+        "plain": "實際 Gate-off 偏壓必須符合該 D-mode 器件要求",
+        "why": "僅以特定型號規定的有效關斷條件為準；負向 VGS 絕對值及脈衝應力也要核對。"
+      },
+      {
+        "label": "Gate 寄生偏移簡化",
+        "tex": "V_{GS,actual}=V_{bias}+V_{noise}",
+        "plain": "實際關斷 Gate 偏壓≈負偏壓供應+寄生正向抬升",
+        "why": "此式示意同方向耦合的最壞電壓，並不能替代高頻 VGS 實測與開機互鎖設計。"
+      }
+    ],
+    "worked": {
+      "given": "假設某 Direct D-mode 的可靠關斷條件是 VGS≤−4 V，設計提供 −5 V 靜態偏壓，但受開關噪聲可能短暫上升 +1.5 V。",
+      "steps": [
+        "最壞 Gate-off 偏壓變成 −5+1.5=−3.5 V。",
+        "−3.5 V 高於假設要求的 −4 V，因此不能視為已保證關斷。",
+        "若系統 HV enable 仍允許在偏壓尚未建立時輸出，屬硬體啟動風險，不能只依 MCU 程式下一個週期會送 OFF 命令來補救。"
+      ],
+      "result": "此例需要的是依 datasheet 建立安全偏壓裕度與硬體互鎖，並不代表所有 GaN D-mode 要求相同負壓。"
+    },
+    "assumptions": [
+      "−4／−5 V 是純示例的特定型號假設，不可直接複製到任何 Direct-drive GaN 產品或 Gate Driver。",
+      "整合 GaN 的 OCP、UVLO、故障鎖存、可用反向導流和最大 VGS 應依實際料號確認，不能一概而論。"
+    ],
+    "pitfall": "以為 MCU 上電很快就能補送 Gate-off，所以不用硬體互鎖；或把整合 Driver 誤當成免除失效模式分析。",
+    "check": {
+      "q": "假設要求 VGS≤−4 V，供應 −5 V 被雜訊抬升 +1.5 V，能保證 OFF 嗎？",
+      "a": "不能，實際為 −3.5 V，沒有符合題目指定的關斷條件，需先確保硬體關斷裕度與互鎖。"
+    },
+    "tryIt": "針對 P.55 Direct D-mode 與 Integrated Stage，列出電源先後、Gate-off 供電與 Fault 回復的檢查表。"
+  },
+  "56": {
+    "lesson": "wbg",
+    "title": "GaN 低 Qg／Qoss 與 Dead Time：為何極快開關不代表零換流損失？",
+    "question": "GaN 沒有傳統矽 PN Body Diode Qrr，為何仍需考慮第三象限導通、Dead Time 與佈局 EMI？",
+    "takeaway": "GaN 高速切換可降低部分 Gate 與電荷損耗，但關斷死區中的第三象限壓降、Coss/Qoss 能量、Gate Loop 與測量寄生仍不可忽略。",
+    "intuition": [
+      "P.56 對照 GaN HEMT 的 lateral 2DEG、高遷移率、低 Qg/Qgd/Qoss 和 Gate Driver 的短迴路需求；小電荷意味 Driver 較容易搬運，但不能無限制提高頻率。",
+      "GaN 無傳統 PN Body Diode 型 Qrr 不代表反向電流消失，Dead Time 期間第三象限可能有明顯反向壓降；過短 Dead Time 又可能使上下管 shoot-through。"
+    ],
+    "steps": [
+      {
+        "title": "從 Gate 電荷與 Driver 電流估時間尺度",
+        "detail": "Gate 電壓變化須搬運 Qg，Miller Qgd 又與 Drain dv/dt 耦合；兩者會受 Driver 有效電流、Rg 和寄生影響。"
+      },
+      {
+        "title": "在 Dead Time 找反向通道",
+        "detail": "當上下管暫時都關閉，電感電流仍需要通道，GaN 的第三象限可能產生反向壓降與耗散，並非傳統 Si Body Diode 的零恢復就零熱。"
+      },
+      {
+        "title": "最小化但不能消除互鎖死區",
+        "detail": "太長 Dead Time 增加反向導通損，太短 Dead Time 則會受 propagation delay mismatch、Miller 誤觸發與 PCB 寄生影響導致直通。"
+      },
+      {
+        "title": "選擇低寄生量測與元件佈局",
+        "detail": "快速 dv/dt/di/dt 需要短 Power/Gate Loop、低寄生探測與足夠 CMTI；示波器看見尖峰需排除探棒迴路誤差。"
+      }
+    ],
+    "equations": [
+      {
+        "label": "簡化第三象限 Dead Time 損",
+        "tex": "P_{dt}\\approx nV_{rev}I_Lt_df_s",
+        "plain": "Pdt≈每週期 Dead Time 區段數×反向壓降×電流×單段時間×fs",
+        "why": "假設區間內 Vrev、I 固定且沒有 ZVS 轉換動態，僅能作簡化損耗尺度。"
+      },
+      {
+        "label": "Driver 電荷轉換時間尺度",
+        "tex": "t_g\\approx Q_g/I_{G,avg}",
+        "plain": "Gate 轉換時間約 Gate 電荷／平均 Driver 電流",
+        "why": "Gate 電荷與電流隨波形與器件非線性變動，不能直接當完整 VDS 切換時間或 Dead Time 設定。"
+      }
+    ],
+    "worked": {
+      "given": "假設一個 GaN 半橋每週期有兩段第三象限續流，每段 Dead Time=50 ns，反向壓降 3 V、電流 8 A、fs=200 kHz。",
+      "steps": [
+        "總反向導流時間占空=2×50 ns×200 kHz=0.02。",
+        "簡化 Dead Time 損失 Pdt≈3×8×0.02=0.48 W。",
+        "若每段 Dead Time 變成 100 ns，其餘固定，估算 Pdt≈0.96 W，增加一倍。"
+      ],
+      "result": "縮短 Dead Time 可能降低此項損耗，但若過短使兩管瞬間同開則不可接受；實際必須驗證 Gate、VDS、ID 與最壞傳播延遲。"
+    },
+    "assumptions": [
+      "示例固定 Vrev、I、兩個完整區間，忽略 ZVS 對 VDS、電流及反向導通時間的影響。",
+      "GaN Gate 電壓及 Driver CMTI、Dead Time 匹配由實際器件／封裝和控制規格決定，不能直接照搬 50 ns。"
+    ],
+    "pitfall": "把『沒有 PN body diode Qrr』等同『沒有反向導通損』，或以為 Dead Time 一定可以設成零。",
+    "check": {
+      "q": "兩段各 50 ns、fs=200 kHz、8 A、反向壓降 3 V，Dead Time 損耗近似多少？",
+      "a": "約 0.48 W，僅為固定電流電壓的示例，不等於全部換流損耗。"
+    },
+    "tryIt": "依 P.56 原圖，把 Qg/Qoss、第三象限、Gate Loop、Dead Time 和探測方法各自列成工程檢查項目。"
+  },
+  "57": {
+    "lesson": "wbg",
+    "title": "Si MOSFET、IGBT、SiC MOSFET、GaN HEMT：為何選型必須回到同一工作點？",
+    "question": "講義表格將高頻能力和 Gate 難度排名，實際元件能否只以某材料屬性決定優劣？",
+    "takeaway": "不同材料與載子機制決定設計取捨，但真正的比較應在相同 Bus、電流、溫度、頻率與熱條件下核對完整損失及可靠度。",
+    "intuition": [
+      "P.57 列出四類主力元件的高壓、高頻、Gate 驅動難度、Qrr 和應用領域：MOSFET 有多數載子通道，IGBT 受少數載子拖尾影響，SiC 改善高壓高速能力，GaN 常具低 Gate／輸出電荷。",
+      "表格是分類視角而不是所有型號的絕對排名。GaN 沒有傳統 PN Body Diode 少子 Qrr，仍可能有第三象限損失；IGBT 的反向路徑也須區分內建／共封裝／外接整流器。"
+    ],
+    "steps": [
+      {
+        "title": "固定同一負載而不是只選單一器件參數",
+        "detail": "先鎖定 Vbus,max、ID 波形、fs、Tj 和冷卻，再檢查各器件通道或 VCE(sat) 的導通損估算。"
+      },
+      {
+        "title": "把 Eon、Eoff 和 Driver 供電一起納入",
+        "detail": "MOSFET／GaN 的高頻潛力不等於一定最低系統損耗；應比較實際測試 V、I、Rg、結溫下的完整換流事件。"
+      },
+      {
+        "title": "另檢查反向導通及保護資源",
+        "detail": "Body diode、GaN 第三象限、IGBT freewheel diode、Dead Time 和 Driver CMTI/UVLO 都可能決定真實效率與故障安全。"
+      }
+    ],
+    "equations": [
+      {
+        "label": "MOSFET 類導通損",
+        "tex": "P_{MOS}\\approx I_{rms}^2R_{DS(on)}",
+        "plain": "通道導通平均損≈整週 RMS²×指定 RDS(on)",
+        "why": "適用指定工作點充分增強且用完整元件 RMS；跨材料不可只比較標稱常溫典型值。"
+      },
+      {
+        "label": "IGBT 類導通損",
+        "tex": "P_{IGBT}\\approx V_{CE(sat)}I_{avg}",
+        "plain": "IGBT 導通平均損≈指定 VCE(sat)×週期平均電流",
+        "why": "同一工作點的簡化固定壓降近似，未包含 Tail Eoff 或二極體及 Driver。"
+      }
+    ],
+    "worked": {
+      "given": "純示意：同一支路 ON 電流 10 A、Duty=50%；候選 Si MOSFET R=100 mΩ、SiC MOSFET R=80 mΩ、GaN R=60 mΩ、IGBT VCE(sat)=2 V。",
+      "steps": [
+        "三種 MOS 類器件整週 Irms²=10²×0.5=50 A²，導通損分別約 5 W、4 W、3 W。",
+        "IGBT 整週平均導通電流為 10×0.5=5 A，導通損約 2×5=10 W。",
+        "這些結果只比較指定數字的通道／導通壓降，未提供實際型號的 Eon/Eoff、額定電壓、Gate、反向導通或溫升。"
+      ],
+      "result": "若相同頻率下某候選切換損大於別款，上述 3 W 的導通優勢可能無法轉化為系統最佳效率，因此不能由表格直接決定材料。"
+    },
+    "assumptions": [
+      "所有 R、VCE(sat) 是人為指定的例題數字，完全不代表現代市售 Si、SiC、GaN、IGBT 在任何電壓電流額定下的真實典型值。",
+      "不同材料器件的 Gate 上下界、Coss/Qoss、SOA 和短路耐受條件差異大，真正選型須逐顆確認資料與實機量測。"
+    ],
+    "pitfall": "看到 GaN 的例題 3 W 就宣稱所有 GaN 必然最有效率，忽視換流、Drive、熱以及可能更高的第三象限壓降。",
+    "check": {
+      "q": "ON 10 A、D=50%、RDS(on)=60 mΩ 的簡化通道損是多少？",
+      "a": "整週 Irms²=50 A²，Pcond≈50×0.06=3 W；仍不代表實際高頻功率級總效率最高。"
+    },
+    "tryIt": "依 P.57 表格對每種器件補上同工作點 Eon/Eoff、Vds 額定、反向路徑與保護成本，建立完整比較表。"
+  },
+  "58": {
+    "lesson": "wbg",
+    "title": "Topology × Device：如何從 Buck、Totem-Pole、LLC、DAB 的能流反推器件？",
+    "question": "為何同樣 650/1200 V 額定的 SiC 或 GaN，在硬切換 PFC 和 ZVS LLC／DAB 下適合條件不同？",
+    "takeaway": "先決定拓樸換流能流、硬切換／軟切換、Bus 與反向電流條件，再篩選器件；ZVS 要檢查可用換流能量、Coss/Qoss 電荷與 Dead Time，而不是只看材料名稱。",
+    "intuition": [
+      "P.58 按低壓同步 Buck、650 V Totem-Pole PFC、800 V EV Inverter、低頻馬達、LLC/CLLC、DAB/SST 列出候選器件家族。這些是拓樸示意而不是所有應用都唯一適用的器件方案。",
+      "軟切換仰賴電感與漏感在換流瞬間提供足夠能量與電荷，把開關節點電容充放電到指定狀態；Eoss 是否有足夠能量只是必要檢查的一部分，還要看 Qoss、Dead Time 和極性。"
+    ],
+    "steps": [
+      {
+        "title": "先依拓樸確定阻斷與電流方向",
+        "detail": "Buck、Totem-Pole、LLC、DAB 的元件角色不同，要先標出哪個開關在何時阻斷 Bus、何時提供反向續流或 ZVS 換流路徑。"
+      },
+      {
+        "title": "再檢查硬切換與 ZVS 能量條件",
+        "detail": "硬切換要算 Eon/Eoff 與回復電流；軟切換需檢查指定工作點可用的換流能量與 Coss/Qoss、死區時間及極性。"
+      },
+      {
+        "title": "同時考慮保護與冷卻",
+        "detail": "高速 SiC/GaN 也可能因 Gate Window、CMTI、短路耐受、RDS(on) 溫升和封裝佈局不合格而不適用。"
+      },
+      {
+        "title": "回頭對照資料表和實際波形",
+        "detail": "各種材料或拓樸都要驗證 Eoss、Qoss、電壓應力、ZVS 範圍、EMI 與偏載；不能只看『SiC/GaN 優先』的表格。"
+      }
+    ],
+    "equations": [
+      {
+        "label": "理想可用電感換流能量",
+        "tex": "E_L=\\frac12 LI^2",
+        "plain": "可用電感能量上界尺度=0.5×換流等效 L×電流²",
+        "why": "只作指定換流電流時刻的儲能估算；不代表全部能轉移到開關節點電容，且須確認方向和路徑。"
+      },
+      {
+        "label": "固定電容的參考能量",
+        "tex": "E_{oss}\\approx\\frac12 C_{oss}V^2",
+        "plain": "假設固定 Coss 時的電容儲能近似=0.5×Coss×V²",
+        "why": "真實 Coss(V) 非線性，設計應使用器件 Eoss(V)／Qoss(V) 曲線，不能僅用單一小訊號 Coss 值。"
+      }
+    ],
+    "worked": {
+      "given": "獨立示例：LLC／DAB 類換流時等效 L=20 µH、電流 I=4 A，假設待切換節點需移轉的總 Coss 能量尺度為 100 µJ。",
+      "steps": [
+        "理想電感儲能尺度 EL=½×20 µH×4²=160 µJ。",
+        "單看能量差 160−100=60 µJ，表面上 EL 足以覆蓋指定 Coss 能量。",
+        "但這仍不能宣稱 ZVS PASS：還必須確定電流方向正確、死區內有足夠時間搬運 Qoss、沒有其他寄生與耗損，並在輕載及各 Bus 條件檢查。"
+      ],
+      "result": "若可用能量低於 100 µJ，這個簡化能量測試就會 FAIL；能量大於門檻僅表示可進入下一項時序與波形驗證。"
+    },
+    "assumptions": [
+      "20 µH、4 A、100 µJ 是完全獨立的教育數值，不是實際 LLC、DAB 或 PSFB 的可用 ZVS 範圍與器件選型結論。",
+      "真實 Coss 強烈依電壓變化，必須使用 Eoss/Qoss／Dead Time／寄生損失及在高低 Bus、空滿載下的實測 ZVS 證據。"
+    ],
+    "pitfall": "以為 Coss 低就保證 ZVS，或單看材料頻率優勢直接選 SiC/GaN 而忽略 Topology、Dead Time 和低載換流失效。",
+    "check": {
+      "q": "EL=160 µJ、大約需 100 µJ 的 Eoss，是否已證明所有工作點可 ZVS？",
+      "a": "沒有。能量條件看似足夠，但必須另證實 Qoss 電荷轉移、換流電流方向、Dead Time 和最壞負載／Bus 狀態。"
+    },
+    "tryIt": "沿 P.58 的 Buck、Totem-Pole、LLC/CLLC、DAB/SST，逐項寫出換流方向、能量、額定與 ZVS 檢查，連到既有進階實驗。"
   }
 };})(window);
