@@ -663,8 +663,6 @@ await run('upper P93-96 three-phase fixed DC cap and source-L input guides',asyn
     await page.screenshot({path:outDir+'/upper-threephase-cap-'+p+'.png',fullPage:true});
   }
   assert.equal(titles.size,4,'P93–96 distinct original titles');
-  await navigate(page,'#slide/97');
-  assert.equal(await page.locator('.page-guide').count(),0,'P97 analog source is future batch');
   await navigate(page,'#home');
   await page.locator('#search-trigger').click();
   await page.locator('#search-input').fill('峰值因數');
@@ -678,6 +676,55 @@ await run('upper P93-96 three-phase fixed DC cap and source-L input guides',asyn
       await mobile.locator('[data-guide-page="'+p+'"]').waitFor({timeout:20000});
       const size=await mobile.evaluate(()=>({vw:innerWidth,sw:document.documentElement.scrollWidth}));
       assert.ok(size.sw<=size.vw+2,'P.'+p+' '+width+'px horizontal overflow '+JSON.stringify(size));
+    }
+    await mobile.close();
+  }
+});
+
+
+await run('upper P97-100 OP feedback, differences, integration and hysteresis guides',async()=>{
+  const mapping={97:'op',98:'op',99:'diff',100:'filter'},titles=new Set();
+  for(let p=97;p<=100;p++){
+    await navigate(page,'#slide/'+p);
+    const guide=page.locator('[data-guide-page="'+p+'"]');
+    assert.equal(await guide.count(),1,'P.'+p+' one source-specific OP guide');
+    const title=await guide.locator('h2').innerText();
+    assert.ok(title.length>=18,'P.'+p+' descriptive title');titles.add(title);
+    assert.ok(await guide.locator('.guide-steps li').count()>=3,'P.'+p+' physical steps');
+    assert.ok(await guide.locator('.guide-equation').count()>=2,'P.'+p+' formula and bounds');
+    assert.ok(await guide.locator('.guide-worked li').count()>=3,'P.'+p+' numeric examples');
+    assert.ok(await guide.locator('.guide-assumptions li').count()>=2,'P.'+p+' OP model limitations');
+    assert.ok((await guide.locator('.guide-link').getAttribute('href')).endsWith('/'+mapping[p]),
+      'P.'+p+' exact existing lesson link');
+    assert.equal(await page.locator('#source-pdf-file').count(),1,'P.'+p+' original local PDF reader');
+    for(const eq of await guide.locator('.guide-equation').all()){
+      const rendered=await eq.evaluate(n=>n.classList.contains('guide-ready'));
+      assert.ok(rendered||await eq.locator('.guide-math-fallback').isVisible(),
+        'P.'+p+' KaTeX or readable fallback');
+    }
+    const quiz=guide.locator('details.guide-check');
+    assert.equal(await quiz.evaluate(n=>n.open),false,'P.'+p+' quiz hidden');
+    await quiz.locator('summary').click();
+    assert.equal(await quiz.evaluate(n=>n.open),true,'P.'+p+' quiz toggles');
+    assert.ok((await quiz.locator('p').innerText()).length>=20,'P.'+p+' quiz feedback');
+    await page.screenshot({path:outDir+'/upper-analog-op-'+p+'.png',fullPage:true});
+  }
+  assert.equal(titles.size,4,'P97–100 distinct source slide titles');
+  await navigate(page,'#slide/101');
+  assert.equal(await page.locator('.page-guide').count(),0,'P101 filter pages belong to next source batch');
+  await navigate(page,'#home');
+  await page.locator('#search-trigger').click();
+  await page.locator('#search-input').fill('磁滯比較器');
+  assert.ok(await page.locator('#search-results a[href="#slide/100"]').count()>0,
+    'P100 hysteresis guide can be found through search');
+  await page.keyboard.press('Escape');
+  for(const width of [320,390]){
+    const mobile=await browser.newPage({viewport:{width,height:720}});
+    for(let p=97;p<=100;p++){
+      await mobile.goto(BASE+'/#slide/'+p);
+      await mobile.locator('[data-guide-page="'+p+'"]').waitFor({timeout:20000});
+      const sz=await mobile.evaluate(()=>({vw:innerWidth,sw:document.documentElement.scrollWidth}));
+      assert.ok(sz.sw<=sz.vw+2,'P.'+p+' '+width+'px mobile overflow '+JSON.stringify(sz));
     }
     await mobile.close();
   }
