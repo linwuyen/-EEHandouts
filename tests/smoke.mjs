@@ -415,7 +415,7 @@ await run('upper P71-72 commutation source-Ls and simultaneous diode-pair origin
   }
   assert.equal(titles.size,2,'distinct source page titles');
   await navigate(page,'#slide/73');
-  assert.equal(await page.locator('.page-guide').count(),0,'P73 DC-side voltage belongs to next batch');
+  assert.equal(await page.locator('[data-guide-page="73"]').count(),1,'P73 source-Ls held DC voltage guide now covered');
   await navigate(page,'#home');
   await page.locator('#search-trigger').click();
   await page.locator('#search-input').fill('換向重疊');
@@ -425,6 +425,55 @@ await run('upper P71-72 commutation source-Ls and simultaneous diode-pair origin
   for(const width of [320,390]){
     const mobile=await browser.newPage({viewport:{width,height:720}});
     for(const p of [71,72]){
+      await mobile.goto(BASE+'/#slide/'+p);
+      await mobile.locator('[data-guide-page="'+p+'"]').waitFor({timeout:20000});
+      const dims=await mobile.evaluate(()=>({vw:innerWidth,sw:document.documentElement.scrollWidth}));
+      assert.ok(dims.sw<=dims.vw+2,'P.'+p+' '+width+'px mobile overflow '+JSON.stringify(dims));
+    }
+    await mobile.close();
+  }
+});
+
+
+await run('upper P73-76 fixed Vd current pulses and THD/DPF/PF/CF original deep guides',async()=>{
+  const titles=new Set();
+  for(let p=73;p<=76;p++){
+    await navigate(page,'#slide/'+p);
+    const guide=page.locator('[data-guide-page="'+p+'"]');
+    assert.equal(await guide.count(),1,'P.'+p+' unique original fixed-Vdc rectifier guide');
+    const title=await guide.locator('h2').innerText();
+    assert.ok(title.length>=18,'P.'+p+' substantive title');titles.add(title);
+    assert.ok(await guide.locator('.guide-steps li').count()>=3,'P.'+p+' current and voltage stages');
+    assert.ok(await guide.locator('.guide-equation').count()>=2,'P.'+p+' bounded math');
+    assert.ok(await guide.locator('.guide-worked li').count()>=3,'P.'+p+' worked numerical steps');
+    assert.ok(await guide.locator('.guide-assumptions li').count()>=2,'P.'+p+' limitations');
+    const href=await guide.locator('.guide-link').getAttribute('href');
+    assert.ok(href.endsWith('/capacitor'),'P.'+p+' existing rectifier capacitor lesson');
+    assert.equal(await page.locator('#source-pdf-file').count(),1,'P.'+p+' local source PDF preserved');
+    for(const eq of await guide.locator('.guide-equation').all()){
+      const ready=await eq.evaluate(n=>n.classList.contains('guide-ready'));
+      assert.ok(ready||await eq.locator('.guide-math-fallback').isVisible(),
+        'P.'+p+' readable KaTeX or equation fallback');
+    }
+    const check=guide.locator('details.guide-check');
+    assert.equal(await check.evaluate(el=>el.open),false,'P.'+p+' quiz initially hidden');
+    await check.locator('summary').click();
+    assert.equal(await check.evaluate(el=>el.open),true,'P.'+p+' quiz reveals');
+    assert.ok((await check.locator('p').innerText()).length>=20,'P.'+p+' answer explains conditions');
+    await page.screenshot({path:outDir+'/upper-capacitor-'+p+'.png',fullPage:true});
+  }
+  assert.equal(titles.size,4,'P73–76 must have distinct page titles');
+  await navigate(page,'#slide/77');
+  assert.equal(await page.locator('.page-guide').count(),0,'P77 practical capacitor circuit is the next batch');
+  await navigate(page,'#home');
+  await page.locator('#search-trigger').click();
+  await page.locator('#search-input').fill('Crest Factor');
+  assert.ok(await page.locator('#search-results a[href="#slide/76"]').count()>0,
+    'P76 crest-factor guide searchable');
+  await page.keyboard.press('Escape');
+  for(const width of [320,390]){
+    const mobile=await browser.newPage({viewport:{width,height:720}});
+    for(let p=73;p<=76;p++){
       await mobile.goto(BASE+'/#slide/'+p);
       await mobile.locator('[data-guide-page="'+p+'"]').waitFor({timeout:20000});
       const dims=await mobile.evaluate(()=>({vw:innerWidth,sw:document.documentElement.scrollWidth}));
