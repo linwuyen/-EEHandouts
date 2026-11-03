@@ -130,6 +130,20 @@ for(const [engineName,engine] of [['firefox',firefox],['webkit',webkit]]){
     assert.ok(sz.s<=sz.v+2,
       engineName+' upper semiconductor P.'+p+' horizontal overflow');
   }
+  // Upper P.41-48: original gate-controlled device families on mobile Firefox/WebKit.
+  for(let p=41;p<=48;p++){
+    await page.goto(BASE+'/index.html#slide/'+p);
+    const guide=page.locator('[data-guide-page="'+p+'"]');
+    await guide.waitFor({timeout:15000});
+    assert.ok(await guide.locator('.guide-equation').count()>=2,
+      engineName+' upper P.'+p+' math/fallback');
+    assert.ok(await guide.locator('.guide-worked li').count()>=3,
+      engineName+' upper P.'+p+' numeric steps');
+    assert.equal(await page.locator('#source-pdf-file').count(),1,
+      engineName+' upper P.'+p+' source PDF control');
+    const size=await page.evaluate(()=>({v:innerWidth,s:document.documentElement.scrollWidth}));
+    assert.ok(size.s<=size.v+2,engineName+' upper P.'+p+' mobile overflow');
+  }
   // Advanced engineering page: no test may silently degrade to a missing lab.
   for (const lab of ['pfc','llc','psfb','loop','timing','nonideal','zvs']){
     await page.goto(BASE+'/advanced.html#'+lab);

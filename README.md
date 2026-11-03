@@ -257,3 +257,11 @@ Node.js 22 開發環境：執行 `npm ci --ignore-scripts`，再安裝 Chromium�
 - `tests/upper-semiconductor-guides.mjs` 提供 14 頁獨立電路與功率數值；`tests/upper-page-guides.mjs` 驗證上冊 P.3–40 **38 頁**連續覆蓋。Chromium、Firefox／WebKit 驗證公式可讀備援、搜尋、問答、本機 PDF、手機 320/390px 不溢位及下一批 P.41 邊界。
 - 工程參考：[Infineon MOSFET Datasheet Explanation](https://www.infineon.com/assets/row/public/documents/24/42/infineon-mosfet-optimos-datasheet-explanation-applicationnotes-en.pdf)、[Infineon Hard Commutation Application Note](https://www.infineon.com/assets/row/public/documents/24/42/infineon-power-mosfet-optimos-fd-200v-250v-hard-diode-commutation-an-en.pdf?fileId=db3a304344ae06150144b1d2f8250165)、[TI MOSFET Miller Plateau and Gate Driver](https://www.ti.com/document-viewer/lit/html/SSZT070/GUID-C487B538-63ED-4542-B1B2-618D8EDEC16F)。
 - 本批為教育用近似模型，沒有確認任何器件實際 SOA、tq、Qrr、dv/dt、熱分布、保護或實機示波器波形。
+
+## 上冊第四批逐頁深化｜GTO、IGBT、MCT 與實際開關能力 P.41–48
+
+- 核對原始 R2 PPTX P.41–48 圖面；P.41 GTO 主動關斷與負向 Gate 電流、P.42 RCD Snubber 分流與電容能量、P.43 IGBT 導通電壓及少數載子尾電流、P.44 MCT 控制結構、P.45–46 歷史功率開關比較表／三維能力圖、P.47 導通／切換／Gate／Qrr 的損耗 ownership、P.48 各元件控制與電壓應力篩選。
+- 對 P.45 與 P.46 原表明示**歷史技術情境**，不得把舊講義的元件家族排名當成現代絕對耐壓、電流或頻率上限；P.43 的 IGBT 工作頻率亦依器件世代、開關能量與熱限制判定，不能用舊講義固定敘述當通用規格。
+- RCD Snubber 的 `½CV²` 首先是電容儲能變化，不能在未知回收路徑時直接當作電阻發熱；`Qg×Vdrive×fs` 代表 Driver 供電能量尺度，**不全是 MOSFET 晶片內熱**；`QrrVRfs` 與 Eon 需避免計入同一換流事件兩次。
+- `tests/upper-device-guides.mjs` 對 GTO 負向 Gate 驅動比、Snubber 電荷能量、IGBT 導通／Eoff、MCT、歷史選型表、電熱限制、Gate 供電分帳及 Lpar di/dt 做獨立算例。上冊 P.3–48 46 頁連續資料契約及 Chromium、Firefox/WebKit、原始 PDF、320/390px 手機版測試也已納入 CI。
+- 本批不修改既有模擬器、72 節主題、47 個互動模型、7 個進階實驗、路由、PDF.js 或正式發布流程。講義是物理／工程教育近似，不能替代特定器件的 SOA、RBSOA、datasheet 或實機熱測。
