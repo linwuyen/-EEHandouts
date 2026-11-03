@@ -186,6 +186,20 @@ for(const [engineName,engine] of [['firefox',firefox],['webkit',webkit]]){
     const sz=await page.evaluate(()=>({v:innerWidth,s:document.documentElement.scrollWidth}));
     assert.ok(sz.s<=sz.v+2,engineName+' upper P.'+p+' horizontal overflow');
   }
+  // Upper P71-72: source-inductance commutation and simultaneous bridge paths.
+  for(const p of [71,72]){
+    await page.goto(BASE+'/index.html#slide/'+p);
+    const guide=page.locator('[data-guide-page="'+p+'"]');
+    await guide.waitFor({timeout:15000});
+    assert.ok(await guide.locator('.guide-equation').count()>=2,
+      engineName+' upper overlap P.'+p+' equations');
+    assert.ok(await guide.locator('.guide-worked li').count()>=3,
+      engineName+' upper overlap P.'+p+' stepwise numerical proof');
+    assert.equal(await page.locator('#source-pdf-file').count(),1,
+      engineName+' upper overlap P.'+p+' original source PDF');
+    const sz=await page.evaluate(()=>({v:innerWidth,s:document.documentElement.scrollWidth}));
+    assert.ok(sz.s<=sz.v+2,engineName+' upper overlap P.'+p+' mobile width');
+  }
   // Advanced engineering page: no test may silently degrade to a missing lab.
   for (const lab of ['pfc','llc','psfb','loop','timing','nonideal','zvs']){
     await page.goto(BASE+'/advanced.html#'+lab);
