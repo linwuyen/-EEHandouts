@@ -214,6 +214,20 @@ for(const [engineName,engine] of [['firefox',firefox],['webkit',webkit]]){
     const sz=await page.evaluate(()=>({v:innerWidth,s:document.documentElement.scrollWidth}));
     assert.ok(sz.s<=sz.v+2,engineName+' upper capacitor P.'+p+' mobile overflow');
   }
+  // Upper practical diode bridge capacitor, PCC and 115/230V doubler P77–82.
+  for(let p=77;p<=82;p++){
+    await page.goto(BASE+'/index.html#slide/'+p);
+    const guide=page.locator('[data-guide-page="'+p+'"]');
+    await guide.waitFor({timeout:15000});
+    assert.ok(await guide.locator('.guide-equation').count()>=2,
+      engineName+' upper practical P.'+p+' equations and fallback');
+    assert.ok(await guide.locator('.guide-worked li').count()>=3,
+      engineName+' upper practical P.'+p+' verified steps');
+    assert.equal(await page.locator('#source-pdf-file').count(),1,
+      engineName+' upper practical P.'+p+' original local source');
+    const sz=await page.evaluate(()=>({v:innerWidth,s:document.documentElement.scrollWidth}));
+    assert.ok(sz.s<=sz.v+2,engineName+' upper practical P.'+p+' mobile overflow');
+  }
   // Advanced engineering page: no test may silently degrade to a missing lab.
   for (const lab of ['pfc','llc','psfb','loop','timing','nonideal','zvs']){
     await page.goto(BASE+'/advanced.html#'+lab);
