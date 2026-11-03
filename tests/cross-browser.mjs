@@ -242,6 +242,20 @@ for(const [engineName,engine] of [['firefox',firefox],['webkit',webkit]]){
     const size=await page.evaluate(()=>({v:innerWidth,s:document.documentElement.scrollWidth}));
     assert.ok(size.s<=size.v+2,engineName+' upper P.'+p+' mobile layout overflow');
   }
+  // Upper P89-92: characteristic harmonic waveform and per-phase source-Ls overlap.
+  for(let p=89;p<=92;p++){
+    await page.goto(BASE+'/index.html#slide/'+p);
+    const guide=page.locator('[data-guide-page="'+p+'"]');
+    await guide.waitFor({timeout:15000});
+    assert.ok(await guide.locator('.guide-equation').count()>=2,
+      engineName+' upper P.'+p+' math and fallback');
+    assert.ok(await guide.locator('.guide-worked li').count()>=3,
+      engineName+' upper P.'+p+' verified numerical reasoning');
+    assert.equal(await page.locator('#source-pdf-file').count(),1,
+      engineName+' upper P.'+p+' original source reader');
+    const sz=await page.evaluate(()=>({v:innerWidth,s:document.documentElement.scrollWidth}));
+    assert.ok(sz.s<=sz.v+2,engineName+' upper P.'+p+' mobile overflow');
+  }
   // Advanced engineering page: no test may silently degrade to a missing lab.
   for (const lab of ['pfc','llc','psfb','loop','timing','nonideal','zvs']){
     await page.goto(BASE+'/advanced.html#'+lab);
