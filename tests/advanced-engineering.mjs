@@ -34,6 +34,51 @@ near(psfbDCM.data.pin,psfbDCM.data.pout,1e-8,'PSFB DCM power');
 assert.ok(psfbDCM.data.zero>0&&psfbDCM.data.valley===0);
 near(phase90.traces[2].values[0],400,1e-12,'PSFB primary positive pulse');
 near(phase90.traces[2].values[120],-400,1e-12,'PSFB primary negative pulse');
+// F01: reviewed counterexample first, using only the pre-existing public fields.
+near(psfbDCM.probe(.415).vrect,37.878787878787875,1e-10,
+ 'PSFB DCM ZERO: constant zero current requires rectifier node = Vo');
+// F01: rectifier output means the output-inductor input node, NOT |vAB|/n.
+// A ZERO interval must satisfy vL = L di/dt = 0 even though raw |vAB|/n is 0.
+for(const [io,mode,wantVo] of [[.1,'DCM',37.878787878787875],
+                              [.3125,'BCM',25],[3,'CCM',25]]){
+ const v={vin:400,n:8,phase:90,fs:100,lout:100,io},r=calculate('psfb',v);
+ assert.equal(r.mode,mode,'PSFB KVL fixture mode');
+ near(r.data.vo,wantVo,1e-10,'PSFB independently calculated Vo');
+ const T=10e-6,L=100e-6,h=1e-7;
+ const intervals=[['TRANSFER',0,r.data.on],
+                  ['FREEWHEEL',r.data.on,r.data.on+r.data.free],
+                  ['ZERO',r.data.on+r.data.free,.5]];
+ for(const half of [0,.5])for(const [stage,a,b] of intervals){
+  if(b-a<4*h)continue;
+  for(const fraction of [.2,.5,.8]){
+   const t=half+a+(b-a)*fraction,st=r.probe(t);
+   assert.equal(st.stage,stage,'PSFB interval identity');
+   const slope=(r.probe(t+h).il-r.probe(t-h).il)/(2*h*T);
+   near(st.vrect-r.data.vo,L*slope,2e-6,mode+' '+stage+' output-inductor KVL');
+   near(st.vL,st.vrect-r.data.vo,1e-12,'PSFB probe vL uses actual node');
+   near(st.vraw,Math.abs(st.vab)/v.n,1e-12,'PSFB raw candidate kept separate');
+   if(stage==='ZERO'){
+    near(st.il,0,1e-12,'PSFB diode-blocked ZERO current');
+    near(st.vrect,wantVo,1e-10,'PSFB ZERO node floats to output voltage');
+    near(st.vraw,0,1e-12,'PSFB raw candidate still zero during ZERO');
+   }
+  }
+ }
+ // Trace and cursor must consume the same state, including both half-cycles.
+ for(const [key,field] of [['vr','vrect'],['vraw','vraw'],['vl','vL'],['il','il']]){
+  const trace=r.traces.find(s=>s.key===key);
+  assert.ok(trace,'PSFB trace '+key+' exists');
+  trace.values.forEach((value,j)=>near(value,r.probe(j/(trace.values.length-1))[field],
+   1e-10,'PSFB '+key+' trace/probe agreement'));
+  near(trace.values[0],trace.values.at(-1),1e-10,'PSFB '+key+' periodic boundary');
+ }
+ near(r.data.pin,r.data.pout,1e-9,'PSFB power still conserved after node correction');
+}
+// Both sides of BCM must approach the same output and peak current.
+const belowBCM=calculate('psfb',{io:.3125-1e-6}),aboveBCM=calculate('psfb',{io:.3125+1e-6});
+assert.equal(belowBCM.mode,'DCM');assert.equal(aboveBCM.mode,'CCM');
+near(belowBCM.data.vo,aboveBCM.data.vo,1e-4,'PSFB BCM voltage continuity');
+near(belowBCM.data.peak,aboveBCM.data.peak,1e-5,'PSFB BCM peak continuity');
 const tank=calculate('llc'),tankSlow=calculate('llc',{fs:60,lr:10,cr:40,lm:60,rdc:4});
 near(tank.data.f0,1/(2*Math.PI*Math.sqrt(20e-6*100e-9)),1e-6,'LLC resonance');
 assert.ok(tank.data.vo>0&&tank.data.avgIn>0);
@@ -205,3 +250,14 @@ assert.equal(soft.mode,'INSUFFICIENT');assert.equal(enough.mode,'ENERGY_AND_TIME
 assert.ok(Number.isNaN(none.metrics[3].value),'zero current has no finite commutation time');
 assert.equal(none.traces.length,1,'Zero-current ZVS time must not be drawn as an immediate 0 ns commutation');
 console.log('ADVANCED ENGINEERING PASS: 7 models, PFC/LLC/PSFB power balance, Bode, PWM timing, loss and ZVS edges');
+// O01: validity is a teaching calculation, never ADCRESULT / bench sign-off.
+for(const [input,wantClock,wantBudget] of [
+ [{sysclk:100,adclkdiv:'4',acqps:12,conv:100,entry:50,isr:100},'IN_DOMAIN','WITHIN_ASSUMED_BUDGET'],
+ [{fs:200,isr:30000},'IN_DOMAIN','OVERRUN'],
+ [{acqps:5},'OUT_OF_DOMAIN','NOT_EVALUATED']
+]){
+ const r=calculate('timing',input);
+ assert.equal(r.validation?.clockAndAcquisition,wantClock,'O01 clock/acquisition scope is separate');
+ assert.equal(r.validation?.cpuBudget,wantBudget,'O01 assumed CPU budget scope');
+ assert.equal(r.validation?.adcResultRead,'NOT_VERIFIED','O01 ADCRESULT readiness never implicitly passes');
+}
