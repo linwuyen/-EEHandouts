@@ -383,3 +383,10 @@ Node.js 22 開發環境：執行 `npm ci --ignore-scripts`，再安裝 Chromium�
 - **P.106**：5mΩ Shunt、Vref=1.5V、匹配的 R1=R3=10kΩ、Rf=R4=140kΩ → 差動增益 k=14，`VADC=1.5+0.07I[A]`。±20A 映射理想 0.1–2.9V、±10A 映射 0.8/2.2V；3.3V OP 供電**不能保證共模或輸出 headroom 足夠**，仍需核對 ADC 取樣充電與 OCP latency。
 - `tests/upper-analog-control-guides.mjs` 以獨立 RC 頻率響應、Sallen-Key 極點/Q、兩種全通幅相、有限微分器正弦振幅、PI 零點及 ADC 正反向映射做數值驗證。Chromium／Firefox／WebKit 回歸 P.101–106 公式、例題、測驗、PDF、搜尋與手機 320/390px。
 - 上冊 P.3–106 共 **104 張連續逐頁深入導讀**，覆蓋除封面、課表、結語外的每一張原始講義頁。保留既有 72 節課、47 種互動模型和 7 個進階實驗。下一步為整冊物理一致性 Review、網站回歸與正式 Pages SHA 驗收。
+
+## Circuit 工作台吸收｜第一批 Buck 連續實驗
+
+中冊 Buck PWM 課節新增本站 `workbench/` 入口。包含原八步預測／操作／觀察／原因／transfer 流程；數值與 Evidence V5 owner 保留，不把教材已讀當成實驗通過。
+資產與必要測試已實體搬入 EEHandouts，不依賴舊 Circuit 網站或在建置時下載舊 repo。每次從零初值重跑 16 ms；不是實機或儲能 checkpoint。
+返回教材前必須保存成功。quota／衝突／較新紀錄不會靜默覆寫，可開唯讀備份頁。非本批模組明示待遷入，不提供失效連結。
+範圍、來源與退役門檻見 `docs/migrations/circuit-inventory.md`；第一批不等於整個 Circuit 遷移完成。
