@@ -43,6 +43,14 @@
         vL:rect-bus,vSW:bus,stage:'DIODE'};
       return {gate:0,diode:0,il:0,vL:0,vSW:rect,stage:'ZERO'};
     }
+    // F06: all five traces share the exact physical switching-event times.
+    // Piecewise-linear iL and held switch voltages need no fixed 1/240 grid.
+    var phases=[0,d,Math.min(1,d+discharge),1].sort(function(a,b){return a-b;})
+      .filter(function(x,i,a){return i===0||x>a[i-1];}),periodUs=1e6/fs;
+    function eventSample(key,label,unit,field,hold){
+      return {key:key,label:label,unit:unit,xUnit:'µs',x:phases.map(function(t){return t*periodUs;}),
+        values:phases.map(function(t){return state(t)[field];}),step:!!hold};
+    }
     var io=(peak+(mode==='CCM'?valley:0))/2*discharge,pin=rect*iref,pout=bus*io;
     return valid({mode:mode,validity:true,note:'此圖把 50/60 Hz 線電壓凍結在指定相位，只解析單一 PWM 週期；平均電流命令按理想正弦電流整形給定。',
       warning:'不含電流迴路、整流橋損耗、DC Bus 電容、交流一整週期電流，因此不計算實際 PF/THD 或硬體保護。',
@@ -51,11 +59,11 @@
         m('電感峰值',peak,'A',3),m('零電流時間',gap*100,'%'),m('AC→Bus 平均功率',pout,'W',1),m('功率平衡殘差',pin-pout,'W',4)],
       stages:[{id:'ON',label:'MOSFET ON：整流輸入 → L 儲能',start:0,end:d},{id:'DIODE',label:'MOSFET OFF：L + 輸入 → 二極體 → Bus',start:d,end:d+discharge},
         {id:'ZERO',label:'DCM 歸零：二極體截止',start:d+discharge,end:1}],
-      traces:[sample('gate','Gate 指令','0/1',function(t){return state(t).gate;},true),
-        sample('il','電感電流 iL','A',function(t){return state(t).il;}),
-        sample('vl','電感電壓 vL','V',function(t){return state(t).vL;},true),
-        sample('vsw','開關節點 vSW','V',function(t){return state(t).vSW;},true),
-        sample('diode','整流二極體導通','0/1',function(t){return state(t).diode;},true)],
+      traces:[eventSample('gate','Gate 指令','0/1','gate',true),
+        eventSample('il','電感電流 iL','A','il',false),
+        eventSample('vl','電感電壓 vL','V','vL',true),
+        eventSample('vsw','開關節點 vSW','V','vSW',true),
+        eventSample('diode','整流二極體導通','0/1','diode',true)],
       probe:function(t){return state(t);},data:{rect:rect,bus:bus,iref:iref,io:io,pin:pin,pout:pout,on:d,freewheel:discharge,zero:gap,peak:peak,valley:valley}});
   }
 
@@ -108,42 +116,77 @@
     // FHA-equivalent rectifier load. This is not a physical switching diode model.
     var vin=v.vin,fs=v.fs*1000,n=v.n,lr=v.lr*1e-6,cr=v.cr*1e-9,lm=v.lm*1e-6,
       rac=8*n*n*v.rdc/(PI*PI),T=1/fs,N=240,settle=160;
-    var y=[0,0,0],trace={drive:[],ir:[],im:[],vcr:[],vp:[],energy:[]},driveAmp=vin/2,avgIn=0,avgLoss=0;
-    // A-stable implicit trapezoid, solved algebraically for iLr, vCr and iLm.
-    // Explicit RK4 can diverge when Rac/Lr creates a fast load-current time scale.
-    function advance(q,u,dt){
-      var h=dt/2,a=h/cr,b=h/lm,d=h/lr,p=rac*(q[0]-q[2]),
-        alpha=rac/(1+rac*b),beta=-rac*(q[2]+b*p)/(1+rac*b);
-      var ir=(q[0]+d*(2*u-2*q[1]-a*q[0]-p-beta))/(1+d*(a+alpha));
-      var nextP=alpha*ir+beta;
-      return [ir,q[1]+a*(q[0]+ir),q[2]+b*(p+nextP)];
+    var y=[0,0,0],trace={drive:[],ir:[],im:[],vcr:[],vp:[],energy:[]},driveAmp=vin/2;
+    // F05: propagate the SAME linear ODE over each constant-input interval.
+    // Energy coordinates z=[sqrt(Lr)*ir,sqrt(Cr)*vCr,sqrt(Lm)*im] keep the
+    // dissipative matrix well-scaled. exp(A*h), evaluated by scaled Taylor
+    // and squaring, has no trapezoidal sign-alternating fast-mode artifact.
+    var scale=[Math.sqrt(lr),Math.sqrt(cr),Math.sqrt(lm)],
+      matrix=[-rac/lr,-1/Math.sqrt(lr*cr),rac/Math.sqrt(lr*lm),
+        1/Math.sqrt(lr*cr),0,0,rac/Math.sqrt(lr*lm),0,-rac/lm];
+    function multiply(a,b){
+      var c=new Array(9).fill(0);
+      for(var i=0;i<3;i++)for(var j=0;j<3;j++)for(var k=0;k<3;k++)c[3*i+j]+=a[3*i+k]*b[3*k+j];
+      return c;
     }
-    var dt=T/N;
-    for(var cyc=0;cyc<settle;cyc++){
-      for(var j=0;j<N;j++){
-        if(cyc===settle-1){
-          var vp=rac*(y[0]-y[2]);trace.drive.push(j<N/2?driveAmp:-driveAmp);
-          trace.ir.push(y[0]);trace.im.push(y[2]);trace.vcr.push(y[1]);trace.vp.push(vp);
-          trace.energy.push((lr*y[0]*y[0]+cr*y[1]*y[1]+lm*y[2]*y[2])/2);
-        }
-        var u=j<N/2?driveAmp:-driveAmp;
-        var next=advance(y,u,dt);
-        if(cyc===settle-1){
-          var v0=rac*(y[0]-y[2]),v1=rac*(next[0]-next[2]);
-          avgIn+=u*(y[0]+next[0])/(2*N);
-          avgLoss+=Math.pow((v0+v1)/2,2)/(rac*N);
-        }
-        y=next;
+    function transition(h){
+      var a=matrix.map(function(x){return x*h;}),norm=0;
+      for(var i=0;i<3;i++)norm=Math.max(norm,Math.abs(a[3*i])+Math.abs(a[3*i+1])+Math.abs(a[3*i+2]));
+      var squares=Math.max(0,Math.ceil(Math.log2(Math.max(norm,1e-300)/0.5))),
+        divisor=Math.pow(2,squares),term=[1,0,0,0,1,0,0,0,1],e=term.slice();
+      a=a.map(function(x){return x/divisor;});
+      // ||a||inf <= 1/2: degree 18 truncation < 2e-23 before squaring.
+      for(var order=1;order<=18;order++){
+        term=multiply(term,a).map(function(x){return x/order;});
+        for(var j=0;j<9;j++)e[j]+=term[j];
       }
+      for(var n=0;n<squares;n++)e=multiply(e,e);
+      return e;
     }
+    function advance(q,u,e){
+      // The constant-input equilibrium is [0,u,0]; shift, propagate, unshift.
+      var z=[scale[0]*q[0],scale[1]*(q[1]-u),scale[2]*q[2]],out=[];
+      for(var i=0;i<3;i++)out[i]=(e[3*i]*z[0]+e[3*i+1]*z[1]+e[3*i+2]*z[2])/scale[i];
+      out[1]+=u;return out;
+    }
+    var dt=T/N,steps=[transition(dt)],half=transition(T/2),moments=new Array(6).fill(0),
+      quadratureConverged=true,quadratureNodes=0;
+    function step(level){if(!steps[level])steps[level]=transition(dt/Math.pow(2,level));return steps[level];}
+    function integrands(q,u,phase){
+      quadratureNodes++;
+      var vp=rac*(q[0]-q[2]),angle=2*PI*phase;
+      return [u*q[0],vp*vp/rac,q[0]*q[0],q[2]*q[2],2*vp*Math.cos(angle),2*vp*Math.sin(angle)];
+    }
+    function simpson(a,m,b,h){return a.map(function(x,i){return h*(x+4*m[i]+b[i])/6;});}
+    function integrate(qa,qm,qb,fa,fm,fb,u,t,h,level,coarse){
+      var q1=advance(qa,u,step(level+2)),q3=advance(qm,u,step(level+2)),
+        f1=integrands(q1,u,t+h/4),f3=integrands(q3,u,t+3*h/4),
+        left=simpson(fa,f1,fm,h/2),right=simpson(fm,f3,fb,h/2),
+        fine=left.map(function(x,i){return x+right[i];}),ok=true;
+      for(var i=0;i<6;i++)if(Math.abs(fine[i]-coarse[i])>15e-8*(h+Math.abs(left[i])+Math.abs(right[i])))ok=false;
+      if(!ok&&(level>=12||quadratureNodes>=20000)){quadratureConverged=false;return fine;}
+      if(ok)return fine.map(function(x,i){return x+(x-coarse[i])/15;});
+      var a=integrate(qa,q1,qm,fa,f1,fm,u,t,h/2,level+1,left),
+        b=integrate(qm,q3,qb,fm,f3,fb,u,t+h/2,h/2,level+1,right);
+      return a.map(function(x,i){return x+b[i];});
+    }
+    // Preserve zero initial conditions and exactly 160 periods. Whole half-period
+    // propagation only accelerates the unplotted first 159 periods.
+    for(var cyc=0;cyc<settle-1;cyc++){y=advance(y,driveAmp,half);y=advance(y,-driveAmp,half);}
+    for(var j=0;j<N;j++){
+      var u=j<N/2?driveAmp:-driveAmp,vp=rac*(y[0]-y[2]);
+      trace.drive.push(u);trace.ir.push(y[0]);trace.im.push(y[2]);trace.vcr.push(y[1]);trace.vp.push(vp);
+      trace.energy.push((lr*y[0]*y[0]+cr*y[1]*y[1]+lm*y[2]*y[2])/2);
+      var next=advance(y,u,steps[0]),mid=advance(y,u,step(1)),t=j/N,h=1/N,
+        fa=integrands(y,u,t),fm=integrands(mid,u,t+h/2),fb=integrands(next,u,t+h),
+        sums=integrate(y,mid,next,fa,fm,fb,u,t,h,0,simpson(fa,fm,fb,h));
+      for(var k=0;k<6;k++)moments[k]+=sums[k];
+      y=next;
+    }
+    // Integrate powers independently; never manufacture Pload=Pin-dE/dt.
+    var avgIn=moments[0],avgLoss=moments[1],ir2=moments[2],im2=moments[3],
+      vpCos=moments[4],vpSin=moments[5];
     function close(a,last){return a.concat(last===undefined?a[0]:last);}
-    var vpCos=0,vpSin=0,ir2=0,im2=0;
-    for(var i=0;i<N;i++){
-      var a=2*PI*i/N;
-      vpCos+=trace.vp[i]*Math.cos(a)*2/N;
-      vpSin+=trace.vp[i]*Math.sin(a)*2/N;
-      ir2+=trace.ir[i]*trace.ir[i]/N;im2+=trace.im[i]*trace.im[i]/N;
-    }
     var vp1=Math.hypot(vpCos,vpSin)/Math.SQRT2;
     var vo=PI*vp1/(2*Math.SQRT2*n),fhaPower=vo*vo/v.rdc;
     var f0=1/(2*PI*Math.sqrt(lr*cr)),wlm=2*PI*fs*lm,
@@ -160,12 +203,12 @@
       periodicityError=Math.max(closeIr,closeCr,closeIm),
       lastEnergy=(lr*y[0]*y[0]+cr*y[1]*y[1]+lm*y[2]*y[2])/2,
       energyCycleError=Math.abs(lastEnergy-trace.energy[0])/Math.max(lastEnergy,trace.energy[0],1e-9);
-    var validity=periodicityError<=0.02&&energyCycleError<=0.02&&avgIn>0&&avgLoss>0&&vo>0&&
+    var validity=quadratureConverged&&periodicityError<=0.02&&energyCycleError<=0.02&&avgIn>0&&avgLoss>0&&vo>0&&
       Math.abs(residual)<=Math.max(0.1,0.02*avgIn);
     return valid({mode:validity?(angle>=0?'INDUCTIVE':'CAPACITIVE'):'UNSETTLED',validity:validity,
-      assumptions:'半橋 ±Vin/2 方波激勵，串聯 Lr、Cr，並聯 Lm 與 FHA 等效電阻 Rac=8n²Rdc/π²；隱式梯形積分取最後一週期，忽略真實二極體換向、Coss、Dead Time、磁芯非線性。',
+      assumptions:'半橋 ±Vin/2 方波激勵，串聯 Lr、Cr，並聯 Lm 與 FHA 等效電阻 Rac=8n²Rdc/π²；固定輸入區間以矩陣指數狀態轉移，零初值運行160週期；240格點僅供繪圖，功率／RMS／基波另作有界自適應積分，忽略真實二極體換向、Coss、Dead Time、磁芯非線性。',
       note:'開關頻率相對於串聯共振 f0，以及輸入阻抗相位，決定所見電感性／電容性；時間波形是 FHA 負載近似下的切換方波響應。',
-      warning:!validity?'LLC 週期未充分收斂、輸入功率異常或儲能漂移：目前波形不可當穩態輸出。請調整 Lr／Cr／Lm、負載或頻率。':'此 R_ac 線性時域模型也消耗高次諧波：FHA 基波換算功率不等於 R_ac 全頻帶耗散，不能視為實際 DC 功率／效率。阻抗呈電感性不代表已 ZVS。',
+      warning:!quadratureConverged?'LLC 數值積分精度未達計算預算，不能當作有效穩態結果。':!validity?'LLC 週期未充分收斂、輸入功率異常或儲能漂移：目前波形不可當穩態輸出。請調整 Lr／Cr／Lm、負載或頻率。':'此 R_ac 線性時域模型也消耗高次諧波：FHA 基波換算功率不等於 R_ac 全頻帶耗散，不能視為實際 DC 功率／效率。阻抗呈電感性不代表已 ZVS。',
       metrics:[m('串聯共振 f0',f0/1000,'kHz'),m('fSW/f0',fs/f0,'',3),m('FHA 估計輸出 DC',validity?vo:NaN,'V'),
         m('一次側諧振電流 RMS',validity?Math.sqrt(ir2):NaN,'A',3),
         m('磁化電流 RMS',validity?Math.sqrt(im2):NaN,'A',3),
@@ -184,7 +227,8 @@
         {key:'vp',label:'一次側等效負載電壓',unit:'V',values:close(trace.vp,rac*(y[0]-y[2])),step:false},
         {key:'energy',label:'諧振槽總儲能',unit:'mJ',values:close(trace.energy.map(function(e){return e*1000;}),lastEnergy*1000),step:false}],
       data:{fs:fs,f0:f0,rac:rac,vo:vo,avgIn:avgIn,avgLoad:avgLoss,energyDrift:energyDrift,energyResidual:residual,fhaPower:fhaPower,angle:angle,
-        startEnergy:trace.energy[0],endEnergy:lastEnergy,periodicityError:periodicityError,energyCycleError:energyCycleError}});
+        startEnergy:trace.energy[0],endEnergy:lastEnergy,periodicityError:periodicityError,energyCycleError:energyCycleError,
+        quadratureConverged:quadratureConverged,quadratureNodes:quadratureNodes,numericalMethod:'LINEAR_STATE_TRANSITION'}});
   }
 
   function c(re,im){return {re:re,im:im||0};}
@@ -479,7 +523,7 @@
         {key:'soca',label:'SOCA 事件',options:[['ZERO','TBCTR ZERO'],['PERIOD','TBCTR PERIOD'],['CMP_UP','CMPA up'],['CMP_DOWN','CMPA down']],value:'CMP_UP'},
         {key:'shadow',label:'CMP Shadow load',options:[['ZERO','ZERO'],['PERIOD','PERIOD'],['BOTH','ZERO + PERIOD']],value:'ZERO'}],compute:timing,
       source:'https://www.ti.com/lit/ug/sprui33c/sprui33c.pdf'},
-    nonideal:{title:'同步 Buck｜理想與非理想比較',category:'nonideal',knobs:[k('vin','Vin',12,60,4,48,'V'),k('duty','Duty',10,90,5,50,'%'),k('fs','PWM 頻率',50,200,25,100,'kHz'),k('l','輸出 L',40,300,20,100,'µH'),k('c','輸出 C',100,1000,100,470,'µF'),k('load','負載 R',2,20,2,8,'Ω'),k('rh','高側 RDS(on)',2,80,2,20,'mΩ'),k('rl','低側 RDS(on)',2,80,2,20,'mΩ'),k('dcr','電感 DCR',5,100,5,40,'mΩ'),k('dead','每次 Dead Time',0,800,25,150,'ns'),k('vdiode','Body Diode Vf',.4,1.2,.1,.7,'V'),k('esr','電容 ESR',0,100,5,20,'mΩ'),k('esum','Eon+Eoff',0,200,10,40,'µJ')],compute:nonideal,
+    nonideal:{title:'同步 Buck｜理想與非理想比較',category:'nonideal',knobs:[k('vin','Vin',12,60,4,48,'V'),k('duty','Duty',10,90,5,50,'%'),k('fs','PWM 頻率',50,200,25,100,'kHz'),k('l','輸出 L',40,300,20,100,'µH'),k('c','輸出 C',100,1000,10,470,'µF'),k('load','負載 R',2,20,2,8,'Ω'),k('rh','高側 RDS(on)',2,80,2,20,'mΩ'),k('rl','低側 RDS(on)',2,80,2,20,'mΩ'),k('dcr','電感 DCR',5,100,5,40,'mΩ'),k('dead','每次 Dead Time',0,800,25,150,'ns'),k('vdiode','Body Diode Vf',.4,1.2,.1,.7,'V'),k('esr','電容 ESR',0,100,5,20,'mΩ'),k('esum','Eon+Eoff',0,200,10,40,'µJ')],compute:nonideal,
       source:'https://www.ti.com/lit/ug/sprui33c/sprui33c.pdf'},
     zvs:{title:'PSFB 漏感、Coss 與 Dead Time',category:'nonideal',knobs:[k('vin','DC Bus',200,600,20,400,'V'),k('ip','換流一次側電流',0,20,1,4,'A'),k('leak','變壓器漏感 Llk',1,20,1,5,'µH'),k('coss','每顆 MOSFET 等效 Coss',100,2000,100,300,'pF'),k('dead','Dead Time',50,1000,50,200,'ns'),k('fs','PWM 頻率',50,200,25,100,'kHz')],compute:zvs,
       source:'https://www.ti.com/document-viewer/lit/html/SLUP414/GUID-C4C4C20D-3B3D-4298-813F-5E3A9DA91B12'}
