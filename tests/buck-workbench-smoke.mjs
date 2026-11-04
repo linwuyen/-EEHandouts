@@ -32,7 +32,14 @@ for(const [name,type] of cross?[['firefox',firefox],['webkit',webkit]]:[['chromi
   await page.evaluate(async()=>{await CircuitEvidence._resetForTests();});await page.reload();await ready();
   const lessons=await page.evaluate(()=>CircuitWorkspace.experimentLessons());assert.equal(lessons.length,8);
   for(const l of lessons){
+   // A click changes the hash; the queued hashchange handler renders and saves later.
+   // Wait for the expected route AND rendered lesson, not merely click completion.
+   await page.waitForFunction(({id,title})=>location.hash==='#experiment-'+id&&
+    document.getElementById('ws-title')?.textContent===title&&CircuitEvidence.storageStatus().saved,
+    {id:l.id,title:l.title},{timeout:8000});
+   assert.equal(new URL(page.url()).hash,'#experiment-'+l.id);
    assert.equal(await page.locator('#ws-title').innerText(),l.title);
+   assert.equal(await page.evaluate(()=>CircuitEvidence.load().benchmark.learningWorkspace.experiment.currentLesson),l.id);
    if(l.prepare)await page.locator('#apply-setup').click();
    await answer(l.answer);await page.locator('#experiment-run').click();await page.waitForFunction(()=>CircuitEvidence.storageStatus().saved);
    await answer(l.answer);await answer('reason');assert.equal(await page.locator('#ws-voltage').innerText(),'先預測');assert.equal(await page.locator('#ws-plot').isVisible(),false);
