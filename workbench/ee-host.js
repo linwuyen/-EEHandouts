@@ -4,18 +4,40 @@
  const $=id=>document.getElementById(id);
  const course='../middle.html#lesson/mid-basics/mid-buck-pwm';
  const sourceCommit='11ef4e4801b5283f265dc349a4afec0027603228';
- let loadFailed=false,leaving=false,mounted=false;
+ let loadFailed=false,leaving=false,mounted=false,evidenceBlocked=false;
  document.documentElement.dataset.eeWorkbenchState='loading';
  function notice(text){const n=$('ee-host-status');if(n)n.textContent=text;}
  function fail(text){loadFailed=true;document.documentElement.dataset.eeWorkbenchState='failed';const main=document.querySelector('main');if(main)main.inert=true;notice(text+'；請保留學習備份，原教材與已存紀錄不會被清除。');}
  window.addEventListener('error',event=>{if(event.target?.tagName!=='SCRIPT')return;const name=new URL(event.target.src).pathname.split('/').pop();if(mounted)notice('來源面板載入失敗：'+name+'；目前實驗與保存功能仍可使用，可在面板重試。');else fail('實驗資產載入失敗：'+name);},true);
+ // Registered before Evidence's listeners: never normalize an unsupported raw version.
+ function guardEvidence(){
+  if(evidenceBlocked)return false;
+  try{
+   const raw=localStorage.getItem('circuit-learning-state-v5');
+   if(!raw)return true;
+   const state=JSON.parse(raw);
+   if(state?.schema==='circuit-learning-state'&&state.version===5)return true;
+  }catch{}
+  evidenceBlocked=true;document.documentElement.dataset.eeWorkbenchState='protected';
+  const main=document.querySelector('main');if(main)main.inert=true;
+  notice('紀錄版本已變動或無法讀取，操作與儲存已暫停；請用「紀錄與備份」另開唯讀備份頁，本頁草稿仍保留。');
+  return false;
+ }
+ window.addEventListener('storage',event=>{if((event.key===null||event.key==='circuit-learning-state-v5')&&!guardEvidence())event.stopImmediatePropagation();},true);
+ for(const type of ['click','input','change','submit','keydown'])window.addEventListener(type,event=>{
+  if(guardEvidence())return;
+  event.stopImmediatePropagation();
+  const backup=event.target?.closest?.('#ee-records');
+  if(backup&&(type==='click'||type==='keydown')){backup.target='_blank';backup.rel='noopener';return;}
+  event.preventDefault();
+ },true);
  const destinations=new Set([course,'records.html','coverage.html','../index.html','../index.html#lesson/analog/adc','../index.html#lesson/analog/op','../index.html#lesson/analog/pi','../advanced.html#timing']);
  function safeDestination(path){
   const u=new URL(path,location.href);
   return [...destinations].some(p=>new URL(p,location.href).href===u.href)?u:null;
  }
  async function leave(path=course){
-  if(leaving)return false;const url=safeDestination(path);if(!url){notice('返回目標不在本站允許清單；未離開目前實驗。');return false;}
+  if(leaving||!guardEvidence())return false;const url=safeDestination(path);if(!url){notice('返回目標不在本站允許清單；未離開目前實驗。');return false;}
   leaving=true;
   try{
    const E=window.CircuitEvidence;
@@ -51,9 +73,9 @@
   button.onclick=()=>reference(button.dataset.route,'進階紀錄與後續遷移');
  }
  function complete(){reference('catalog.html','Buck 八步實驗完成：回教材整理觀察');}
- function markReady(){if(loadFailed)return false;mounted=true;document.documentElement.dataset.eeWorkbenchState='ready';notice('EEHandouts 內建實驗 · 來源 '+sourceCommit.slice(0,8)+' · 實驗證據與教材已讀分開保存。');return true;}
+ function markReady(){if(loadFailed||!guardEvidence())return false;mounted=true;document.documentElement.dataset.eeWorkbenchState='ready';notice('EEHandouts 內建實驗 · 來源 '+sourceCommit.slice(0,8)+' · 實驗證據與教材已讀分開保存。');return true;}
  $('ee-return')?.addEventListener('click',()=>leave(course));
  $('ee-records')?.addEventListener('click',event=>{event.preventDefault();leave('records.html');});
- window.addEventListener('circuit:evidence-persistence',event=>{if(event.detail.saved){if(mounted&&!loadFailed)notice('實驗紀錄已儲存；可返回原 Buck 教材。');}else notice('實驗紀錄尚未儲存；請保留備份，離開前會再次檢查。');});
- window.EEWorkbenchHost=Object.freeze({leave,notice,fail,referenceHref,reference,recommendation,complete,markReady,hasFailed:()=>loadFailed,course,sourceCommit});
+ window.addEventListener('circuit:evidence-persistence',event=>{if(evidenceBlocked)return;if(event.detail.saved){if(mounted&&!loadFailed)notice('實驗紀錄已儲存；可返回原 Buck 教材。');}else notice('實驗紀錄尚未儲存；請保留備份，離開前會再次檢查。');});
+ window.EEWorkbenchHost=Object.freeze({leave,notice,fail,referenceHref,reference,recommendation,complete,markReady,guardEvidence,hasFailed:()=>loadFailed,course,sourceCommit});
 })();

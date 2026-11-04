@@ -65,6 +65,14 @@ for(const [name,type] of cross?[['firefox',firefox],['webkit',webkit]]:[['chromi
   await second.locator('input[name="experiment-answer"][value="down"]').check();await second.locator('#workspace-submit').click();await second.waitForFunction(()=>CircuitEvidence.storageStatus().saved);
   await first.waitForSelector('#experiment-record-protection');assert.equal(await first.evaluate(()=>JSON.parse(localStorage.getItem('circuit-learning-state-v5')).benchmark.learningWorkspace.experiment.rows.energy.first.answer),'down');
   await c4.close();
+  // Foreign top-level version while the page is already open, not only startup.
+  const c5=await browser.newContext();await routeLocal(c5);const running=await c5.newPage(),writer=await c5.newPage();
+  await running.goto(BASE+'/workbench/index.html#experiment-energy');await ready(running);await running.waitForFunction(()=>CircuitEvidence.storageStatus().saved);
+  await writer.goto(BASE+'/workbench/records.html');
+  const raw6=await writer.evaluate(()=>{const s=JSON.parse(localStorage.getItem('circuit-learning-state-v5'));s.version=6;s.foreignMarker='preserve-exact';const raw=JSON.stringify(s);localStorage.setItem('circuit-learning-state-v5',raw);return raw;});
+  await running.waitForFunction(()=>document.documentElement.dataset.eeWorkbenchState==='protected');assert.equal(await running.locator('main').evaluate(n=>n.inert),true);
+  assert.equal(await running.evaluate(()=>localStorage.getItem('circuit-learning-state-v5')),raw6);assert.equal(await running.evaluate(()=>EEWorkbenchHost.leave()),false);
+  const popup=running.waitForEvent('popup');await running.locator('#ee-records').click();const backup=await popup;await backup.waitForLoadState('domcontentloaded');assert.match(backup.url(),/records\.html/);assert.equal(await backup.evaluate(()=>localStorage.getItem('circuit-learning-state-v5')),raw6);assert.equal(await backup.evaluate(()=>localStorage.getItem('circuit-learning-state-v5-corrupt-backup')),null);await c5.close();
   assert.deepEqual(forbidden,[]);assert.deepEqual(errors,[]);
   console.log('PASS migration '+name+': original eight steps, return, reading isolation, backup, future record, quota, asset failure, mobile');
  }finally{await context.close();await browser.close();}

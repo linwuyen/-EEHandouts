@@ -4,8 +4,7 @@
  try{
   if(H.hasFailed())return;
   for(const name of ['CircuitEvidence','CircuitPlainCourse','CircuitWorkspace','CircuitUnifiedLearning','CircuitCoreFlowV1','CircuitEngineeringSandboxCore','CircuitModelRegistry','CircuitEngineeringCurriculum','CircuitSwitchingLessonV1'])if(!window[name])throw Error('缺少必要元件 '+name);
-  const raw=localStorage.getItem(CircuitEvidence.KEY);
-  if(raw){const stored=JSON.parse(raw);if(stored.schema!==CircuitEvidence.SCHEMA||stored.version!==CircuitEvidence.VERSION){H.fail('紀錄版本不相容；未啟動或覆寫實驗');return;}}
+  if(!H.guardEvidence())return;
   const ids=CircuitWorkspace.experimentLessons().map(l=>l.id),hash=location.hash;
   if(hash&&hash!=='#experiment'&&!ids.some(id=>hash==='#experiment-'+id))history.replaceState(null,'','#experiment');
   CircuitWorkspace.mountExperiment();

@@ -162,7 +162,7 @@
     {
       "path": "assets/learning/workbench-context.js",
       "sourceBlob": "82c53e87f6827a7775c3e09327d113655f776883",
-      "sha256": "26f15b1b430ea77a510cbc57f180e0e41dcce94fbeca9308acb3b0a648947899",
+      "sha256": "f59002d7985cc0f3b330f3b2e9d0d1cfd6d09049b30503af5ba563989e542dc1",
       "adapted": true
     },
     {
@@ -174,7 +174,7 @@
     {
       "path": "assets/learning/workspace-experiment-ui.js",
       "sourceBlob": "b331bca15886c26bb6399ebd253d64ab3bf3f50b",
-      "sha256": "cb35df1afd642d6d3ea7bc266e5d370ff8c4429d12b26203596787c7a8a0cb62",
+      "sha256": "7e9d178a5eb7fb4626a48e3bd97ca9d9c12ba859201d6a4ff6dc3377bc9d55cd",
       "adapted": true
     },
     {

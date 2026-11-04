@@ -20,7 +20,7 @@
     el('summary','把目前問題接回完整工程鏈：模型、五視圖與證據',details);
     const body=el('div',undefined,details);let loaded=false,ownerSet;
     function current(){const path=decodeURIComponent(location.pathname).slice(decodeURIComponent(base.pathname).length);return root.CircuitEngineeringContext.resolve({path,search:location.search,hash:location.hash},ownerSet);}
-    function draw(){
+    function draw(){if(!root.EEWorkbenchHost.guardEvidence())return;
       const c=current(),F=ownerSet.facts,U=ownerSet.unified;body.replaceChildren();
       el('h2',c.title||'工程情境',body);el('p',c.boundary||c.reason,body);
       el('small','目前學習範圍：'+(c.topics.map(id=>F.taxonomy[id]+' / '+id).join(' · ')||'UNKNOWN：尚未對應'),body);
