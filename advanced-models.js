@@ -43,6 +43,14 @@
         vL:rect-bus,vSW:bus,stage:'DIODE'};
       return {gate:0,diode:0,il:0,vL:0,vSW:rect,stage:'ZERO'};
     }
+    // F06: all five traces share the exact physical switching-event times.
+    // Piecewise-linear iL and held switch voltages need no fixed 1/240 grid.
+    var phases=[0,d,Math.min(1,d+discharge),1].sort(function(a,b){return a-b;})
+      .filter(function(x,i,a){return i===0||x>a[i-1];}),periodUs=1e6/fs;
+    function eventSample(key,label,unit,field,hold){
+      return {key:key,label:label,unit:unit,xUnit:'µs',x:phases.map(function(t){return t*periodUs;}),
+        values:phases.map(function(t){return state(t)[field];}),step:!!hold};
+    }
     var io=(peak+(mode==='CCM'?valley:0))/2*discharge,pin=rect*iref,pout=bus*io;
     return valid({mode:mode,validity:true,note:'此圖把 50/60 Hz 線電壓凍結在指定相位，只解析單一 PWM 週期；平均電流命令按理想正弦電流整形給定。',
       warning:'不含電流迴路、整流橋損耗、DC Bus 電容、交流一整週期電流，因此不計算實際 PF/THD 或硬體保護。',
@@ -51,11 +59,11 @@
         m('電感峰值',peak,'A',3),m('零電流時間',gap*100,'%'),m('AC→Bus 平均功率',pout,'W',1),m('功率平衡殘差',pin-pout,'W',4)],
       stages:[{id:'ON',label:'MOSFET ON：整流輸入 → L 儲能',start:0,end:d},{id:'DIODE',label:'MOSFET OFF：L + 輸入 → 二極體 → Bus',start:d,end:d+discharge},
         {id:'ZERO',label:'DCM 歸零：二極體截止',start:d+discharge,end:1}],
-      traces:[sample('gate','Gate 指令','0/1',function(t){return state(t).gate;},true),
-        sample('il','電感電流 iL','A',function(t){return state(t).il;}),
-        sample('vl','電感電壓 vL','V',function(t){return state(t).vL;},true),
-        sample('vsw','開關節點 vSW','V',function(t){return state(t).vSW;},true),
-        sample('diode','整流二極體導通','0/1',function(t){return state(t).diode;},true)],
+      traces:[eventSample('gate','Gate 指令','0/1','gate',true),
+        eventSample('il','電感電流 iL','A','il',false),
+        eventSample('vl','電感電壓 vL','V','vL',true),
+        eventSample('vsw','開關節點 vSW','V','vSW',true),
+        eventSample('diode','整流二極體導通','0/1','diode',true)],
       probe:function(t){return state(t);},data:{rect:rect,bus:bus,iref:iref,io:io,pin:pin,pout:pout,on:d,freewheel:discharge,zero:gap,peak:peak,valley:valley}});
   }
 
