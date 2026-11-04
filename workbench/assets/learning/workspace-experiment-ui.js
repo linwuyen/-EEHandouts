@@ -214,7 +214,7 @@
   function progress(){if(saving)return;
    const count=lessons.filter(l=>proven(l.id)).length;$('workspace-progress').textContent=`連續電路實驗 ${count} / 8 · 電路、讀值與控制使用同一核心`;
    $('workspace-route').replaceChildren();lessons.forEach((l,i)=>{const li=el('li',undefined,$('workspace-route')),b=el('button',`${i+1}. ${proven(l.id)?'已練習：':''}${l.title}`,li);b.disabled=lessons.slice(0,i).some(x=>!proven(x.id));b.setAttribute('aria-current',l.id===id?'step':'false');b.onclick=()=>{location.hash='experiment-'+l.id;document.querySelector('.route').open=false;};});
-   const transferLink=el('a','後續遷移範圍：降壓／升壓與進階課程',el('li',undefined,$('workspace-route')));transferLink.href='coverage.html';transferLink.onclick=e=>{e.preventDefault();EEWorkbenchHost.leave('coverage.html');};
+   const transferLink=el('a','保存後比較降壓與升壓',el('li',undefined,$('workspace-route')));transferLink.href='topology.html';transferLink.onclick=e=>{e.preventDefault();EEWorkbenchHost.leave('topology.html');};
    $('progress-summary').textContent=`連續實驗已練習 ${count} / 8。舊八課與正式測驗成績保持各自的判定。`;$('progress-abilities').replaceChildren();lessons.forEach(l=>el('li',(proven(l.id)?'已練習：':'待練習：')+l.title,$('progress-abilities')));
    $('workspace-history').replaceChildren();for(const h of [...session.history].reverse())el('li',`${h.kind} · 輸入 ${h.config.vin} V · 平均輸出 ${fmt(h.summary.avgV)} V · ${h.summary.tripSeen?'保護觸發':'未觸發保護'}`,$('workspace-history'));
   }

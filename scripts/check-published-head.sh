@@ -11,11 +11,14 @@ for (( i=1; i<=tries; i++ )); do
   observed="$(curl --fail --location --silent --show-error --connect-timeout 5 --max-time 12 \
     "$base/release-sha.txt?verified=$VERIFIED_SHA&attempt=$i" 2>/dev/null || true)"
   if [[ "$observed" == "$VERIFIED_SHA" ]]; then
-    for asset in index.html middle.html advanced.html advanced-models.js; do
+    for asset in index.html middle.html advanced.html advanced-models.js \
+      workbench/index.html workbench/topology.html workbench/ee-host.js \
+      workbench/ee-topology-entry.js workbench/assets/learning/workspace-topology-ui.js \
+      workbench/assets/learning/model-contracts-v1.json workbench/source-manifest.json; do
       curl --fail --location --silent --show-error --connect-timeout 5 --max-time 12 \
         "$base/$asset?verified=$VERIFIED_SHA" -o /dev/null
     done
-    echo "::notice::Public Pages artifact and four core assets verified for $VERIFIED_SHA"
+    echo "::notice::Public Pages artifact and course/workbench assets verified for $VERIFIED_SHA"
     exit 0
   fi
   sleep "$delay"

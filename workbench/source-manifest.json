@@ -1,7 +1,7 @@
 {
   "sourceRepository": "linwuyen/Circuit-Simulation",
   "sourceCommit": "11ef4e4801b5283f265dc349a4afec0027603228",
-  "scope": "Eight-step Buck experiment; not whole-project retirement",
+  "scope": "Eight-step Buck experiment and Buck/Boost CCM comparison; not whole-project retirement",
   "files": [
     {
       "path": "assets/beginner-lessons.js",
@@ -174,7 +174,7 @@
     {
       "path": "assets/learning/workspace-experiment-ui.js",
       "sourceBlob": "b331bca15886c26bb6399ebd253d64ab3bf3f50b",
-      "sha256": "7e9d178a5eb7fb4626a48e3bd97ca9d9c12ba859201d6a4ff6dc3377bc9d55cd",
+      "sha256": "556995ce5be49d05552add2e7174932ff3ca5dbbc979d33a92cc43d52f1ce759",
       "adapted": true
     },
     {
@@ -266,6 +266,24 @@
       "sourceBlob": "316c14b2a002b01d0e5a73f3b797a29cce74fceb",
       "sha256": "459c2e635dd3898e1fb31c9a01cd7183a489780cc3ec4920cdb2e9a88d9ec117",
       "adapted": false
+    },
+    {
+      "path": "assets/learning/workspace-topology-ui.js",
+      "sourceBlob": "c2095128f2e540c61084c056e5edd74b58c344d8",
+      "sha256": "5aed309b862cc39f4822ebe10d6763afb537638788474da7c84258ea3e5521db",
+      "adapted": true
+    },
+    {
+      "path": "tests/topology-workspace.test.mjs",
+      "sourceBlob": "c4b19c88005327832a360a3d0f9fa2cd40086e79",
+      "sha256": "22f8525834aa09ad16cdfc58adba2423618764c3f24ba2b14c7de70a129eba18",
+      "adapted": false
+    },
+    {
+      "path": "tests/topology-transfer.test.mjs",
+      "sourceBlob": "59ed09c704197ee2c0e9035609d5bfc049d8c8a8",
+      "sha256": "27c36f8fd81b40cc597977efb1421ecf9856dc779f0613cf97f4828103c923da",
+      "adapted": false
     }
   ],
   "testFiles": [
@@ -280,6 +298,8 @@
     "tests/workspace.test.mjs",
     "tests/kernel-event-accuracy.test.mjs",
     "tests/engineering-context.test.mjs",
-    "tests/beginner-causal-guides.test.mjs"
+    "tests/beginner-causal-guides.test.mjs",
+    "tests/topology-workspace.test.mjs",
+    "tests/topology-transfer.test.mjs"
   ]
 }

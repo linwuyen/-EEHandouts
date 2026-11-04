@@ -6,12 +6,13 @@
 
 | 能力 / 來源 | 本批處置 | 後續處置 |
 |---|---|---|
-| 現行 Buck 八步連續實驗 | 已實作搬入 workbench；待本批 exact-head CI / Review / 發布驗收 | 串到更多相關教材 |
+| 現行 Buck 八步連續實驗 | PR #45 已發布，正式版本 9a4a2603 | 串到更多相關教材 |
 | generic-power-causal-kernel / curriculum / registry | 原樣搬必要依賴；不改物理模型 | 保持 owner / unit / model validity |
 | Evidence V5、CoreFlow、首次判斷、transfer | 必要 owner 原樣搬入、鍵值與鎖不變 | 真正需要時才設計 schema 遷移 |
 | 深層工程來源面板 | 搬入唯讀資料與必要延遲載入；無效入口顯示未遷入 | 按能力逐批接上 |
 | 舊八課、獨立評量、retention | 既有紀錄保留、可唯讀備份；頁面未搬 | 各自驗收再遷移，不能以閱讀標記替代 |
-| Buck / Boost 比較與 Module 17 四應用 | 未搬入頁面；本批不自動傳參 | 匝比/格點、Pin/Pout、Ceq、FHA 邊界核對後接入 |
+| Buck / Boost 比較 | 第二批實作於 workbench/topology.html；待第二批 exact-head CI / Review / 發布 | 僅原 owner 的手動設定；CCM 穩態，不帶儲能或故障狀態 |
+| Module 17 四應用 | 尚未搬入頁面，不自動傳參 | 匝比/格點、Pin/Pout、Ceq、FHA 邊界核對後接入 |
 | Module 1 / 9 / 12 ADC / AFE / OP | 連到既有 EE 對應教材，不冒稱遷入原工具 | 逐模組遷移量測鏈與 UI |
 | Module 4 / 16 / 18 PI / transforms / control | 連到 EE 原類比 PI / 工具，不混用係數 | 各自離散化、模型、單位契約 |
 | Module 6 / 13 timing / synchronization | 連到 EE 原時序頁，不授予實機 PASS | 指定器件與 ADCRESULT 證據另驗 |
@@ -32,3 +33,9 @@
 
 ## 退役通過條件
 所有必要能力清單有去向、資料匯出/遷移有證據、停用舊站後 EE 獨立建置與運作、exact main CI / Pages / hosted SHA 通過。未符合前不得刪除原專案。
+
+## 第二批：Buck / Boost 比較
+EE 起點 9a4a2603c974ae22998bdfe4348890c00e146300；來源仍固定 11ef4e4801b5283f265dc349a4afec0027603228。
+新增 topology.html / ee-topology-entry.js 與來源比較 UI。Numerical registry、Workspace core、Evidence、CoreFlow、curriculum 維持原樣。共用 ee-host 的白名單、flush、raw schema guard，並在 await 保存後再驗原始版本；跨分頁比較紀錄衝突停止並保留唯讀備份。
+原數值契約只允許前後工作點的 Buck/Boost 均 CCM；無效或不相容紀錄不重設成預設成功。八步已讀、引導比較通過、正式評量與 Board evidence 仍分開。
+新增來源 topology-workspace / topology-transfer tests、整合契約與三瀏覽器實際 DOM 驗收。發布 SHA 檢查同時驗工作台入口、比較 UI 與模型契約資產。
