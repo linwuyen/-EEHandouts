@@ -8,7 +8,7 @@
  document.documentElement.dataset.eeWorkbenchState='loading';
  function notice(text){const n=$('ee-host-status');if(n)n.textContent=text;}
  function fail(text){loadFailed=true;document.documentElement.dataset.eeWorkbenchState='failed';const main=document.querySelector('main');if(main)main.inert=true;notice(text+'；請保留學習備份，原教材與已存紀錄不會被清除。');}
- window.addEventListener('error',event=>{if(event.target?.tagName==='SCRIPT')fail('實驗資產載入失敗：'+new URL(event.target.src).pathname.split('/').pop());},true);
+ window.addEventListener('error',event=>{if(event.target?.tagName!=='SCRIPT')return;const name=new URL(event.target.src).pathname.split('/').pop();if(mounted)notice('來源面板載入失敗：'+name+'；目前實驗與保存功能仍可使用，可在面板重試。');else fail('實驗資產載入失敗：'+name);},true);
  const destinations=new Set([course,'records.html','coverage.html','../index.html','../index.html#lesson/analog/adc','../index.html#lesson/analog/op','../index.html#lesson/analog/pi','../advanced.html#timing']);
  function safeDestination(path){
   const u=new URL(path,location.href);
