@@ -1,0 +1,285 @@
+{
+  "sourceRepository": "linwuyen/Circuit-Simulation",
+  "sourceCommit": "11ef4e4801b5283f265dc349a4afec0027603228",
+  "scope": "Eight-step Buck experiment; not whole-project retirement",
+  "files": [
+    {
+      "path": "assets/beginner-lessons.js",
+      "sourceBlob": "b9d9cda591cbd21b1da825a2c5c0755a326a4a99",
+      "sha256": "077478477d57e3b206688ce2ffc83b001e2d7db157e3082f07c0aad253c7b30b",
+      "adapted": false
+    },
+    {
+      "path": "assets/engineering-sandbox-core.js",
+      "sourceBlob": "ae10eef295474af93ffc33978f44bd0cad74059f",
+      "sha256": "6193c2d5bccee752c9c7861984c62d3ddba79c49eca067eb2cfa0b45767569ef",
+      "adapted": false
+    },
+    {
+      "path": "assets/learning/control-engineering-v1.js",
+      "sourceBlob": "d54b00192bc8320f6e4b49ec0336da3d031516e4",
+      "sha256": "eeb043a158033079f2b290b1f31530771f8217025cea9bcb1f29fa82b6043718",
+      "adapted": false
+    },
+    {
+      "path": "assets/learning/control-transforms-module.js",
+      "sourceBlob": "c147cd39b82e22c131e5fa6bb53f9cb3d4819060",
+      "sha256": "c46e4b27e93f0550b405cc9a94aa8bfcb0b20076b78e1bc74ea99696529cf0b1",
+      "adapted": false
+    },
+    {
+      "path": "assets/learning/control-unification-module.js",
+      "sourceBlob": "63ebfc2f3b31ba9d1350cb693d6597d9f215d17b",
+      "sha256": "fd77fc136ba2684d9e857105e45bd24dc42218d8e1efffdc0c1a6c7fa7d9f317",
+      "adapted": false
+    },
+    {
+      "path": "assets/learning/core-flow-v1.js",
+      "sourceBlob": "233ee9f671742c812c5a68ec9ae84ec18ce681c4",
+      "sha256": "8e0566cf2ef5c19044d63369cfb42d29ced5a411278c4455cb3a6921da9bd295",
+      "adapted": false
+    },
+    {
+      "path": "assets/learning/curriculum-schema-v3.js",
+      "sourceBlob": "f590c6ea5c73d14628837411233f91e50d7add08",
+      "sha256": "3d279ce4dce3b8952777bfa21b26d8685ab72889a037826190bb00ac8f7ea29b",
+      "adapted": false
+    },
+    {
+      "path": "assets/learning/curriculum.js",
+      "sourceBlob": "d0e3b6b2e8f89e01c7fb08b6960a3ebdbe406667",
+      "sha256": "bade0beaf041b91b83ef4c1f5624764083b1a0e1c240dce78d547a7a9b34d797",
+      "adapted": false
+    },
+    {
+      "path": "assets/learning/engineering-context.js",
+      "sourceBlob": "8e1cfb4f505996d5432556f1927f6f1bab018b07",
+      "sha256": "be74a0a85d64aef954962df898c13a2905036f2bd920236b89ae1c505addeb90",
+      "adapted": false
+    },
+    {
+      "path": "assets/learning/engineering-curriculum.js",
+      "sourceBlob": "2c65a60da745490e76fe59d819ac106c05892cf4",
+      "sha256": "c3822c2d1a16cd748a8e0c497f331977937ecd4a63f1033267a788b27f0af161",
+      "adapted": false
+    },
+    {
+      "path": "assets/learning/engineering-models.js",
+      "sourceBlob": "8ac681234356f194622711ca71ca9ff5fe508b01",
+      "sha256": "ebcf433dc66f4fac1cc5a1b77c25b14fe55b51e4e25edafc30ead769e0d07a74",
+      "adapted": false
+    },
+    {
+      "path": "assets/learning/learning-assessment.js",
+      "sourceBlob": "115e37ac582292669e1f3e886efe241dc41dd3a4",
+      "sha256": "0fa212a012aadb7117551cbf9367da4975b5140234444c096b45fbbb6affc12e",
+      "adapted": false
+    },
+    {
+      "path": "assets/learning/learning-evidence.js",
+      "sourceBlob": "44fb89b169e76f077a814ca3cf9df6ff850fe4e2",
+      "sha256": "102cde1a07d8f898dc84d1abe47e7e1f80216027f65e2f8c4f169786741fe585",
+      "adapted": false
+    },
+    {
+      "path": "assets/learning/learning-glossary.js",
+      "sourceBlob": "e77802be19c613ca81da8fc59e0f480a73b37c4d",
+      "sha256": "4ea8822560559695d2d8a8b5687f273b1907114d1217dbc66586fa3db536ac13",
+      "adapted": false
+    },
+    {
+      "path": "assets/learning/learning-map.js",
+      "sourceBlob": "c43e2bae4ae670345c89752d915bae10b57a0dc2",
+      "sha256": "ebecadecc18f96f6c3cef236949da79956e53fed462475955983b5e4b9955f79",
+      "adapted": false
+    },
+    {
+      "path": "assets/learning/model-contracts-v1.json",
+      "sourceBlob": "8fc8e854b6b5ae4a9f30a45c8d62853bde74fc2a",
+      "sha256": "faf3b91b98352f830b4b27ba006cadb5157caa445b3940b617b17de9b3d477ce",
+      "adapted": false
+    },
+    {
+      "path": "assets/learning/model-registry.js",
+      "sourceBlob": "72fb8e8fedeb3358bbb239a6830570340cc41bfc",
+      "sha256": "602684b2ff8d906a23ef41060149d32ecedb907ae6218dbfe6cc1ae0cc5383f2",
+      "adapted": false
+    },
+    {
+      "path": "assets/learning/opamp-module.js",
+      "sourceBlob": "65518e537927575950b5820bfd46e4a5d621b3fc",
+      "sha256": "26528118bc1623cc3dc82aabaf79c58c035b98fd685fe34974b37098bd607c6d",
+      "adapted": false
+    },
+    {
+      "path": "assets/learning/plain-course-core.js",
+      "sourceBlob": "05d396b02460310a1c4e0440bf66ed3ad01450f7",
+      "sha256": "06789f4d8fbb9ef6a099c7954203118bb551c47d1ad5930175614bc7d50beb56",
+      "adapted": false
+    },
+    {
+      "path": "assets/learning/power-firmware-modules.js",
+      "sourceBlob": "7ed5aaea69ae3357a75b33e0825a55fbc04ce406",
+      "sha256": "83d8be53d5708fd98a3b261132a2fa1ab8dc58db444c94b98ab6c64ad7b33270",
+      "adapted": false
+    },
+    {
+      "path": "assets/learning/power-topology-control-module.js",
+      "sourceBlob": "95ae7df6ab682925add4d2597e7845b6fff653f6",
+      "sha256": "17149003c66eb8cd0156b3ea975ab58b675e634530faf5d0c4ae731a3208e0c3",
+      "adapted": false
+    },
+    {
+      "path": "assets/learning/quiz-bank.js",
+      "sourceBlob": "b22c59dddf02c0aa72daa3b12202ea176d965528",
+      "sha256": "e3aec669234a9086592ab5981ccd854599ce3e556c66f21d4d6bbb26a9500323",
+      "adapted": false
+    },
+    {
+      "path": "assets/learning/switching-lesson-v1.js",
+      "sourceBlob": "89b98a129941e7a5b771f7125013d92785f7aca0",
+      "sha256": "ec963c6858873ef289b920181ca3bd0c0d75b2eb92e6c231259ab70032931a42",
+      "adapted": false
+    },
+    {
+      "path": "assets/learning/topology-transfer-v1.js",
+      "sourceBlob": "c4da466e8d651c710ba7fdd9914e5cf5d1163427",
+      "sha256": "09511cc7bb496ca21ff225c9360038f17a765e054b615cf20918a8652c100e3a",
+      "adapted": false
+    },
+    {
+      "path": "assets/learning/unified-learning.js",
+      "sourceBlob": "20d8379f2b45912fba143142f51fa1f788d9c601",
+      "sha256": "32792bd5fe8183206b072e55a165f7c17f6b31ccee9f8386271ff8725580d48e",
+      "adapted": false
+    },
+    {
+      "path": "assets/learning/workbench-context.css",
+      "sourceBlob": "bc6b92a91ed577f608814770a9abac4998353435",
+      "sha256": "a23fc372ad6779d7de16e05a6c8c9a609cefb57d54254e02d2c049e0d43ffcb2",
+      "adapted": false
+    },
+    {
+      "path": "assets/learning/workbench-context.js",
+      "sourceBlob": "82c53e87f6827a7775c3e09327d113655f776883",
+      "sha256": "26f15b1b430ea77a510cbc57f180e0e41dcce94fbeca9308acb3b0a648947899",
+      "adapted": true
+    },
+    {
+      "path": "assets/learning/workspace-core.js",
+      "sourceBlob": "8bc66a8488a9605c56b8f9964a8eb1ef901d0f68",
+      "sha256": "d6b44e264b1982251ba47328d1123d0993d763e613db86d7ee7ea9f2e0ea3e3a",
+      "adapted": false
+    },
+    {
+      "path": "assets/learning/workspace-experiment-ui.js",
+      "sourceBlob": "b331bca15886c26bb6399ebd253d64ab3bf3f50b",
+      "sha256": "cb35df1afd642d6d3ea7bc266e5d370ff8c4429d12b26203596787c7a8a0cb62",
+      "adapted": true
+    },
+    {
+      "path": "assets/learning/workspace.css",
+      "sourceBlob": "0125d947b9eae3231bb96c10b9ae661babcdfc0f",
+      "sha256": "03f1ebabff6227d835ab1a890c7f052d94804423a82072e1d66719fcd54a415a",
+      "adapted": false
+    },
+    {
+      "path": "assets/training-experiments-core.js",
+      "sourceBlob": "c57dff8df4ecd8adb5ad8eb6ff22ccc144a99d94",
+      "sha256": "b006130a3bc2ab6110f89ce9b4b9d39f420df70b339f4a24614c2fd2b5428e86",
+      "adapted": false
+    },
+    {
+      "path": "index.html",
+      "sourceBlob": "519d61545fc2780452bc88ac4de53498970adde0",
+      "sha256": "d4610b11f9bdb7d1fda3ef69256f567911163da476cb3e67af0bc0eb6148faab",
+      "adapted": true
+    },
+    {
+      "path": "tests/beginner-causal-guides.test.mjs",
+      "sourceBlob": "0806db222d0cff4908f0263092c2c53b7bf13955",
+      "sha256": "916436434deaf1a35ccf0a4668738afbfa6a33bce0f671e0888da3c00cf2af39",
+      "adapted": false
+    },
+    {
+      "path": "tests/continuous-course.test.mjs",
+      "sourceBlob": "bd5a92bd8459781004b2dd865e30d4cceb4e648d",
+      "sha256": "c74f5fc9a929303c7cf849f603686285f6878411776a1824de24d7121f5d14e9",
+      "adapted": false
+    },
+    {
+      "path": "tests/continuous-kernel.test.mjs",
+      "sourceBlob": "445b85b07f6e00b762589f54010aefa5b81c1d2d",
+      "sha256": "0d094920244a32b95e9680db299dbac4633c566d186de06caa98a06ab80ae187",
+      "adapted": false
+    },
+    {
+      "path": "tests/core-flow.test.mjs",
+      "sourceBlob": "11245ea209cb6472b86319b1a5528b4a244177fb",
+      "sha256": "c65746e605d5274a9979d418e85c22d9792c095cdb4276158f9ead4002b4b387",
+      "adapted": false
+    },
+    {
+      "path": "tests/engineering-context.test.mjs",
+      "sourceBlob": "78533a16fa4585db6ab16b629ba1b51edacda2e4",
+      "sha256": "bb44cce7566f19f3278736255f977b5e0cb75231ef7577ada1ce4ce73fbb5d0c",
+      "adapted": false
+    },
+    {
+      "path": "tests/evidence-concurrency.test.mjs",
+      "sourceBlob": "3e48712731e708cd83adf117cfb5e9ba2f7e2d62",
+      "sha256": "141478c4c601f03abb48d6caf4c9b5159003480225dceb062e05aaabaa6520f8",
+      "adapted": false
+    },
+    {
+      "path": "tests/evidence-v4.test.mjs",
+      "sourceBlob": "d35e212d0b659493176fe47fd8938fb7a973d517",
+      "sha256": "bb57e213068b3faacc3fdf878b9a154c4aefadb37db7ca6af922dfc022e65531",
+      "adapted": false
+    },
+    {
+      "path": "tests/experiment-causal-readout.test.mjs",
+      "sourceBlob": "9419fb8b17da29fe8c69b24ee1db17ab08bfddc9",
+      "sha256": "df54921fe349f4dfda80eb61544b3373e5d60c2d85f0cbc88f0ee4a5134e419f",
+      "adapted": false
+    },
+    {
+      "path": "tests/kernel-event-accuracy.test.mjs",
+      "sourceBlob": "40ed1e85f7397eb259915ee3bd3cb8ea9d4307c2",
+      "sha256": "d64cb6447654cec3e9e6a64a9d5d058f5fed8434bf803d5b8c7c2b78c05d4a2c",
+      "adapted": false
+    },
+    {
+      "path": "tests/plain-course.test.mjs",
+      "sourceBlob": "c021b1364934850d04f1598a83802eb9a2cc52b5",
+      "sha256": "5607f511c1d4dd7f182dca22618f461b8885f5210797803fdccde1a0b8ff4801",
+      "adapted": false
+    },
+    {
+      "path": "tests/switching-lesson-v1.test.mjs",
+      "sourceBlob": "4ab4a129f87214e224bc9d52648d8ecdddb773a9",
+      "sha256": "2dc095e4053585e5892efcee00de8a67d93de4f2a8fd3768c000184ede37fb66",
+      "adapted": false
+    },
+    {
+      "path": "tests/workspace.test.mjs",
+      "sourceBlob": "316c14b2a002b01d0e5a73f3b797a29cce74fceb",
+      "sha256": "459c2e635dd3898e1fb31c9a01cd7183a489780cc3ec4920cdb2e9a88d9ec117",
+      "adapted": false
+    }
+  ],
+  "testFiles": [
+    "tests/continuous-course.test.mjs",
+    "tests/continuous-kernel.test.mjs",
+    "tests/experiment-causal-readout.test.mjs",
+    "tests/switching-lesson-v1.test.mjs",
+    "tests/evidence-concurrency.test.mjs",
+    "tests/evidence-v4.test.mjs",
+    "tests/core-flow.test.mjs",
+    "tests/plain-course.test.mjs",
+    "tests/workspace.test.mjs",
+    "tests/kernel-event-accuracy.test.mjs",
+    "tests/engineering-context.test.mjs",
+    "tests/beginner-causal-guides.test.mjs"
+  ]
+}

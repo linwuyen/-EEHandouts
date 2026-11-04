@@ -1,0 +1,59 @@
+/* EE navigation only. Numerical work and evidence remain owned by imported modules. */
+(()=>{
+ 'use strict';
+ const $=id=>document.getElementById(id);
+ const course='../middle.html#lesson/mid-basics/mid-buck-pwm';
+ const sourceCommit='11ef4e4801b5283f265dc349a4afec0027603228';
+ let loadFailed=false,leaving=false,mounted=false;
+ document.documentElement.dataset.eeWorkbenchState='loading';
+ function notice(text){const n=$('ee-host-status');if(n)n.textContent=text;}
+ function fail(text){loadFailed=true;document.documentElement.dataset.eeWorkbenchState='failed';const main=document.querySelector('main');if(main)main.inert=true;notice(text+'；請保留學習備份，原教材與已存紀錄不會被清除。');}
+ window.addEventListener('error',event=>{if(event.target?.tagName==='SCRIPT')fail('實驗資產載入失敗：'+new URL(event.target.src).pathname.split('/').pop());},true);
+ const destinations=new Set([course,'records.html','coverage.html','../index.html','../index.html#lesson/analog/adc','../index.html#lesson/analog/op','../index.html#lesson/analog/pi','../advanced.html#timing']);
+ function safeDestination(path){
+  const u=new URL(path,location.href);
+  return [...destinations].some(p=>new URL(p,location.href).href===u.href)?u:null;
+ }
+ async function leave(path=course){
+  if(leaving)return false;const url=safeDestination(path);if(!url){notice('返回目標不在本站允許清單；未離開目前實驗。');return false;}
+  leaving=true;
+  try{
+   const E=window.CircuitEvidence;
+   // Never treat missing persistence after mount as a successful save.
+   if(mounted&&!E){notice('儲存元件不可用；已取消離開。');return false;}
+   if(E){const status=await E.flush();if(!status.saved){notice('學習紀錄尚未儲存（'+(status.reason||'pending')+'）；已取消離開，請先匯出備份或解決衝突。');return false;}}
+   location.assign(url.href);return true;
+  }catch(error){notice('儲存失敗，已取消離開：'+error.message);return false;}
+  finally{leaving=false;}
+ }
+ function referenceHref(source){
+  if(source==='map.html')return 'records.html';
+  if(source==='catalog.html')return '../index.html';
+  if(source.startsWith('0_buck_converter_'))return course;
+  if(source.startsWith('1_c2000_adc_calculator')||source.startsWith('9.afe-tutorial'))return '../index.html#lesson/analog/adc';
+  if(source.startsWith('12_opamp_slew_rate'))return '../index.html#lesson/analog/op';
+  if(source.startsWith('4_PI')||source.startsWith('18_control_unification'))return '../index.html#lesson/analog/pi';
+  if(source.startsWith('6.')||source.startsWith('13_power_sync'))return '../advanced.html#timing';
+  return 'coverage.html';
+ }
+ function reference(source,title){
+  const box=$('workspace-reference');if(!box)return;
+  box.hidden=false;$('reference-frame').hidden=true;$('reference-frame').removeAttribute('src');
+  $('reference-title').textContent=title||'返回教材';const links=$('reference-links');links.replaceChildren();
+  const destination=referenceHref(source),p=document.createElement('p');
+  p.textContent=source==='map.html'?'實驗、舊課及正式評量紀錄各自保留。可開啟唯讀紀錄頁並匯出完整備份。':destination==='coverage.html'?'這個進階功能尚未遷入 EEHandouts。既有作答仍保留，不會改成已完成；本批不連回舊網站。':'開啟 EEHandouts 對應教材；它的模型與參數不會自動套用到本實驗。';links.append(p);
+  const b=document.createElement('button');b.type='button';b.textContent=source==='map.html'?'保存後查看紀錄與備份':destination==='coverage.html'?'保存後查看遷移範圍':'保存後開啟本站教材';b.onclick=()=>leave(destination);links.append(b);box.scrollIntoView({block:'start'});
+ }
+ function recommendation(next,button){
+  button.hidden=next.id==='experiment'||/^(basic|bridge)-/.test(next.id);
+  button.textContent=['formal','quiz'].includes(next.id)?'到期複習紀錄仍保留（評量頁待遷入）':'進階紀錄仍保留（功能待遷入）';
+  button.dataset.route=window.CircuitUnifiedLearning.route(next.id);
+  button.onclick=()=>reference(button.dataset.route,'進階紀錄與後續遷移');
+ }
+ function complete(){reference('catalog.html','Buck 八步實驗完成：回教材整理觀察');}
+ function markReady(){if(loadFailed)return false;mounted=true;document.documentElement.dataset.eeWorkbenchState='ready';notice('EEHandouts 內建實驗 · 來源 '+sourceCommit.slice(0,8)+' · 實驗證據與教材已讀分開保存。');return true;}
+ $('ee-return')?.addEventListener('click',()=>leave(course));
+ $('ee-records')?.addEventListener('click',event=>{event.preventDefault();leave('records.html');});
+ window.addEventListener('circuit:evidence-persistence',event=>{if(event.detail.saved){if(mounted&&!loadFailed)notice('實驗紀錄已儲存；可返回原 Buck 教材。');}else notice('實驗紀錄尚未儲存；請保留備份，離開前會再次檢查。');});
+ window.EEWorkbenchHost=Object.freeze({leave,notice,fail,referenceHref,reference,recommendation,complete,markReady,hasFailed:()=>loadFailed,course,sourceCommit});
+})();

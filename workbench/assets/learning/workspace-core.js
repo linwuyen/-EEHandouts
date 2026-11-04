@@ -1,0 +1,128 @@
+(function(root,factory){const api=factory(root);if(typeof module==='object'&&module.exports)module.exports=api;root.CircuitWorkspace=api;})(globalThis,function(root){
+ 'use strict';
+ const ids=['duty','inductor','load','probe','timing','error','adjust','overshoot'];
+ const titles=['開久一點，輸出會怎樣？','關掉開關，電流就停了嗎？','用電變少，哪裡不同？','數字變小，就是電流變小嗎？','算完，就立刻生效嗎？','離目標還差多少？','怎麼讓它自己靠近目標？','為什麼調太多，反而來回晃？'];
+ const abilities=['比較開關時間與輸出','辨認關閉後仍在流動的電流','找出電流停下的區間','分辨電路電流與儀器顯示','分辨算完與生效','看出目標與量測的差距','理解先量再調的過程','辨認過度修正造成的來回變化'];
+ const resources={duty:[0],inductor:[0],load:[0],probe:[1,9,12],timing:[6,13],error:[4],adjust:[4,18],overshoot:[4,16,18]};
+ const defaults={vin:48,duty:.25,inductanceUh:100,fswKhz:100,loadOhm:5,capacitanceUf:220,esrOhm:0};
+ function plan(id,current){
+  if(!ids.includes(id))throw new Error('未知課程');
+  if(id==='duty'||id==='load')return {...defaults};
+  if(id==='inductor')return {...defaults,vin:current.vin,duty:current.duty>=.25&&current.duty<=.5?current.duty:.25};
+  return {...current};
+ }
+ function changed(a,b){return Object.keys(defaults).filter(k=>a[k]!==b[k]);}
+ function apply(id,value,model){
+  const next={...model};if(id==='duty')next.duty=value/100;if(id==='load')next.loadOhm=value;return next;
+ }
+ function locate(raw){const id=String(raw||'').replace(/^#/,'');return ids.includes(id)?id:null;}
+ function transfer(id,current){
+  const cases={
+   duty:{model:{...defaults,vin:36,duty:.5},note:'輸入換成 36 V，每輪開關打開一半。'},
+   inductor:{model:{...defaults,vin:36,duty:.5},note:'這次電感右端為 18 V，開關已關閉。'},
+   load:{model:{...defaults,vin:36,loadOhm:100},note:'換成 36 V 輸入，觀察每輪都有電流停下的區間。'},
+   probe:{model:{...defaults,loadOhm:4},note:'電路真實電流為 3 A，實際探棒 10 倍、儀器設定 1 倍。',probe:1},
+   timing:{model:{...current,fswKhz:200},note:'每 5 微秒更新一次，6 微秒算完。',ready:6,period:5},
+   error:{model:{...current},note:'示意目標換成 15 V，目前量到 12 V。',target:15,initial:12},
+   adjust:{model:{...current},note:'示意目標 10 V、目前 7 V，這次補上差距的一半。',target:10,initial:7,gain:.5},
+   overshoot:{model:{...current},note:'示意目標 10 V、目前 8 V，這次補上差距的 1.2 倍。',target:10,initial:8,gain:1.2}
+  };return cases[id];
+ }
+ function bucket(id){return ids.indexOf(id)<5?'beginnerLessons':'bridgeLessons';}
+ function history(rows,entry){return [...(Array.isArray(rows)?rows:[]),JSON.parse(JSON.stringify(entry))].slice(-20);}
+ function experimentLessons(){return (root.CircuitEngineeringCurriculum||(typeof require==='function'?require('./engineering-curriculum.js'):null)).workbenchLessons;}
+ const experimentDefaults={vin:48,cycles:1600,controlPeriodUs:10,plantDtUs:.25,inductanceUh:500,capacitanceUf:220,commandProfile:[{cycle:0,vref:24}],loadProfile:[{cycle:0,ohm:12}],controlMode:'manual',manualDuty:.25,kpV:.2,kiV:40,kpI:.05,kiI:100,sensorGain:1,computeUs:1.7,tripCurrent:18,detailCycle:1500};
+ function experimentPlan(id){const lessons=experimentLessons(),index=lessons.findIndex(l=>l.id===id);if(index<0)throw Error('未知連續實驗');let before=JSON.parse(JSON.stringify(experimentDefaults));for(let i=0;i<index;i++)before={...before,...lessons[i].prepare,...lessons[i].change};const prepared={...before,...lessons[index].prepare};return {before,prepared,after:{...prepared,...lessons[index].change}};}
+ function experimentRun(config){const registry=root.CircuitModelRegistry||(typeof require==='function'?require('./model-registry.js'):null);return registry.run('generic-power-causal-kernel',config);}
+ function experimentTransfer(plan){return {before:{...plan.prepared,vin:36},after:{...plan.after,vin:36}};}
+ // Read-only projection of actual registered-kernel outputs. Does not score answers.
+ function experimentReadout(id,before,after){
+  if(!before||!after)return null;
+  const last=r=>r.trace.at(-1),tail=r=>r.trace.slice(-320);
+  const loadMean=r=>{const rows=tail(r);return rows.reduce((s,x)=>s+x.vOut/x.load,0)/rows.length;};
+  const row=(label,start,end,unit)=>({label,before:start,after:end,unit});
+  let rows=[],context='同一起點、相同模擬時長的兩次計算';
+  switch(id){
+   case 'energy':
+    rows=[row('最後一段平均 Vout',before.summary.avgV,after.summary.avgV,'V'),
+          row('啟動最高 Vout',before.summary.peakV,after.summary.peakV,'V')];break;
+   case 'storage':{
+    const off=(after.waveform||[]).filter(x=>!x.gate);
+    if(off.length<2)return null;
+    context='同一輪開關關閉區段：首點 → 末點（不是改動前後）';
+    rows=[row('電感電流 iL',off[0].iL,off.at(-1).iL,'A')];break;
+   }
+   case 'demand':
+    rows=[row('最後一段平均負載電流',loadMean(before),loadMean(after),'A'),
+          row('最後一段平均 Vout',before.summary.avgV,after.summary.avgV,'V')];break;
+   case 'sensing':
+    rows=[row('最後一次取樣的實際電壓',last(before).samplePhysicalV,last(after).samplePhysicalV,'V'),
+          row('同次取樣的控制器讀值',last(before).sampledV,last(after).sampledV,'V')];break;
+   case 'feedback':{
+    const target=after.config.commandProfile[0].vref;
+    rows=[row('最後一段平均 Vout',before.summary.avgV,after.summary.avgV,'V'),
+          row('平均輸出距目標的絕對差',Math.abs(target-before.summary.avgV),Math.abs(target-after.summary.avgV),'V')];break;
+   }
+   case 'deadline':
+    rows=[row('第 0 輪命令排定生效輪次',before.trace[0].scheduledApplyCycle,after.trace[0].scheduledApplyCycle,'輪'),
+          row('錯過更新點次數',before.summary.missedCommits,after.summary.missedCommits,'次')];break;
+   case 'response':
+    rows=[row('啟動最高 Vout',before.summary.peakV,after.summary.peakV,'V'),
+          row('最後一段平均 Vout',before.summary.avgV,after.summary.avgV,'V')];break;
+   case 'protection':
+    rows=[row('最後一輪實際 PWM duty',last(before).appliedDuty*100,last(after).appliedDuty*100,'%'),
+          row('最後輸出電壓',before.summary.finalV,after.summary.finalV,'V')];break;
+   default:return null;
+  }
+  if(rows.some(x=>!Number.isFinite(x.before)||!Number.isFinite(x.after)))return null;
+  return {context,rows,source:'generic-power-causal-kernel 模擬資料；不是實板量測或獨立模型驗證'};
+ }
+ function topologyParams(raw){
+  const ranges={vin:[5,100],duty:[.05,.8],inductanceH:[20e-6,.01],capacitanceF:[1e-6,.01],loadOhm:[.5,1000],esrOhm:[0,0],switchingHz:[1000,1000000]},p={};
+  for(const[k,[lo,hi]]of Object.entries(ranges)){const v=raw?.[k];if(typeof v!=='number'||!Number.isFinite(v)||v<lo||v>hi)throw Error('比較條件無效：'+k);p[k]=v;}return p;
+ }
+ function topologyPlan(e={}){
+  const rows=e.benchmark?.learningWorkspace?.experiment?.history||[];
+  const source=[...rows].reverse().find(h=>h?.config?.controlMode==='manual'&&h.config.sensorGain===1);
+  const c=source?.config||experimentPlan('energy').after;
+  return {params:topologyParams({vin:c.vin,duty:c.manualDuty,inductanceH:c.inductanceUh*1e-6,capacitanceF:c.capacitanceUf*1e-6,loadOhm:c.loadProfile[0].ohm,esrOhm:0,switchingHz:1e6/c.controlPeriodUs}),source:source?'上次手動實驗的條件':'開關比例實驗的指定條件'};
+ }
+ function topologyCompare(raw){const params=topologyParams(raw),changed={...params,duty:Math.round((params.duty+.1)*1e12)/1e12},r=root.CircuitModelRegistry||(typeof require==='function'?require('./model-registry.js'):null);
+  const pair=id=>({before:r.operatingPoint(id,params),after:r.operatingPoint(id,changed)}),buck=pair('buck-ccm-control-output-esr'),boost=pair('boost-ccm-control-output');
+  return {params,changed,buck,boost,valid:[buck.before,buck.after,boost.before,boost.after].every(x=>x.ccmValid===true)};
+ }
+ function topologyProof(r){return r?.version===1&&r.protocol==='topology-workbench-v1'&&!!r.rows?.prediction?.first&&r.operated===true&&['observation','reason','return'].every(k=>r.rows?.[k]?.passed===true);}
+ function applicationLessons(){return (root.CircuitEngineeringCurriculum||(typeof require==='function'?require('./engineering-curriculum.js'):null)).applicationLessons;}
+ function applicationPlan(id){const lesson=applicationLessons().find(l=>l.id===id);if(!lesson)throw Error('未知電路練習');return {before:{...lesson.baseline},after:{...lesson.baseline,...lesson.change}};}
+ function applicationRun(id,controls){const l=applicationLessons().find(l=>l.id===id);if(!l)throw Error('未知電路練習');const params={};
+  for(const[k,[name,scale]]of Object.entries(l.inputs)){const value=controls[k];if(typeof l.baseline[k]==='string'){if(value!==l.baseline[k])throw Error('不符指定電路模式');params[name]=value;}else{if(typeof value!=='number'||!Number.isFinite(value)||value<=0)throw Error('電路條件無效：'+k);params[name]=value*scale;}}
+  const registry=root.CircuitModelRegistry||(typeof require==='function'?require('./model-registry.js'):null);return {params,result:registry.operatingPoint(l.modelId,params)};
+ }
+ function applicationProof(row){return row?.protocol==='topology-application-v1'&&!!row.first&&row.operated===true&&row.observationPassed===true&&row.reasonPassed===true;}
+ // Read-only view of existing evidence. Completion flags are not proof.
+ function practiceRecords(evidence={}){
+  const P=root.CircuitPlainCourse||(typeof require==='function'?require('./plain-course-core.js'):null);
+  if(!P)throw Error('練習判準尚未載入');
+  const w=evidence.benchmark?.learningWorkspace||{};
+  const attempt=r=>r?.first?.correct===true?'首次正確':r?.first?.correct===false?'首次答錯，紀錄保留':'尚未作答';
+  const practice=(id,title,row,passed,valid=true)=>({id,title,passed:!!passed&&valid,status:!valid?'紀錄版本無法判讀':passed?'練習完成':row?'練習中':'尚未開始',first:attempt(row)});
+  const experiment=experimentLessons().map(l=>{const row=w.experiment?.rows?.[l.id];return practice(l.id,l.title,row,P.proven(row),!w.experiment||w.experiment.version===1);});
+  const topology=[practice('comparison','同條件比較降壓與升壓',w.topologyTransfer,topologyProof(w.topologyTransfer),!w.topologyTransfer||w.topologyTransfer.version===1)];
+  topology[0].first=attempt(w.topologyTransfer?.rows?.prediction);
+  const applications=applicationLessons().map(l=>{const row=w.topologyApplications?.rows?.[l.id];return practice(l.id,l.label,row,applicationProof(row),!w.topologyApplications||w.topologyApplications.version===1);});
+  return [{id:'experiment',title:'一台電路，八步練習',rows:experiment},{id:'topology',title:'比較降壓與升壓',rows:topology},{id:'applications',title:'帶到四種電路操作',rows:applications}].map(g=>({...g,completed:g.rows.filter(r=>r.passed).length,total:g.rows.length}));
+ }
+ function learningRecords(evidence={},at=Date.now()){
+  const A=root.CircuitAssessment||(typeof require==='function'?require('./learning-assessment.js'):null);
+  const Q=root.CircuitQuizBank||(typeof require==='function'?require('./quiz-bank.js'):null);
+  if(!A||!Q)throw Error('評量紀錄依賴尚未載入');
+  const assessments=Q.questions.filter(q=>A.topologyFamilyIds.includes(q.id)).map(q=>{
+   const answer=evidence.questions?.[q.id],history=answer?.history;
+   if(answer&&(!Array.isArray(history)||history.some(h=>!h||typeof h!=='object')))return {id:q.id,title:q.kind,passed:false,status:'作答紀錄無法判讀',first:'未推定通過'};
+   const m=A.metrics(answer,at);
+   return {id:q.id,title:q.kind,passed:m.transfer,status:m.due?'複習已到期':m.retained?'已有間隔複習':m.transfer?'新條件已通過':m.attempts?'繼續換條件確認':'尚未作答',first:m.transferFirstAttempt===false?'首次新條件答錯，紀錄保留':m.transferFirstAttempt===true?'首次新條件正確':'尚未作答新條件',dueAt:m.nextReviewAt};
+  });
+  return [...practiceRecords(evidence),{id:'topology-assessment',title:'換條件評量與到期複習',rows:assessments,completed:assessments.filter(r=>r.passed).length,total:assessments.length}];
+ }
+ return {practiceRecords,learningRecords,applicationLessons,applicationPlan,applicationRun,applicationProof,topologyParams,topologyPlan,topologyCompare,topologyProof,experimentLessons,experimentPlan,experimentRun,experimentTransfer,experimentReadout,ids,titles,abilities,resources,defaults,plan,changed,apply,transfer,locate,bucket,history};
+});
