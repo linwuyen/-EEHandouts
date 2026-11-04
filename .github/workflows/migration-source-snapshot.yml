@@ -1,0 +1,52 @@
+name: Migration source snapshot (preparation only)
+on:
+  push:
+    branches: ['prep/circuit-migration-source-20261104']
+permissions:
+  contents: read
+jobs:
+  snapshot:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: b1e41595e4602b67d0dbbb353f92dddddd0c5484
+          path: ee
+          persist-credentials: false
+      - uses: actions/checkout@v7
+        with:
+          repository: linwuyen/Circuit-Simulation
+          ref: 11ef4e4801b5283f265dc349a4afec0027603228
+          path: circuit
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Export tracked sources and manifests without credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C ee rev-parse HEAD)" = b1e41595e4602b67d0dbbb353f92dddddd0c5484
+          test "$(git -C circuit rev-parse HEAD)" = 11ef4e4801b5283f265dc349a4afec0027603228
+          mkdir -p snapshots
+          for repo in ee circuit; do
+            git -C "$repo" archive --format=tar HEAD | gzip -n > "snapshots/$repo-source.tar.gz"
+            git -C "$repo" ls-tree -r --full-tree HEAD > "snapshots/$repo-manifest.tsv"
+            git -C "$repo" show -s --format='%H%n%T%n%B' HEAD > "snapshots/$repo-version.txt"
+          done
+      - name: Prepare pinned local test dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          (cd ee && npm ci --ignore-scripts --no-audit --no-fund)
+          (cd circuit && npm ci --ignore-scripts --no-audit --no-fund)
+          tar -C ee -czf snapshots/ee-test-dependencies.tar.gz node_modules
+          tar -C circuit -czf snapshots/circuit-test-dependencies.tar.gz node_modules
+          (cd snapshots && sha256sum *.tar.gz > SHA256SUMS)
+      - uses: actions/upload-artifact@v7
+        with:
+          name: exact-migration-sources
+          path: snapshots/
+          retention-days: 7
+          if-no-files-found: error
