@@ -1,0 +1,84 @@
+name: Submit locally verified Buck integration
+
+# One-time transport only. Never merge this branch or deploy it.
+on:
+  push:
+    branches: ['ops/buck-integration-submit-20261104']
+permissions:
+  contents: write
+jobs:
+  submit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Read immutable integration payload
+        uses: actions/checkout@v7
+        with:
+          path: driver
+          persist-credentials: false
+      - name: Read exact EEHandouts baseline
+        uses: actions/checkout@v7
+        with:
+          ref: b1e41595e4602b67d0dbbb353f92dddddd0c5484
+          path: ee
+          persist-credentials: true
+      - name: Read approved Circuit source once
+        uses: actions/checkout@v7
+        with:
+          repository: linwuyen/Circuit-Simulation
+          ref: 11ef4e4801b5283f265dc349a4afec0027603228
+          path: circuit
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Reconstruct locally tested implementation tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C ee rev-parse HEAD)" = b1e41595e4602b67d0dbbb353f92dddddd0c5484
+          test "$(git -C circuit rev-parse HEAD)" = 11ef4e4801b5283f265dc349a4afec0027603228
+          cat driver/.migration/part-*.b64 | base64 --decode > /tmp/integration-overlay.xz
+          echo '81be5f4b5564f74258b407ffa45dcfd7926efba27b404abd7f9022f16b37fd59  /tmp/integration-overlay.xz' | sha256sum --check
+          xz --decompress --stdout /tmp/integration-overlay.xz > /tmp/integration-overlay.patch
+          git -C ee apply --check /tmp/integration-overlay.patch
+          git -C ee apply /tmp/integration-overlay.patch
+          python3 ee/scripts/import-circuit-buck.py circuit --target ee
+          git -C ee add -A
+          git -C ee diff --cached --check
+          test "$(git -C ee write-tree)" = a3d158bcda1e5a5d9cfb7fb01a1233c6d1dae359
+      - name: Verify all engineering, content and migrated source tests
+        working-directory: ee
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run test:ci | tee /tmp/buck-integration-unit.log
+          git add -A
+          test "$(git write-tree)" = a3d158bcda1e5a5d9cfb7fb01a1233c6d1dae359
+      - name: Publish new implementation branch only
+        working-directory: ee
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = b1e41595e4602b67d0dbbb353f92dddddd0c5484
+          if test -n "$(git ls-remote origin refs/heads/migration/buck-workbench-20261104)"; then
+            echo 'Refusing to overwrite existing migration branch'; exit 1
+          fi
+          git config user.name 'Zerofivem'
+          git config user.email '15869648+linwuyen@users.noreply.github.com'
+          git checkout -b migration/buck-workbench-20261104
+          git commit -m 'feat: absorb standalone Buck workbench into EEHandouts with durable course return' -m 'Pinned Circuit source 11ef4e4801b5283f265dc349a4afec0027603228; runtime and normal builds are independent of the old repo. Preserve numerical/evidence owners, storage protocol, EE reading progress and existing release gates. Local and runner engineering/content/source tests passed. Full browser acceptance requires the PR exact HEAD. This is the first migration slice, not retirement of the old project.'
+          test "$(git rev-parse HEAD^{tree})" = a3d158bcda1e5a5d9cfb7fb01a1233c6d1dae359
+          git push origin HEAD:refs/heads/migration/buck-workbench-20261104
+          git show -s --format='%H%n%T%n%B' HEAD > /tmp/buck-integration-commit.txt
+      - name: Save implementation verification evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: buck-integration-submission-evidence
+          path: |
+            /tmp/buck-integration-unit.log
+            /tmp/buck-integration-commit.txt
+          if-no-files-found: warn
+          retention-days: 7
