@@ -1,0 +1,60 @@
+name: Submit verified Buck Boost migration
+on:
+  push:
+    branches: [ops/topology-migration-submit-20261104]
+permissions:
+  contents: write
+jobs:
+  submit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: payload
+      - uses: actions/checkout@v7
+        with:
+          ref: 9a4a2603c974ae22998bdfe4348890c00e146300
+          path: product
+      - uses: actions/checkout@v7
+        with:
+          repository: linwuyen/Circuit-Simulation
+          ref: 11ef4e4801b5283f265dc349a4afec0027603228
+          path: source
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: product/package-lock.json
+      - name: Reconstruct exact locally tested tree
+        run: python3 payload/.migration-topology/reconstruct.py
+      - name: Verify all engineering and imported source tests
+        working-directory: product
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run test:ci | tee ../submission-tests.log
+          git diff --cached --check
+          test "$(git write-tree)" = 89e44c629d0994b21c1c9605b197e19a2a76be35
+      - name: Publish only a new isolated migration branch
+        working-directory: product
+        run: |
+          set -euo pipefail
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = 9a4a2603c974ae22998bdfe4348890c00e146300
+          branch=migration/buck-boost-comparison-20261104
+          test -z "$(git ls-remote origin "refs/heads/$branch")"
+          git config user.name Zerofivem
+          git config user.email 15869648+linwuyen@users.noreply.github.com
+          git switch -c "$branch"
+          git commit -m 'feat: absorb local Buck Boost comparison preserving model and evidence owners' -m 'Migration slice 2 from pinned Circuit source 11ef4e48. Numerical, proof and storage owners remain unchanged. Preserve first attempts, raw future-version data, save-gated navigation and original EE lessons. Add CCM validity, model dependency, browser and published-asset tests. Local and clean-runner engineering/source tests pass; exact-HEAD browser CI and independent review remain required. No source repo retirement or main deployment.'
+          git push origin "HEAD:refs/heads/$branch"
+          git rev-parse HEAD > ../submission-head.txt
+      - uses: actions/upload-artifact@v7
+        with:
+          name: topology-migration-submission-evidence
+          path: |
+            submission-tree.txt
+            submission-head.txt
+            submission-tests.log
+          retention-days: 7
