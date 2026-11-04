@@ -1,0 +1,47 @@
+name: Capture approved migration sources
+
+# One-time migration support branch only. Never deploy, never write either source.
+on:
+  push:
+    branches: ['ops/migration-source-snapshot-20261104']
+    paths: ['.github/workflows/migration-source-snapshot.yml']
+permissions:
+  contents: read
+jobs:
+  snapshot:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Read exact EEHandouts baseline
+        uses: actions/checkout@v7
+        with:
+          ref: b1e41595e4602b67d0dbbb353f92dddddd0c5484
+          path: ee-source
+          persist-credentials: false
+      - name: Read exact approved Circuit-Simulation baseline
+        uses: actions/checkout@v7
+        with:
+          repository: linwuyen/Circuit-Simulation
+          ref: 11ef4e4801b5283f265dc349a4afec0027603228
+          path: circuit-source
+          persist-credentials: false
+      - name: Archive tracked source only and record immutable manifests
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C ee-source rev-parse HEAD)" = b1e41595e4602b67d0dbbb353f92dddddd0c5484
+          test "$(git -C circuit-source rev-parse HEAD)" = 11ef4e4801b5283f265dc349a4afec0027603228
+          mkdir -p migration-sources
+          git -C ee-source archive --format=tar.gz --prefix=ee/ HEAD > migration-sources/ee-source.tar.gz
+          git -C circuit-source archive --format=tar.gz --prefix=circuit/ HEAD > migration-sources/circuit-source.tar.gz
+          git -C ee-source ls-tree -r HEAD > migration-sources/ee-git-tree.txt
+          git -C circuit-source ls-tree -r HEAD > migration-sources/circuit-git-tree.txt
+          printf '%s\n' 'EEHandouts b1e41595e4602b67d0dbbb353f92dddddd0c5484' 'Circuit-Simulation 11ef4e4801b5283f265dc349a4afec0027603228' > migration-sources/SOURCES.txt
+          (cd migration-sources && sha256sum *.tar.gz > SHA256SUMS)
+      - name: Upload migration source snapshot
+        uses: actions/upload-artifact@v7
+        with:
+          name: eehandouts-immutable-migration-sources
+          path: migration-sources/
+          if-no-files-found: error
+          retention-days: 7
