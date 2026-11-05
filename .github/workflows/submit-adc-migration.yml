@@ -1,0 +1,92 @@
+name: Verify and submit ADC migration
+on:
+  push:
+    branches: [ops/adc-migration-20261106]
+permissions:
+  contents: write
+jobs:
+  verify-and-submit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: payload
+      - uses: actions/checkout@v7
+        with:
+          ref: 36abe27f619bcb39397913ada3fb1832ca49ca6b
+          path: product
+      - uses: actions/checkout@v7
+        with:
+          repository: linwuyen/Circuit-Simulation
+          ref: 11ef4e4801b5283f265dc349a4afec0027603228
+          path: source
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: product/package-lock.json
+      - name: Reconstruct exact locally tested product tree
+        run: python3 payload/.migration-adc/reconstruct.py
+      - name: Verify all engineering and unchanged source tests
+        working-directory: product
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run test:ci | tee ../engineering-tests.log
+          git diff --cached --check
+          test "$(git write-tree)" = f6421150139936fe4134624d8f33013548599e49
+      - name: Install pinned browser executables and local PDF assets
+        working-directory: product
+        run: |
+          npx playwright install --with-deps chromium firefox webkit
+          bash scripts/prepare-pdfjs.sh
+      - name: Run static site
+        working-directory: product
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > ../http-server.log 2>&1 &
+          for i in $(seq 1 20); do
+            if curl -fsS http://127.0.0.1:4173/index.html > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat ../http-server.log
+          exit 1
+      - name: Verify ADC and original Buck in all three browsers
+        working-directory: product
+        run: |
+          set -euo pipefail
+          node tests/adc-workbench-smoke.mjs | tee ../adc-chromium.log
+          node tests/adc-workbench-smoke.mjs --cross-browser | tee ../adc-cross.log
+          node tests/buck-workbench-smoke.mjs | tee ../buck-chromium.log
+          node tests/buck-workbench-smoke.mjs --cross-browser | tee ../buck-cross.log
+      - name: Publish only a new isolated ADC branch
+        working-directory: product
+        run: |
+          set -euo pipefail
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = 36abe27f619bcb39397913ada3fb1832ca49ca6b
+          test "$(git write-tree)" = f6421150139936fe4134624d8f33013548599e49
+          test -z "$(git diff --name-only)"
+          branch=migration/adc-signal-chain-20261106
+          test -z "$(git ls-remote origin "refs/heads/$branch")"
+          git config user.name Zerofivem
+          git config user.email 15869648+linwuyen@users.noreply.github.com
+          git switch -c "$branch"
+          git commit -m 'feat: absorb stateless ADC signal-chain calculator into EEHandouts' -m 'Slice 4a from pinned Circuit source 11ef4e48. Preserve source numerical owner and existing Evidence/assessment semantics. Add local lesson and save-gated workbench entry, readonly storage boundary, invalid-input fail-closed UI, source fixtures and three-browser lifecycle tests. Defer contradictory legacy ADC lesson pages explicitly. No main update, source retirement or data deletion. Exact-head full PR CI and independent review remain required.'
+          git push origin "HEAD:refs/heads/$branch"
+          git rev-parse HEAD > ../submission-head.txt
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: adc-migration-submission-evidence
+          path: |
+            submission-tree.txt
+            submission-head.txt
+            engineering-tests.log
+            adc-chromium.log
+            adc-cross.log
+            buck-chromium.log
+            buck-cross.log
+            http-server.log
+            product/tests/screenshots/cross-*.png
+          retention-days: 7
