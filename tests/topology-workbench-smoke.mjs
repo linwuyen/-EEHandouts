@@ -112,6 +112,23 @@ for(const [engine,type] of process.argv.includes('--cross-browser')?[['firefox',
   const winner=await b.evaluate(k=>localStorage.getItem(k),key);assert.equal(await a.evaluate(()=>EEWorkbenchHost.leave('index.html#experiment')),false);
   assert.equal(await a.evaluate(k=>localStorage.getItem(k),key),winner);assert.equal(await a.locator('main').evaluate(n=>n.inert),true);
   const popup=a.waitForEvent('popup');await a.locator('#ee-records').click();const backup=await popup;await backup.waitForLoadState('domcontentloaded');assert.match(backup.url(),/records\.html/);await conflict.close();
+  // The legacy #topology alias must use the same save gate after mounting.
+  const routeQuota=await fresh(),rq=await routeQuota.newPage();await rq.goto(BASE+'/workbench/index.html');await ready(rq);
+  const routeRaw=await rq.evaluate(k=>localStorage.getItem(k),key);
+  await rq.evaluate(()=>{const original=Storage.prototype.setItem;Storage.prototype.setItem=function(k,v){if(k==='circuit-learning-state-v5')throw new DOMException('full','QuotaExceededError');return original.call(this,k,v);};});
+  await rq.locator('input[name="experiment-answer"][value="up"]').check();await rq.locator('#workspace-submit').click();
+  await rq.waitForFunction(()=>!CircuitEvidence.storageStatus().saved&&document.getElementById('ws-save').textContent.includes('尚未'));
+  await rq.evaluate(()=>location.hash='topology');
+  await rq.waitForFunction(()=>location.hash==='#experiment-energy'&&document.getElementById('ee-host-status').textContent.includes('取消離開'));
+  assert.match(rq.url(),/index\.html#experiment-energy$/);assert.equal(await rq.evaluate(k=>localStorage.getItem(k),key),routeRaw);
+  assert.equal(await rq.evaluate(()=>CircuitEvidence.load().benchmark.learningWorkspace.experiment.rows.energy.first.answer),'up','unsaved judgment remains in the draft');
+  await routeQuota.close();
+  const routeFuture=await fresh(),rf=await routeFuture.newPage();await rf.goto(BASE+'/workbench/index.html');await ready(rf);
+  const routeFutureRaw=JSON.stringify({schema:'circuit-learning-state',version:6,preserve:'hash-route-future'});
+  await rf.evaluate(({key,raw})=>{localStorage.setItem(key,raw);location.hash='topology';},{key,raw:routeFutureRaw});
+  await rf.waitForFunction(()=>document.documentElement.dataset.eeWorkbenchState==='protected'&&location.hash==='#experiment-energy');
+  assert.match(rf.url(),/index\.html#experiment-energy$/);assert.equal(await rf.evaluate(k=>localStorage.getItem(k),key),routeFutureRaw);
+  assert.equal(await rf.evaluate(()=>localStorage.getItem('circuit-learning-state-v5-corrupt-backup')),null);await routeFuture.close();
   // Version update while contract fetch is pending: no legacy normalizer/write.
   const loading=await fresh();let release;const barrier=new Promise(resolve=>release=resolve);
   await loading.route('**/assets/learning/model-contracts-v1.json',async r=>{await barrier;await r.continue();});
