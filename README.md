@@ -390,3 +390,11 @@ Node.js 22 開發環境：執行 `npm ci --ignore-scripts`，再安裝 Chromium�
 資產與必要測試已實體搬入 EEHandouts，不依賴舊 Circuit 網站或在建置時下載舊 repo。每次從零初值重跑 16 ms；不是實機或儲能 checkpoint。
 返回教材前必須保存成功。quota／衝突／較新紀錄不會靜默覆寫，可開唯讀備份頁。非本批模組明示待遷入，不提供失效連結。
 範圍、來源與退役門檻見 `docs/migrations/circuit-inventory.md`；第一批不等於整個 Circuit 遷移完成。
+
+## Circuit 吸收第二批：Buck／Boost 比較
+
+從中冊 Buck 的本站八步實驗接續 `workbench/topology.html`，完成預測、操作／觀察、原因、回到原問題的比較練習，再保存後返回八步或 Boost 教材。獨立 document 不代表另一個網站；資產與正常建置都由 EEHandouts 擁有。
+
+沿用來源 `11ef4e48` 的 topologyPlan / Compare / Proof、模型登錄與 Evidence V5；不改數值/評量/儲存 owner。只帶入原 owner 選定的手動設定，沒有將暫態儲能、閉迴路或 fault state 當作穩態比較初值。CCM 邊界、零 ESR、RHP 零點非實測頻寬的限制保留。
+
+第二批新增 `tests/topology-migration-contracts.mjs`、`tests/topology-workbench-smoke.mjs` 及原樣搬入的 topology-workspace/transfer tests。完整八步回歸保留並驗實際轉接；發布守門增加比較頁、UI、模型契約的缺檔拒絕。舊 repo、未遷入功能與 Issue #20 並未因此退役或結案。來源與驗收範圍見 `docs/migrations/circuit-inventory.md`。

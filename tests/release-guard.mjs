@@ -34,7 +34,7 @@ assert.ok(verify.includes('run: bash scripts/prepare-pdfjs.sh'),'CI must prepare
 assert.ok(publish.includes('run: bash scripts/prepare-pdfjs.sh'),'Pages must bundle verified PDF.js assets');
 
 assert.ok(pkg.scripts['test:browser'].includes('tests/middle-engineering.mjs'), 'Keep the newer middle-volume DCM engineering regression in the suite');
-assert.equal(pkg.scripts['test:cross-browser'],'node tests/cross-browser.mjs && node tests/review-fixes-smoke.mjs --cross-browser && node tests/review-round2-smoke.mjs --cross-browser && node tests/buck-workbench-smoke.mjs --cross-browser','Firefox/WebKit original and review suites run in the separate CI job');
+assert.equal(pkg.scripts['test:cross-browser'],'node tests/cross-browser.mjs && node tests/review-fixes-smoke.mjs --cross-browser && node tests/review-round2-smoke.mjs --cross-browser && node tests/buck-workbench-smoke.mjs --cross-browser && node tests/topology-workbench-smoke.mjs --cross-browser','Firefox/WebKit original and review suites run in the separate CI job');
 for(const file of ['llc-accuracy.mjs','pfc-event-time.mjs','advanced-control-defaults.mjs'])
   assert.ok(pkg.scripts['test:ci'].includes('tests/'+file),'Round2 numerical/event/control regression required: '+file);
 assert.ok(pkg.scripts['test:browser'].includes('tests/review-round2-smoke.mjs'),'Round2 Chromium DOM regression required');
@@ -110,26 +110,29 @@ printf '%s\\n' "$MOCK_REMOTE_SHA"
 // Post-deploy verifier must reject stale/nonexistent public SHA.
 const publicationScript=readFileSync('scripts/check-published-head.sh','utf8');
 assert.ok(publicationScript.includes('release-sha.txt'),'Public artifact SHA marker required');
+for(const asset of ['workbench/index.html','workbench/topology.html','workbench/ee-host.js','workbench/ee-topology-entry.js','workbench/assets/learning/workspace-topology-ui.js','workbench/assets/learning/model-contracts-v1.json'])assert.ok(publicationScript.includes(asset),'Public workbench asset required: '+asset);
 const publicationTemp=mkdtempSync(join(tmpdir(),'eehandouts-publication-guard-'));
 try{
   const mockCurl=join(publicationTemp,'curl');
   writeFileSync(mockCurl,`#!/usr/bin/env bash
 set -euo pipefail
 for arg in "$@"; do
+  if [[ -n "\${MOCK_MISSING_ASSET:-}" && "$arg" == *"\${MOCK_MISSING_ASSET}"* ]]; then exit 22; fi
   if [[ "$arg" == *"release-sha.txt"* ]]; then printf '%s\\n' "\${MOCK_PUBLISHED_SHA}"; exit 0; fi
 done
 exit 0
 `);
   chmodSync(mockCurl,0o755);
   const verified='c'.repeat(40);
-  function checkPublic(returned){
+  function checkPublic(returned,missingAsset=''){
     return spawnSync('bash',['scripts/check-published-head.sh'],{encoding:'utf8',env:{
       ...process.env,PATH:publicationTemp+delimiter+process.env.PATH,
       PAGES_URL:'https://example.invalid/handouts/',VERIFIED_SHA:verified,
-      MOCK_PUBLISHED_SHA:returned,VERIFY_ATTEMPTS:'1',VERIFY_DELAY_SECONDS:'0'
+      MOCK_PUBLISHED_SHA:returned,MOCK_MISSING_ASSET:missingAsset,VERIFY_ATTEMPTS:'1',VERIFY_DELAY_SECONDS:'0'
     }});
   }
   assert.equal(checkPublic(verified).status,0,'Correct hosted exact SHA must pass');
+  for(const asset of ['workbench/topology.html','workbench/assets/learning/model-contracts-v1.json'])assert.notEqual(checkPublic(verified,asset).status,0,'Missing published workbench asset must fail: '+asset);
   assert.notEqual(checkPublic('d'.repeat(40)).status,0,'Stale hosted SHA must fail');
   assert.notEqual(checkPublic('').status,0,'Empty hosted SHA must fail');
 }finally{rmSync(publicationTemp,{recursive:true,force:true})}

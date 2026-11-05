@@ -48,7 +48,10 @@ for(const [name,type] of cross?[['firefox',firefox],['webkit',webkit]]:[['chromi
   }
   assert.match(await page.locator('#workspace-progress').innerText(),/8 \/ 8/);
   assert.equal(await page.evaluate(()=>CircuitEvidence.load().benchmark.beginnerLessons),undefined);
-  await page.locator('#ws-next').click();assert.equal(new URL(page.url()).hash,'#experiment-protection');assert.match(await page.locator('#workspace-reference').innerText(),/完成/);
+  await page.locator('#ws-next').click();await page.waitForURL(BASE+'/workbench/topology.html');await ready();
+  await page.waitForFunction(()=>CircuitEvidence.storageStatus().saved);
+  assert.equal(await page.evaluate(()=>CircuitEvidence.load().benchmark.learningWorkspace.topologyTransfer.completed),false,'entering comparison cannot fabricate completion');
+  await page.locator('#ee-experiment').click();await page.waitForURL(BASE+'/workbench/index.html#experiment-protection');await ready();
   await page.reload();await ready();assert.match(await page.locator('#workspace-progress').innerText(),/8 \/ 8/);
   await page.locator('#workbench-context-slot summary').click();await page.waitForSelector('.ec-model');assert.match(await page.locator('.ec-model').first().innerText(),/generic-power-causal-kernel/);
   await page.locator('#show-progress').click();await page.locator('#detailed-records').click();assert.match(await page.locator('#workspace-reference').innerText(),/備份/);
