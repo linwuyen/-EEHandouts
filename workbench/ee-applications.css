@@ -1,0 +1,8 @@
+/* Host-specific layout; the source atlas controls and plots keep their own model. */
+.ee-workbench-shell{position:static;color:#183a30}
+#guided-applications{scroll-margin-top:16px}
+#guided-applications button,#guided-applications a{overflow-wrap:anywhere;max-width:100%}
+#guided-applications table{table-layout:fixed}
+#guided-applications th,#guided-applications td{overflow-wrap:anywhere}
+#application-status{min-height:1.6em;overflow-wrap:anywhere}
+@media(max-width:600px){.guided-applications fieldset{min-inline-size:0}.ee-workbench-shell strong{overflow-wrap:anywhere}}

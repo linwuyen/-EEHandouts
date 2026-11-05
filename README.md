@@ -398,3 +398,13 @@ Node.js 22 開發環境：執行 `npm ci --ignore-scripts`，再安裝 Chromium�
 沿用來源 `11ef4e48` 的 topologyPlan / Compare / Proof、模型登錄與 Evidence V5；不改數值/評量/儲存 owner。只帶入原 owner 選定的手動設定，沒有將暫態儲能、閉迴路或 fault state 當作穩態比較初值。CCM 邊界、零 ESR、RHP 零點非實測頻寬的限制保留。
 
 第二批新增 `tests/topology-migration-contracts.mjs`、`tests/topology-workbench-smoke.mjs` 及原樣搬入的 topology-workspace/transfer tests。完整八步回歸保留並驗實際轉接；發布守門增加比較頁、UI、模型契約的缺檔拒絕。舊 repo、未遷入功能與 Issue #20 並未因此退役或結案。來源與驗收範圍見 `docs/migrations/circuit-inventory.md`。
+
+## Circuit 遷移第三批｜四種電路應用（尚未發布）
+
+從已發布 PR #46 的 `84162dd4` 接續，新增本站 `workbench/applications.html`，銜接 Buck／Boost 比較與 source-defined PFC、PSFB、LLC、逆變器四種引導練習。原始來源固定 `11ef4e48`，不建立第二套網站，也不在 runtime/build 存取舊 repository。
+
+保留原 Module 17 控制項／圖形與數值、作答及 Evidence owners。只有點擊「明確套用這次的起始條件」才套用指定條件；不自動搬 Buck 參數、儲能或控制器狀態。舊模型／快照不相容時保留原始紀錄並停止寫入，可從頁首另開唯讀備份。引導練習通過不是正式測驗或實機認證。
+
+新增 `tests/applications-{migration,evidence,lifecycle,navigation}-contracts.mjs` 與 `tests/applications-workbench-smoke.mjs`。後者加入原 Chromium、Firefox／WebKit 命令；整合後必須真的執行，不能以 Node 契約測試替代瀏覽器結果。無套件版本變更，原發布守門與 stale-main 防護保留。完整遷移清單見 `docs/migrations/circuit-inventory.md`。
+
+此批目前只在隔離本地工作樹實作。是否可合併取決於 exact-head 的完整 CI 與獨立 Review；合併後還需新 main CI、Pages、公開 SHA 與新增資產驗收。尚未關閉 Issue #20、移除舊 repository 或清理學習紀錄。

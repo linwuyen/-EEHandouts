@@ -44,6 +44,13 @@
    return suspendRecord('比較紀錄已被另一頁更新或版本不相容');
   }
   window.addEventListener('storage',protectRecord);
+  EEWorkbenchHost.setNavigationGuard(url=>{
+   if(!url.pathname.endsWith('/applications.html')||!E.storageStatus().saved)return true;
+   const raw=localStorage.getItem(E.KEY);
+   const stored=raw===null?undefined:JSON.parse(raw)?.benchmark?.learningWorkspace?.topologyTransfer;
+   if(JSON.stringify(stored)===expectedRecord&&compatibleModels(stored?.models))return true;
+   suspendRecord('比較紀錄已被另一頁更新或版本不相容');return false;
+  });
   const stage=()=>W.topologyProof(session)?4:!session.rows.prediction?.first?0:!session.operated||!session.rows.observation?.passed?1:!session.rows.reason?.passed?2:3;
   function save(){if(protectRecord())return false;if(!compatibleModels(session.models)){suspendRecord('比較紀錄的模型身分或版本不相容');return false;}session.completed=W.topologyProof(session);const s=E.load();s.benchmark.learningWorkspace||={version:1};s.benchmark.learningWorkspace.topologyTransfer=session;E.save(s);expectedRecord=JSON.stringify(session);$('ws-save').textContent=E.storageStatus().saved?'比較條件與首次判斷已保存在這個瀏覽器。':'目前只能暫存，離開前請下載學習備份。';return true;}
   function draw(){
@@ -63,7 +70,7 @@
    if(blocked)return;
    const current=stage();document.body.dataset.workspaceStage=String(shown);$('ws-steps').replaceChildren();$('ws-question').replaceChildren();$('ws-feedback').textContent='';
    steps.forEach((s,i)=>{const b=el('button',`${i+1}. ${s.label}`,$('ws-steps'));b.disabled=i>current;b.setAttribute('aria-current',shown===i?'step':'false');b.onclick=()=>{shown=i;render();};});
-   $('ws-result').hidden=current!==4;$('ws-ability').textContent='已練習：共用元件條件，比較輸出，再辨認升壓特有的限制。';$('ws-transition').textContent='本批比較練習完成。可返回本站教材；其他四種拓樸工具尚未遷入，這份練習不授予正式能力成績。';$('ws-next').textContent='查看後續遷移範圍';
+   $('ws-result').hidden=current!==4;$('ws-ability').textContent='已練習：共用元件條件，比較輸出，再辨認升壓特有的限制。';$('ws-transition').textContent='本批比較練習完成。可接續本站四種電路應用；每種應用有自己的條件與模型界線，這份練習不授予正式能力成績。';$('ws-next').textContent='保存後接續四種電路應用';
    $('workspace-progress').textContent=W.topologyProof(session)?'降壓／升壓比較：已練習':'降壓／升壓比較：'+steps[Math.min(current,3)].label;
    draw();if(shown===4)return;
    const s=steps[shown],r=session.rows[s.id]||{};el('h2',s.title,$('ws-question'));el('p',s.note,$('ws-question'));
@@ -90,7 +97,7 @@
   run.onclick=async()=>{if(saving||protectRecord())return;session.operated=true;if(!await accept())return;render();};
   $('workspace-route').replaceChildren();for(const[href,label]of [['index.html#experiment','回到連續電路實驗'],['topology.html','降壓／升壓比較']]){const a=el('a',label,el('li',undefined,$('workspace-route')));a.href=href;a.onclick=event=>{event.preventDefault();EEWorkbenchHost.leave(href);};}
   $('deeper').textContent='保存後閱讀本站 Boost 教材（不自動套用參數）';$('deeper').onclick=()=>EEWorkbenchHost.leave('../middle.html#lesson/mid-boost/mid-boost-ccm');
-  $('ws-next').onclick=()=>{if(W.topologyProof(session))EEWorkbenchHost.leave('coverage.html');};
+  $('ws-next').onclick=()=>{if(W.topologyProof(session))EEWorkbenchHost.leave('applications.html');};
   $('show-progress').onclick=()=>{$('workspace-progress-panel').hidden=false;$('progress-summary').textContent=W.topologyProof(session)?'比較練習完成；正式成績由原驗證系統判定。':'比較練習尚未完成。';$('progress-abilities').replaceChildren();if(session)for(const s of steps){const r=session.rows[s.id];el('li',s.label+'：'+(r?.first?(r.first.correct?'首次符合模型':'首次需修正'):'尚未作答'),$('progress-abilities'));}};
   $('close-progress').onclick=()=>$('workspace-progress-panel').hidden=true;
   $('workspace-backup').onclick=()=>{const url=URL.createObjectURL(new Blob([E.exportBackup()],{type:'application/json'})),a=el('a');a.href=url;a.download='circuit-learning-backup.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};

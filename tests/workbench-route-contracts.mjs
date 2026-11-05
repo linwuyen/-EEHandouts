@@ -33,30 +33,31 @@ async function fixture(){
  return {E,H,data,assigned,chosen,status,main,ctx,navigate,get hash(){return location.hash;},
   hold(){let release;barrier=new Promise(resolve=>release=resolve);return release;},setQuota(){quota=true;}};
 }
+for(const [hash,target]of [['#topology','topology.html'],['#applications','applications.html']]){
 {
- const f=await fixture(),raw=f.data.get(f.E.KEY);await f.navigate('#topology');
- assert.deepEqual(f.assigned,['https://example.test/workbench/topology.html'],'mounted #topology must open the local comparator, not be reset as unavailable');
+ const f=await fixture(),raw=f.data.get(f.E.KEY);await f.navigate(hash);
+ assert.deepEqual(f.assigned,['https://example.test/workbench/'+target],'mounted #topology must open the local comparator, not be reset as unavailable');
  assert.deepEqual(f.chosen,[],'navigation must not reset/recompute the experiment');assert.equal(f.data.get(f.E.KEY),raw,'navigation must not change saved answers');
 }
 {
  const f=await fixture(),release=f.hold(),s=f.E.load();s.benchmark.navigationDraft='must survive';f.E.save(s);
- const leaving=f.navigate('#topology');await Promise.resolve();assert.equal(f.assigned.length,0,'do not navigate before the actual Evidence lock commits');
+ const leaving=f.navigate(hash);await Promise.resolve();assert.equal(f.assigned.length,0,'do not navigate before the actual Evidence lock commits');
  assert.equal(f.hash,'#experiment-energy','retain canonical current route while save is pending');release();await leaving;
  assert.equal(f.assigned.length,1);assert.equal(JSON.parse(f.data.get(f.E.KEY)).benchmark.navigationDraft,'must survive');
 }
 {
  const f=await fixture(),raw=f.data.get(f.E.KEY);f.setQuota();const s=f.E.load();s.benchmark.navigationDraft='not yet saved';f.E.save(s);
- await f.navigate('#topology');assert.equal(f.assigned.length,0,'quota failure prevents leaving');assert.equal(f.hash,'#experiment-energy');
+ await f.navigate(hash);assert.equal(f.assigned.length,0,'quota failure prevents leaving');assert.equal(f.hash,'#experiment-energy');
  assert.equal(f.data.get(f.E.KEY),raw);assert.equal(f.E.storageStatus().saved,false);assert.match(f.status.textContent,/取消離開/);
 }
 {
  const f=await fixture(),release=f.hold(),s=f.E.load();s.benchmark.navigationDraft='stale draft';f.E.save(s);
- const leaving=f.navigate('#topology'),winner=JSON.parse(f.data.get(f.E.KEY));winner.benchmark.remote='winner';const raw=JSON.stringify(winner);f.data.set(f.E.KEY,raw);
+ const leaving=f.navigate(hash),winner=JSON.parse(f.data.get(f.E.KEY));winner.benchmark.remote='winner';const raw=JSON.stringify(winner);f.data.set(f.E.KEY,raw);
  release();await leaving;assert.equal(f.assigned.length,0,'same-version write conflict prevents leaving');assert.equal(f.hash,'#experiment-energy');assert.equal(f.data.get(f.E.KEY),raw);
 }
 {
  const f=await fixture(),raw=JSON.stringify({schema:'circuit-learning-state',version:6,preserve:'future'});f.data.set(f.E.KEY,raw);
- await f.navigate('#topology');assert.equal(f.assigned.length,0);assert.equal(f.data.get(f.E.KEY),raw);assert.equal(f.data.has(f.E.KEY+'-corrupt-backup'),false);assert.equal(f.main.inert,true);
+ await f.navigate(hash);assert.equal(f.assigned.length,0);assert.equal(f.data.get(f.E.KEY),raw);assert.equal(f.data.has(f.E.KEY+'-corrupt-backup'),false);assert.equal(f.main.inert,true);
 }
 {
  const f=await fixture();await f.navigate('#not-migrated');assert.equal(f.assigned.length,0);assert.equal(f.hash,'#experiment-energy');assert.match(f.status.textContent,/尚未遷入/);
@@ -64,6 +65,7 @@ async function fixture(){
 }
 {
  const f=await fixture(),release=f.hold(),s=f.E.load();s.benchmark.navigationDraft='coalesced';f.E.save(s);
- const a=f.navigate('#topology'),b=f.navigate('#topology');release();await Promise.all([a,b]);assert.equal(f.assigned.length,1,'repeated requests must not race the save gate');
+ const a=f.navigate(hash),b=f.navigate(hash);release();await Promise.all([a,b]);assert.equal(f.assigned.length,1,'repeated requests must not race the save gate');
 }
-console.log('PASS mounted workbench route: local topology, pending-save gate, quota, conflict, future schema, unknown/normal routes and duplicate requests');
+}
+console.log('PASS mounted workbench route: local topology/applications, pending-save gate, quota, conflict, future schema, unknown/normal routes and duplicate requests');

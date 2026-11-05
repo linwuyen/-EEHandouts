@@ -1,7 +1,7 @@
 {
   "sourceRepository": "linwuyen/Circuit-Simulation",
   "sourceCommit": "11ef4e4801b5283f265dc349a4afec0027603228",
-  "scope": "Eight-step Buck experiment and Buck/Boost CCM comparison; not whole-project retirement",
+  "scope": "Eight-step Buck, Buck/Boost CCM comparison and four native topology applications; not whole-project retirement",
   "files": [
     {
       "path": "assets/beginner-lessons.js",
@@ -174,7 +174,7 @@
     {
       "path": "assets/learning/workspace-experiment-ui.js",
       "sourceBlob": "b331bca15886c26bb6399ebd253d64ab3bf3f50b",
-      "sha256": "c363808d5ddbdf36c91b1a121477d43881b0aeccf776bfaa8d382ee3ed5a569f",
+      "sha256": "1ee2406d3a8664f6e3e6d46f0dfe9b90baa503ee3d1dbd8a68c8e6a8cd1cc721",
       "adapted": true
     },
     {
@@ -270,7 +270,7 @@
     {
       "path": "assets/learning/workspace-topology-ui.js",
       "sourceBlob": "c2095128f2e540c61084c056e5edd74b58c344d8",
-      "sha256": "b27bd0dbb2b9d3b4a4c914bda2a33185f71cace7efa14883da645bff385f8285",
+      "sha256": "092187356cbcbd153b231908f07f4737d7a50ae50bcd21ce39c972e4e3fcd170",
       "adapted": true
     },
     {
@@ -283,6 +283,37 @@
       "path": "tests/topology-transfer.test.mjs",
       "sourceBlob": "59ed09c704197ee2c0e9035609d5bfc049d8c8a8",
       "sha256": "27c36f8fd81b40cc597977efb1421ecf9856dc779f0613cf97f4828103c923da",
+      "adapted": false
+    },
+    {
+      "path": "applications.html",
+      "sourceBlob": "81c965f64c884bd2693673fe3acbc2fa5f9b77f5",
+      "sha256": "1564ee792e4a492d66e0f6bf99eaf663999a88247cb4a48c6620ce5ccc2101b3",
+      "adapted": true,
+      "sourcePath": "17_power_topology_control/index.html"
+    },
+    {
+      "path": "17_power_topology_control/app.js",
+      "sourceBlob": "e350f3e19bc33c60dec94deb9c20b79592a0c50f",
+      "sha256": "c2c3ac37f8a0a5497af619bc4766bd7cfec86a10b337ed058a692248a60a7424",
+      "adapted": true
+    },
+    {
+      "path": "17_power_topology_control/style.css",
+      "sourceBlob": "209967ae7d9f67cbecc5dc17b73c0f2789ad57ae",
+      "sha256": "15a52cda4844c9a6a618ba5439be70d315a57da02fd7be8c62015370bc1471fc",
+      "adapted": false
+    },
+    {
+      "path": "assets/learning/topology-application-ui.js",
+      "sourceBlob": "9b0be2b0d4862d282fda73235b18f56780d5384f",
+      "sha256": "a887e28da4d3ad1239ab62aec093c9e9c3c28204dabe4234f9166e08d6886a86",
+      "adapted": true
+    },
+    {
+      "path": "tests/topology-applications.test.mjs",
+      "sourceBlob": "94e180a913adb8314d0c8ed4a8ed45fc6b675ce0",
+      "sha256": "cbd256eec6dfdf30d53813df7a7dfc02ab5bcb83ac2e6129fbec47d83bbfd6c0",
       "adapted": false
     }
   ],
@@ -300,6 +331,7 @@
     "tests/engineering-context.test.mjs",
     "tests/beginner-causal-guides.test.mjs",
     "tests/topology-workspace.test.mjs",
-    "tests/topology-transfer.test.mjs"
+    "tests/topology-transfer.test.mjs",
+    "tests/topology-applications.test.mjs"
   ]
 }
