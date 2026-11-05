@@ -326,7 +326,7 @@
     {
       "path": "ee-adc.js",
       "sourceBlob": "7e4e2c648dd7448deee6993d758e7a4f4338ad07",
-      "sha256": "a21229febe4952fed34b5dad55ec3e44ad949a34d7f9ce94c554f75f73292ca7",
+      "sha256": "090575fdb3f5f7f7f2c750bc259b903c8e6998c82a84bc612d21d24cee719be8",
       "adapted": true,
       "sourcePath": "1_c2000_adc_calculator/c2000_adc_calculator.html"
     },

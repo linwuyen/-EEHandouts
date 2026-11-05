@@ -28,7 +28,7 @@
   }
   if(!window.CircuitModels){invalidate("計算核心載入失敗，請返回教材或重新載入","failed");return;}
   ids.forEach(id=>$(id).disabled=false);
-  const fmt=(v,d=4)=>Number.isFinite(v)?Number(v).toFixed(d):"—";
+  const fmt=(v,d=4)=>{if(!Number.isFinite(v))throw new RangeError("顯示單位換算超出本計算器範圍");return Number(v).toFixed(d);};
   const metric=(label,value,note="")=>`<article class="metric"><span>${label}</span><strong>${value}</strong>${note?`<small>${note}</small>`:""}</article>`;
   const alert=(text,kind)=>`<div class="alert ${kind}">${text}</div>`;
   function pct(v,max){return max>0?CircuitModels.clamp(v/max*100,0,100):0;}

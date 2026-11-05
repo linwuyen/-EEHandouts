@@ -28,6 +28,14 @@ for(const [name,type]of Object.entries(process.argv.includes('--cross-browser')?
   for(const id of ['adcResults','currentResults','dividerResults','code','formula'])assert.equal(await page.locator('#'+id).innerText(),'');
   assert.equal(await page.locator('#copy').isDisabled(),true);assert.equal(await page.locator('#share').isDisabled(),true);
   await page.locator('#vref').fill('3.3');await page.locator('#current').fill('20');await page.locator('#bus').fill('400');await ready();
+  // Finite W values can overflow mW; both typed input and shared URLs fail closed.
+  for(const via of ['input','query']){
+   if(via==='input')await page.locator('#bus').fill('1e156');else await page.goto(BASE+PATH+'?bus=1e156');
+   await page.waitForFunction(()=>document.documentElement.dataset.eeAdcState==='invalid');
+   for(const id of ['adcResults','currentResults','dividerResults','code','formula'])assert.equal(await page.locator('#'+id).innerText(),'');
+   assert.equal(await page.locator('#copy').isDisabled(),true);assert.equal(await page.locator('#share').isDisabled(),true);
+   await page.locator('#bus').fill('400');await ready();assert.equal(await metric('currentResults','ADC code'),'3065');
+  }
   // User-gesture clipboard failure must preserve the source prompt fallback.
   await page.evaluate(()=>{Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:()=>Promise.reject(new Error('clipboard denied'))}});});
   let code='';page.once('dialog',async d=>{code=d.defaultValue();await d.dismiss();});await page.locator('#copy').click();await page.waitForFunction(()=>document.getElementById('copy').disabled===false);assert.match(code,/ADC_LEVELS\s+\(4096\.0f\)/);

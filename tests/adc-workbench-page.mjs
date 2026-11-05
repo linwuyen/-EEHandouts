@@ -28,4 +28,17 @@ await f.listeners.get('copy:click')();assert.match(f.copied[0],/ADC_LEVELS\s+\(4
 await f.listeners.get('share:click')();const shared=new URL(f.copied[1]);assert.equal(shared.pathname,'/-EEHandouts/workbench/adc.html');assert.equal(shared.searchParams.get('gain'),'8.2');
 f=fixture({query:'?current=-20&bits=16&from=https://attacker.invalid'});assert.equal(f.metric('adcResults','Code 數'),'65536');assert.equal(f.metric('currentResults','ADC 輸入'),'0.8300 V');
 f=fixture({missing:true});assert.equal(f.c.document.documentElement.dataset.eeAdcState,'failed');assert.equal(f.nodes.get('copy').disabled,true);assert.equal(f.nodes.get('vref').disabled,true);
-console.log('PASS ADC actual UI/owner: literal points, signed current, rails, 18 invalid inputs, stale output removal, recovery, copy/share and missing model; storage inaccessible');
+// review-overflow: finite owner values can still overflow display-unit conversion.
+for(const mode of ['power-input','power-query','shunt-input']){
+ const g=mode==='power-query'?fixture({query:'?bus=1e156'}):fixture();
+ if(mode==='power-input')g.set('bus','1e156');
+ if(mode==='shunt-input'){g.set('shunt',1);g.set('gain',.01);g.set('current','1e306');}
+ assert.equal(g.c.document.documentElement.dataset.eeAdcState,'invalid',mode+' display-unit overflow must fail closed');
+ for(const id of ['adcResults','currentResults','dividerResults','currentWarns','dividerWarns','code','formula'])assert.equal(g.nodes.get(id)[id==='code'||id==='formula'?'textContent':'innerHTML'],'',mode+' clears '+id);
+ assert.equal(g.nodes.get('copy').disabled,true);assert.equal(g.nodes.get('share').disabled,true);
+ g.set('current',20);g.set('shunt',.005);g.set('gain',8.2);g.set('bus',400);
+ assert.equal(g.c.document.documentElement.dataset.eeAdcState,'ready',mode+' recovery');
+ assert.equal(g.metric('currentResults','ADC code'),'3065');
+}
+f=fixture({query:'?bus=1e150'});assert.equal(f.c.document.documentElement.dataset.eeAdcState,'ready','large but finite converted power is not arbitrarily rejected');
+console.log('PASS ADC actual UI/owner: literal points, signed current, rails, 18 invalid inputs, 3 derived-unit overflow cases, stale output removal, recovery, copy/share and missing model; storage inaccessible');
