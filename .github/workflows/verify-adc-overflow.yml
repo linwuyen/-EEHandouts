@@ -1,0 +1,92 @@
+name: Verify ADC overflow review correction
+on:
+  push:
+    branches: [ops/adc-overflow-repair-20261106]
+permissions:
+  contents: write
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: payload
+      - uses: actions/checkout@v7
+        with:
+          ref: 10f17130924632946651ee02a13dbdd158f927d0
+          path: product
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: product/package-lock.json
+      - name: Reproduce original display conversion failure
+        run: |
+          set -euo pipefail
+          python3 payload/.adc-review/repair.py --test-only
+          cd product
+          if node tests/adc-workbench-page.mjs > ../review-overflow-red.log 2>&1; then
+            echo 'Expected original controller to fail the new conversion test' >&2
+            exit 1
+          fi
+          grep -F 'power-input display-unit overflow must fail closed' ../review-overflow-red.log
+          git restore tests/adc-workbench-page.mjs
+          cd ..
+          python3 payload/.adc-review/repair.py
+      - name: Verify repaired behavior and all engineering/source tests
+        working-directory: product
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          node tests/adc-workbench-page.mjs | tee ../review-overflow-green.log
+          npm run test:ci | tee ../repair-engineering.log
+      - name: Install pinned browsers
+        working-directory: product
+        run: npx playwright install --with-deps chromium firefox webkit
+      - name: Run static site
+        working-directory: product
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > ../repair-server.log 2>&1 &
+          for i in $(seq 1 20); do
+            if curl -fsS http://127.0.0.1:4173/workbench/adc.html > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+      - name: Verify actual ADC routes and overflow in all engines
+        working-directory: product
+        run: |
+          set -euo pipefail
+          node tests/adc-workbench-smoke.mjs | tee ../repair-chromium.log
+          node tests/adc-workbench-smoke.mjs --cross-browser | tee ../repair-cross.log
+      - name: Publish only isolated corrective result
+        working-directory: product
+        run: |
+          set -euo pipefail
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = 36abe27f619bcb39397913ada3fb1832ca49ca6b
+          test "$(git ls-remote origin refs/heads/migration/adc-signal-chain-20261106 | cut -f1)" = 10f17130924632946651ee02a13dbdd158f927d0
+          test "$(git write-tree)" = 97009d67050f5a288d034dc4f61f1f005aa0f691
+          test -z "$(git diff --name-only)"
+          branch=migration/adc-overflow-result-20261106
+          test -z "$(git ls-remote origin "refs/heads/$branch")"
+          git config user.name Zerofivem
+          git config user.email 15869648+linwuyen@users.noreply.github.com
+          git switch -c "$branch"
+          git commit -m 'fix: fail closed on ADC display-unit overflow (#48)' -m 'Validate formatted quantities after unit conversion, triggering the existing synchronous invalidation path before an update can complete. Reproduce finite-W to overflowing-mW and shunt-mV cases through the actual controller and shared query, preserve large finite positive controls and recovery. Original CircuitModels remains unchanged. RED/GREEN and all-engine ADC regressions verified on exact tree.'
+          git push origin "HEAD:refs/heads/$branch"
+          git rev-parse HEAD > ../repair-head.txt
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: adc-overflow-review-evidence
+          path: |
+            review-overflow-red.log
+            review-overflow-green.log
+            repair-engineering.log
+            repair-chromium.log
+            repair-cross.log
+            repair-server.log
+            repair-tree.txt
+            repair-head.txt
+            product/tests/screenshots/cross-*-adc-signal-chain.png
+          retention-days: 7
