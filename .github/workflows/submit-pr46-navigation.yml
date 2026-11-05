@@ -1,0 +1,79 @@
+name: Verify PR46 mounted navigation repair
+on:
+  push:
+    branches: [ops/pr46-navigation-submit-20261105]
+permissions:
+  contents: write
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: payload
+      - uses: actions/checkout@v7
+        with:
+          ref: cf43c2c05bf367f130199cd1239ecab00071a936
+          path: product
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: product/package-lock.json
+      - name: Reproduce old failure and reconstruct only the exact navigation delta
+        run: python3 payload/.migration-pr46-navigation/apply.py
+      - name: Verify engineering and source tests
+        working-directory: product
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run test:ci | tee ../navigation-engineering.log
+          git diff --cached --check
+          test "$(git write-tree)" = 3006a222a9dc865902df337633fa44d436bce1f8
+      - name: Install unchanged pinned browser engines
+        working-directory: product
+        run: |
+          npx playwright install --with-deps chromium firefox webkit
+          bash scripts/prepare-pdfjs.sh
+      - name: Start local website
+        working-directory: product
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > ../navigation-server.log 2>&1 &
+          for i in $(seq 1 20); do
+            if curl -fsS http://127.0.0.1:4173/workbench/index.html > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+      - name: Verify actual Buck and comparison lifecycle in all three engines
+        working-directory: product
+        run: |
+          set -euo pipefail
+          node tests/buck-workbench-smoke.mjs | tee ../navigation-buck-chromium.log
+          node tests/topology-workbench-smoke.mjs | tee ../navigation-topology-chromium.log
+          node tests/buck-workbench-smoke.mjs --cross-browser | tee ../navigation-buck-cross.log
+          node tests/topology-workbench-smoke.mjs --cross-browser | tee ../navigation-topology-cross.log
+      - name: Publish only an isolated corrective result
+        working-directory: product
+        run: |
+          set -euo pipefail
+          test "$(git ls-remote origin refs/heads/migration/buck-boost-comparison-20261104 | cut -f1)" = cf43c2c05bf367f130199cd1239ecab00071a936
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = 9a4a2603c974ae22998bdfe4348890c00e146300
+          test "$(git write-tree)" = 3006a222a9dc865902df337633fa44d436bce1f8
+          branch=migration/pr46-navigation-result-20261105
+          test -z "$(git ls-remote origin "refs/heads/$branch")"
+          git config user.name Zerofivem
+          git config user.email 15869648+linwuyen@users.noreply.github.com
+          git switch -c "$branch"
+          git commit -m 'fix: route mounted topology alias through durable save gate (#46)' -m 'Preserve the current experiment route until the existing host saves successfully. Add actual-listener and real-browser quota/future-version regressions; original numerical, evidence and provenance owners remain unchanged. All targeted engines pass; full exact-head CI and independent review remain separate merge gates. No main deployment or source retirement.'
+          git push origin "HEAD:refs/heads/$branch"
+          git rev-parse HEAD > ../navigation-head.txt
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: pr46-navigation-evidence
+          path: |
+            navigation-*.txt
+            navigation-*.log
+            product/tests/screenshots/*migration*.png
+          retention-days: 7
