@@ -12,7 +12,7 @@
 | 深層工程來源面板 | 搬入唯讀資料與必要延遲載入；無效入口顯示未遷入 | 按能力逐批接上 |
 | 舊八課、獨立評量、retention | 既有紀錄保留、可唯讀備份；頁面未搬 | 各自驗收再遷移，不能以閱讀標記替代 |
 | Buck / Boost 比較 | PR #46 已發布，正式版本 84162dd4；workbench/topology.html | 僅原 owner 的手動設定；CCM 穩態，不帶儲能或故障狀態 |
-| Module 17 四應用 | 第三批本地實作：workbench/applications.html；尚待完整瀏覽器 CI、獨立 Review、提交與發布 | 各自原工具條件；不自動套 Buck 參數或授予正式能力成績 |
+| Module 17 四應用 | PR #47 已發布，正式版本 36abe27f；workbench/applications.html | 各自原工具條件；不自動套 Buck 參數或授予正式能力成績 |
 | Module 1 / 9 / 12 ADC / AFE / OP | 連到既有 EE 對應教材，不冒稱遷入原工具 | 逐模組遷移量測鏈與 UI |
 | Module 4 / 16 / 18 PI / transforms / control | 連到 EE 原類比 PI / 工具，不混用係數 | 各自離散化、模型、單位契約 |
 | Module 6 / 13 timing / synchronization | 連到 EE 原時序頁，不授予實機 PASS | 指定器件與 ADCRESULT 證據另驗 |
@@ -40,7 +40,7 @@ EE 起點 9a4a2603c974ae22998bdfe4348890c00e146300；來源仍固定 11ef4e4801b
 原數值契約只允許前後工作點的 Buck/Boost 均 CCM；無效或不相容紀錄不重設成預設成功。八步已讀、引導比較通過、正式評量與 Board evidence 仍分開。
 新增來源 topology-workspace / topology-transfer tests、整合契約與三瀏覽器實際 DOM 驗收。發布 SHA 檢查同時驗工作台入口、比較 UI 與模型契約資產。
 
-## 第三批：四種電路應用（本地實作，尚未發布）
+## 第三批：四種電路應用（PR #47 已發布）
 EE 起點 `84162dd465385f0b467ca3584ba4cc1cfa15a3f9`；Circuit 來源固定 `11ef4e4801b5283f265dc349a4afec0027603228`。
 
 - 從 Buck／Boost 完成按鈕與現行 applications 建議路線進入本站 `applications.html`；返回經原 host / Evidence.flush，未知目標不放行。
@@ -50,4 +50,12 @@ EE 起點 `84162dd465385f0b467ca3584ba4cc1cfa15a3f9`；Circuit 來源固定 `11e
 - 新的 `ee-applications-contract.js` 僅讀取並拒絕不相容／不完整紀錄，不是另一套評分器。模型 ID／版本、條件、單位與結果須吻合原 owner；舊 raw bytes 不能被重標或正常化。跨分頁、鎖等待、quota 與異步版本變更保留原防護。
 - 原 `learning-evidence`、`workspace-core`、`model-registry`、`topology-transfer-v1`、curriculum、CoreFlow、PlainCourse 等數值／判定／儲存 owner 保持原樣。`topology-application-ui.js` 的適配記錄在 source-manifest。
 - 新增四個 Node 整合契約檔和一個三瀏覽器真 DOM suite；原有測試全部保留。發布檢查新增頁面／entry／validator／UI／style／atlas 資產。
-- 本輪環境 GitHub 僅有讀取操作，不能建立 PR；完整瀏覽器／獨立復審仍為強制門檻，不能以 layout-free Node fixture 替代。以交付的 patch 進入正常流程後，才可更新本列為已發布。
+- 原本地交接階段的環境限制已解除；PR #47 的獨立審查、PR CI、main CI 與 Pages 驗收已完成（36abe27f）。後續批次仍各自驗收。
+
+## 第四批 4a：ADC 訊號鏈計算器（本批實作，待 CI／Review／發布）
+基準 EE `36abe27f619bcb39397913ada3fb1832ca49ca6b`；Circuit 來源仍固定 `11ef4e4801b5283f265dc349a4afec0027603228`。
+僅遷入 `1_c2000_adc_calculator/c2000_adc_calculator.html` 的獨立計算器至 `workbench/adc.html`。原數值核心不改；教材入口、保存後引用路徑與固定本地返回接入。計算器沒有讀寫學習儲存，輸入僅在本頁及使用者複製的參數 URL 中；教材已讀、實驗與評量狀態不合併。
+失效輸入、數值溢位或資產缺失會清除舊結果並禁止複製 C 參數；正常輸入可恢復。預設 Gain=8.2 / Offset=1.65 V，與 EE P.106 的 Gain=14 / Offset=1.5 V 明確分開。
+
+### 待解來源一致性（未帶入本站）
+固定來源 `1_adc_basics.html` 的提示與回顧將 `Vref/(2^N-1)` 稱為 LSB，並使用 rounding；同一來源的完整計算器及 `engineering-models.js` 則定義 LSB=`Vref/2^N`、code=floor。這是來源內部矛盾，並非本次改寫。舊 ADC 逐課頁、lessons.js 進度機制、AFE/OP 及硬體 ADCRESULT 時序均仍待分批核對與遷移；不能把本計算器當成整個 Module 1 或板級驗證已完成。

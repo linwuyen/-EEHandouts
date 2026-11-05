@@ -1,7 +1,7 @@
 {
   "sourceRepository": "linwuyen/Circuit-Simulation",
   "sourceCommit": "11ef4e4801b5283f265dc349a4afec0027603228",
-  "scope": "Eight-step Buck, Buck/Boost CCM comparison and four native topology applications; not whole-project retirement",
+  "scope": "Eight-step Buck, Buck/Boost CCM comparison, four topology applications and standalone ADC signal-chain calculator; not whole-project retirement",
   "files": [
     {
       "path": "assets/beginner-lessons.js",
@@ -315,6 +315,32 @@
       "sourceBlob": "94e180a913adb8314d0c8ed4a8ed45fc6b675ce0",
       "sha256": "cbd256eec6dfdf30d53813df7a7dfc02ab5bcb83ac2e6129fbec47d83bbfd6c0",
       "adapted": false
+    },
+    {
+      "path": "adc.html",
+      "sourceBlob": "7e4e2c648dd7448deee6993d758e7a4f4338ad07",
+      "sha256": "d5cd85db7c7fe1fdf1c543342af8f2345505c9c92c08bf6796079740e29ff398",
+      "adapted": true,
+      "sourcePath": "1_c2000_adc_calculator/c2000_adc_calculator.html"
+    },
+    {
+      "path": "ee-adc.js",
+      "sourceBlob": "7e4e2c648dd7448deee6993d758e7a4f4338ad07",
+      "sha256": "a21229febe4952fed34b5dad55ec3e44ad949a34d7f9ce94c554f75f73292ca7",
+      "adapted": true,
+      "sourcePath": "1_c2000_adc_calculator/c2000_adc_calculator.html"
+    },
+    {
+      "path": "tests/models.test.mjs",
+      "sourceBlob": "ea6827fef97775511cb78750a5b8e08a71448466",
+      "sha256": "ab59501901d884ec0426aac43fb606f2448f399522f0b04e980adf2955bea8aa",
+      "adapted": false
+    },
+    {
+      "path": "tests/model-invariants.test.mjs",
+      "sourceBlob": "141c770ce268926ab6630de4774dc983de93b8c6",
+      "sha256": "9bd833ef7856318e6ef7f58683233342045740a9dde2873a9f2d41f0b081aa75",
+      "adapted": false
     }
   ],
   "testFiles": [
@@ -332,6 +358,8 @@
     "tests/beginner-causal-guides.test.mjs",
     "tests/topology-workspace.test.mjs",
     "tests/topology-transfer.test.mjs",
-    "tests/topology-applications.test.mjs"
+    "tests/topology-applications.test.mjs",
+    "tests/models.test.mjs",
+    "tests/model-invariants.test.mjs"
   ]
 }
