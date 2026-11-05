@@ -46,7 +46,7 @@ for(const path of ['topology.html','index.html#experiment','index.html#experimen
  const f=fixture();f.H.markReady();assert.equal(await f.H.leave(path),true,'allow local route '+path);assert.equal(f.nav[0],new URL(path,f.ctx.location.href).href);
 }
 let f=fixture();assert.equal(f.H.referenceHref('index.html#topology'),'topology.html');
-assert.equal(f.H.referenceHref('17_power_topology_control/index.html#guided-applications'),'coverage.html');
+assert.equal(f.H.referenceHref('17_power_topology_control/index.html#guided-applications'),'applications.html#guided-applications');
 f=fixture();f.H.markReady();assert.equal(await f.H.complete(),true);assert.match(f.nav[0],/\/workbench\/topology\.html$/);
 for(const reason of ['pending','conflict','quota']){
  f=fixture();f.H.markReady();f.ctx.CircuitEvidence.flush=async()=>({saved:false,reason});assert.equal(await f.H.complete(),false);assert.deepEqual(f.nav,[]);

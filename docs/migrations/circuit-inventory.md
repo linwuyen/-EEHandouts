@@ -11,8 +11,8 @@
 | Evidence V5、CoreFlow、首次判斷、transfer | 必要 owner 原樣搬入、鍵值與鎖不變 | 真正需要時才設計 schema 遷移 |
 | 深層工程來源面板 | 搬入唯讀資料與必要延遲載入；無效入口顯示未遷入 | 按能力逐批接上 |
 | 舊八課、獨立評量、retention | 既有紀錄保留、可唯讀備份；頁面未搬 | 各自驗收再遷移，不能以閱讀標記替代 |
-| Buck / Boost 比較 | 第二批實作於 workbench/topology.html；待第二批 exact-head CI / Review / 發布 | 僅原 owner 的手動設定；CCM 穩態，不帶儲能或故障狀態 |
-| Module 17 四應用 | 尚未搬入頁面，不自動傳參 | 匝比/格點、Pin/Pout、Ceq、FHA 邊界核對後接入 |
+| Buck / Boost 比較 | PR #46 已發布，正式版本 84162dd4；workbench/topology.html | 僅原 owner 的手動設定；CCM 穩態，不帶儲能或故障狀態 |
+| Module 17 四應用 | 第三批本地實作：workbench/applications.html；尚待完整瀏覽器 CI、獨立 Review、提交與發布 | 各自原工具條件；不自動套 Buck 參數或授予正式能力成績 |
 | Module 1 / 9 / 12 ADC / AFE / OP | 連到既有 EE 對應教材，不冒稱遷入原工具 | 逐模組遷移量測鏈與 UI |
 | Module 4 / 16 / 18 PI / transforms / control | 連到 EE 原類比 PI / 工具，不混用係數 | 各自離散化、模型、單位契約 |
 | Module 6 / 13 timing / synchronization | 連到 EE 原時序頁，不授予實機 PASS | 指定器件與 ADCRESULT 證據另驗 |
@@ -39,3 +39,15 @@ EE 起點 9a4a2603c974ae22998bdfe4348890c00e146300；來源仍固定 11ef4e4801b
 新增 topology.html / ee-topology-entry.js 與來源比較 UI。Numerical registry、Workspace core、Evidence、CoreFlow、curriculum 維持原樣。共用 ee-host 的白名單、flush、raw schema guard，並在 await 保存後再驗原始版本；跨分頁比較紀錄衝突停止並保留唯讀備份。
 原數值契約只允許前後工作點的 Buck/Boost 均 CCM；無效或不相容紀錄不重設成預設成功。八步已讀、引導比較通過、正式評量與 Board evidence 仍分開。
 新增來源 topology-workspace / topology-transfer tests、整合契約與三瀏覽器實際 DOM 驗收。發布 SHA 檢查同時驗工作台入口、比較 UI 與模型契約資產。
+
+## 第三批：四種電路應用（本地實作，尚未發布）
+EE 起點 `84162dd465385f0b467ca3584ba4cc1cfa15a3f9`；Circuit 來源固定 `11ef4e4801b5283f265dc349a4afec0027603228`。
+
+- 從 Buck／Boost 完成按鈕與現行 applications 建議路線進入本站 `applications.html`；返回經原 host / Evidence.flush，未知目標不放行。
+- 原 Module 17 主內容、控制範圍與圖形保留。僅移除未遷入的全站 tutor／learning-bridge 和 p5 正式轉移評量 bootstrap；正式評量、複習、韌體與 Board evidence 尚未遷入。
+- PFC 只改 C=500→1000 µF；PSFB 只改主側電流 10→2 A，保留 Ns/Np=.08 與 Ceq=1 nF；LLC 只改 120→180 kHz；LCL 只改 10→20 µF。原規劃、單位轉換與計算／proof owner 不變。
+- 操作、觀察與原因各自記錄。首次答錯原樣保存；已保存對照不是目前控制項狀態。初次開啟／重載不自動套參、不寫入成功證據。
+- 新的 `ee-applications-contract.js` 僅讀取並拒絕不相容／不完整紀錄，不是另一套評分器。模型 ID／版本、條件、單位與結果須吻合原 owner；舊 raw bytes 不能被重標或正常化。跨分頁、鎖等待、quota 與異步版本變更保留原防護。
+- 原 `learning-evidence`、`workspace-core`、`model-registry`、`topology-transfer-v1`、curriculum、CoreFlow、PlainCourse 等數值／判定／儲存 owner 保持原樣。`topology-application-ui.js` 的適配記錄在 source-manifest。
+- 新增四個 Node 整合契約檔和一個三瀏覽器真 DOM suite；原有測試全部保留。發布檢查新增頁面／entry／validator／UI／style／atlas 資產。
+- 本輪環境 GitHub 僅有讀取操作，不能建立 PR；完整瀏覽器／獨立復審仍為強制門檻，不能以 layout-free Node fixture 替代。以交付的 patch 進入正常流程後，才可更新本列為已發布。

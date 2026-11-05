@@ -5,6 +5,7 @@
   if(H.hasFailed())return;
   for(const name of ['CircuitEvidence','CircuitPlainCourse','CircuitWorkspace','CircuitUnifiedLearning','CircuitCoreFlowV1','CircuitEngineeringSandboxCore','CircuitModelRegistry','CircuitEngineeringCurriculum','CircuitSwitchingLessonV1'])if(!window[name])throw Error('缺少必要元件 '+name);
   if(!H.guardEvidence())return;
+  if(location.hash==='#applications'){await H.leave('applications.html',{replace:true});return;}
   if(location.hash==='#topology'){await H.leave('topology.html');return;}
   const ids=CircuitWorkspace.experimentLessons().map(l=>l.id),hash=location.hash;
   if(hash&&hash!=='#experiment'&&!ids.some(id=>hash==='#experiment-'+id))history.replaceState(null,'','#experiment');

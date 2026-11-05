@@ -105,4 +105,18 @@ for(const reverse of [false,true]){
  assert.equal(f.data.get(f.E.KEY),raw);assert.equal(f.writes.filter(w=>w.key===f.E.KEY).length,0);
  assert.equal(f.main.inert,true);assert.equal(f.H.markReady(),false);
 }
+// The new forward route rechecks the comparator winner around the host's flush.
+for(const timing of ['before-flush','after-flush-start']){
+ const f=fixture(),models=await f.supported();await f.seed(record(f,models));
+ assert.equal(await f.W.mountTopology(),true);await f.E.flush();f.H.markReady();
+ let destination;f.ctx.location.assign=url=>destination=url;
+ const state=JSON.parse(f.data.get(f.E.KEY));state.benchmark.learningWorkspace.topologyTransfer.models[0].version='999.0.0';
+ const winner=JSON.stringify(state);let leaving;
+ if(timing==='after-flush-start')leaving=f.H.leave('applications.html');
+ f.data.set(f.E.KEY,winner);f.writes.length=0;
+ if(!leaving)leaving=f.H.leave('applications.html');
+ assert.equal(await leaving,false,timing+' blocks the new transition');
+ assert.equal(destination,undefined);assert.equal(f.data.get(f.E.KEY),winner);
+ assert.equal(f.writes.length,0);assert.equal(f.main.inert,true);
+}
 console.log('PASS topology provenance: actual UI/Evidence/registry, 8 incompatible model sets, 4 malformed records, compatible resume, fresh record and runtime/async guards');
