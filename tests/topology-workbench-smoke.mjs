@@ -25,7 +25,12 @@ for(const [engine,type] of process.argv.includes('--cross-browser')?[['firefox',
   const originalExperiment=await p.evaluate(()=>JSON.stringify(CircuitEvidence.load().benchmark.learningWorkspace.experiment));
   await p.locator('details.route summary').click();await p.locator('#workspace-route a[href="topology.html"]').click();await p.waitForURL(BASE+'/workbench/topology.html');await ready(p);
   assert.match(await p.locator('#ws-title').innerText(),/降壓和升壓/);
-  assert.match(await p.locator('#scope-note').innerText(),/CCM/);assert.match(await p.locator('#scope-note').innerText(),/並非|不模擬/);
+  // The boundary lives in a deliberately collapsed details element. Exercise the
+  // real disclosure before reading its visible text; do not bypass visibility.
+  const scope=p.locator('#scope-note');
+  await scope.locator('..').locator('summary').click();
+  assert.equal(await scope.isVisible(),true,'model boundary can be disclosed');
+  assert.match(await scope.innerText(),/CCM/);assert.match(await scope.innerText(),/並非|不模擬/);
   assert.equal(await p.locator('#ws-voltage').innerText(),'先預測');assert.equal(await p.locator('#topology-comparison').isVisible(),false);
   const storedParams=await p.evaluate(()=>CircuitEvidence.load().benchmark.learningWorkspace.topologyTransfer.params);
   assert.equal(storedParams.duty,.4);assert.equal(storedParams.vin,48);assert.equal(storedParams.esrOhm,0);
@@ -57,13 +62,39 @@ for(const [engine,type] of process.argv.includes('--cross-browser')?[['firefox',
   await p.goto(BASE+'/workbench/topology.html?from=https://attacker.invalid');await ready(p);await p.locator('#ee-return').click();await p.waitForURL(BASE+course);
   await p.goto(BASE+'/workbench/topology.html');await ready(p);await p.locator('#ee-records').click();await p.waitForURL(/records\.html$/);
   const dl=p.waitForEvent('download');await p.locator('#ee-export-raw').click();assert.match((await dl).suggestedFilename(),/backup/);
+  // Replay completed evidence with incompatible model provenance. Its original
+  // first attempts and raw bytes must never be retagged as current-model proof.
+  for(const kind of ['future-model','missing-models','wrong-id','duplicate-id','extra-model']){
+   const ctx=await fresh(),q=await ctx.newPage();await q.goto(BASE+'/workbench/index.html');await ready(q);
+   const raw=await q.evaluate(({state,kind})=>{
+    const record=state.benchmark.learningWorkspace.topologyTransfer;
+    if(kind==='future-model')record.models[0].version='999.0.0';
+    if(kind==='missing-models')delete record.models;
+    if(kind==='wrong-id')record.models[0].id='unknown-working-point';
+    if(kind==='duplicate-id')record.models[1]={...record.models[0]};
+    if(kind==='extra-model')record.models.push({id:'extra-model',version:'1.0.0'});
+    const raw=JSON.stringify(state);localStorage.setItem('circuit-learning-state-v5',raw);return raw;
+   },{state:result,kind});
+   await q.goto(BASE+'/workbench/topology.html');
+   await q.waitForFunction(()=>document.documentElement.dataset.eeWorkbenchState==='protected');
+   assert.match(await q.locator('#ee-host-status').innerText(),/模型身分或版本/);
+   assert.equal(await q.locator('main').evaluate(n=>n.inert),true);
+   assert.equal(await q.evaluate(k=>localStorage.getItem(k),key),raw,kind+' retained exactly');
+   assert.equal(await q.evaluate(()=>localStorage.getItem('circuit-learning-state-v5-corrupt-backup')),null);
+   assert.equal(await q.evaluate(()=>EEWorkbenchHost.leave()),false);
+   const popup=q.waitForEvent('popup');await q.locator('#ee-records').click();
+   const backup=await popup;await backup.waitForLoadState('domcontentloaded');
+   assert.match(backup.url(),/records\.html/);assert.equal(await backup.evaluate(k=>localStorage.getItem(k),key),raw);
+   await ctx.close();
+  }
   // Invalid CCM and unsupported/malformed nested records must not be rewritten.
   for(const kind of ['dcm','future','malformed']){
    const ctx=await fresh(),q=await ctx.newPage();await q.goto(BASE+'/workbench/index.html');await ready(q);
-   const raw=await q.evaluate(kind=>{const e=CircuitEvidence.load(),params=CircuitWorkspace.topologyPlan().params;
-    e.benchmark.learningWorkspace||={version:1};e.benchmark.learningWorkspace.topologyTransfer=kind==='future'?{version:999,preserve:'future'}:kind==='malformed'?{version:1,protocol:'unknown',rows:{},preserve:'malformed'}:{version:1,protocol:'topology-workbench-v1',rows:{},params:{...params,loadOhm:1000,inductanceH:20e-6},source:'test invalid CCM',operated:false};
-    const raw=JSON.stringify(e);localStorage.setItem('circuit-learning-state-v5',raw);return raw;},kind);
+   const raw=await q.evaluate(({kind,models})=>{const e=CircuitEvidence.load(),params=CircuitWorkspace.topologyPlan().params;
+    e.benchmark.learningWorkspace||={version:1};e.benchmark.learningWorkspace.topologyTransfer=kind==='future'?{version:999,preserve:'future'}:kind==='malformed'?{version:1,protocol:'unknown',rows:{},preserve:'malformed'}:{version:1,protocol:'topology-workbench-v1',models,rows:{},params:{...params,loadOhm:1000,inductanceH:20e-6},source:'test invalid CCM',operated:false};
+    const raw=JSON.stringify(e);localStorage.setItem('circuit-learning-state-v5',raw);return raw;},{kind,models:result.benchmark.learningWorkspace.topologyTransfer.models});
    await q.goto(BASE+'/workbench/topology.html');await q.waitForFunction(()=>['failed','protected'].includes(document.documentElement.dataset.eeWorkbenchState));
+   if(kind==='dcm')assert.match(await q.locator('#ee-host-status').innerText(),/電感電流降到零/,'valid provenance must still reach CCM validation');
    assert.equal(await q.evaluate(k=>localStorage.getItem(k),key),raw,kind+' primary bytes');
    assert.equal(await q.evaluate(()=>localStorage.getItem('circuit-learning-state-v5-corrupt-backup')),null);
    assert.equal(await q.locator('main').evaluate(n=>n.inert),true);

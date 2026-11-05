@@ -20,21 +20,32 @@
   const run=el('button','把開關比例加上 10 個百分點，計算比較',$('surface-help'));run.id='topology-run';run.className='primary';
   const contracts=el('details',undefined,$('surface-help'));el('summary','模型來源與適用範圍',contracts);
   const steps=CircuitEngineeringCurriculum.topologySteps;
-  let session,comparison,shown=0,blocked=false,saving=false;
-  async function accept(){saving=true;const controls=[...document.querySelectorAll("button,input")].filter(n=>!n.closest("#learning-storage-status")&&!["workspace-backup","detailed-records","all-materials"].includes(n.id)).map(n=>[n,n.disabled]);controls.forEach(([n])=>n.disabled=true);if(!save())return false;const status=await E.flush();if(!status.saved){const recovered=event=>{if(!event.detail.saved)return;$('ws-save').textContent='重試儲存已成功；請重新整理以繼續這次已保存的判斷。';window.removeEventListener('circuit:evidence-persistence',recovered);};window.addEventListener('circuit:evidence-persistence',recovered);$("ws-save").textContent="尚未儲存（"+(status.reason||"pending")+"）；本次判斷尚未接受；請先重試儲存，成功後重新整理，或下載備份。";return false;}saving=false;controls.forEach(([n,disabled])=>n.disabled=disabled);return true;}
+  const modelIds=['buck-ccm-control-output-esr','boost-ccm-control-output'];
+  let session,comparison,shown=0,blocked=false,saving=false,contractsReady=false;
+  function currentModels(){return modelIds.map(id=>({id,version:CircuitModelRegistry.describe(id)?.version}));}
+  function compatibleModels(models){
+   return Array.isArray(models)&&models.length===modelIds.length&&currentModels().every(expected=>
+    typeof expected.version==='string'&&expected.version.length>0&&
+    models.filter(model=>model?.id===expected.id&&model.version===expected.version).length===1);
+  }
+  function suspendRecord(reason){
+   blocked=true;EEWorkbenchHost.protectEvidence(reason);run.hidden=true;$('ws-steps').hidden=true;$('ws-result').hidden=true;
+   const notice=$('ws-question');notice.replaceChildren();notice.setAttribute('data-record-protection','');notice.setAttribute('role','status');
+   el('p',reason+'。練習已暫停，原有紀錄保留；請先下載備份。',notice);
+   el('a','查看學習紀錄與下載備份',notice).href='records.html';$('ws-save').textContent='未覆蓋已有紀錄。';return true;
+  }
+  async function accept(){saving=true;const controls=[...document.querySelectorAll("button,input")].filter(n=>!n.closest("#learning-storage-status")&&!["workspace-backup","detailed-records","all-materials"].includes(n.id)).map(n=>[n,n.disabled]);controls.forEach(([n])=>n.disabled=true);if(!save())return false;const status=await E.flush();if(!status.saved){const recovered=event=>{if(!event.detail.saved)return;$('ws-save').textContent='重試儲存已成功；請重新整理以繼續這次已保存的判斷。';window.removeEventListener('circuit:evidence-persistence',recovered);};window.addEventListener('circuit:evidence-persistence',recovered);$("ws-save").textContent="尚未儲存（"+(status.reason||"pending")+"）；本次判斷尚未接受；請先重試儲存，成功後重新整理，或下載備份。";return false;}if(protectRecord())return false;saving=false;controls.forEach(([n,disabled])=>n.disabled=disabled);return true;}
   let expectedRecord=JSON.stringify(E.load().benchmark.learningWorkspace?.topologyTransfer);
   function protectRecord(){
    if(!EEWorkbenchHost.guardEvidence())return true;
    const stored=E.load().benchmark.learningWorkspace?.topologyTransfer;
+   if(contractsReady&&stored!==undefined&&!compatibleModels(stored?.models))return suspendRecord('比較紀錄的模型身分或版本不相容');
    if(!blocked&&(!stored||stored.version===1)&&JSON.stringify(stored)===expectedRecord)return false;
-   blocked=true;EEWorkbenchHost.protectEvidence('比較紀錄已被另一頁更新或版本不相容，操作已暫停');run.hidden=true;$('ws-steps').hidden=true;$('ws-result').hidden=true;
-   const notice=$('ws-question');notice.replaceChildren();notice.setAttribute('data-record-protection','');notice.setAttribute('role','status');
-   el('p','比較紀錄已被另一頁更新，或版本目前無法讀取。練習已暫停，原有紀錄保留；請先下載備份。',notice);
-   el('a','查看學習紀錄與下載備份',notice).href='records.html';$('ws-save').textContent='未覆蓋已有紀錄。';return true;
+   return suspendRecord('比較紀錄已被另一頁更新或版本不相容');
   }
   window.addEventListener('storage',protectRecord);
   const stage=()=>W.topologyProof(session)?4:!session.rows.prediction?.first?0:!session.operated||!session.rows.observation?.passed?1:!session.rows.reason?.passed?2:3;
-  function save(){if(protectRecord())return false;session.models=['buck-ccm-control-output-esr','boost-ccm-control-output'].map(id=>({id,version:CircuitModelRegistry.describe(id).version}));session.completed=W.topologyProof(session);const s=E.load();s.benchmark.learningWorkspace||={version:1};s.benchmark.learningWorkspace.topologyTransfer=session;E.save(s);expectedRecord=JSON.stringify(session);$('ws-save').textContent=E.storageStatus().saved?'比較條件與首次判斷已保存在這個瀏覽器。':'目前只能暫存，離開前請下載學習備份。';return true;}
+  function save(){if(protectRecord())return false;if(!compatibleModels(session.models)){suspendRecord('比較紀錄的模型身分或版本不相容');return false;}session.completed=W.topologyProof(session);const s=E.load();s.benchmark.learningWorkspace||={version:1};s.benchmark.learningWorkspace.topologyTransfer=session;E.save(s);expectedRecord=JSON.stringify(session);$('ws-save').textContent=E.storageStatus().saved?'比較條件與首次判斷已保存在這個瀏覽器。':'目前只能暫存，離開前請下載學習備份。';return true;}
   function draw(){
    const reveal=session.operated,fmt=n=>n.toFixed(2),p=session.params;
    conditions.textContent=`輸入 ${p.vin} V · 電感 ${(p.inductanceH*1e6).toFixed(0)} µH · 電容 ${(p.capacitanceF*1e6).toFixed(0)} µF · 負載 ${p.loadOhm} Ω · 開關 ${(p.switchingHz/1000).toFixed(0)} kHz · 忽略損耗`;
@@ -64,11 +75,12 @@
   }
   try{
    await CircuitModelRegistry.loadTopologyContracts(new URL('.',location.href));
+   contractsReady=true;
    if(protectRecord())return false;
    {
    const stored=E.load().benchmark.learningWorkspace?.topologyTransfer;
    if(stored){if(stored.version!==1||stored.protocol!=='topology-workbench-v1'||!stored.rows||typeof stored.rows!=='object'||Array.isArray(stored.rows))throw Error('已存比較紀錄格式不符，請先匯出備份。');session=stored;}
-   else{const plan=W.topologyPlan(E.load());session={version:1,protocol:'topology-workbench-v1',params:plan.params,source:plan.source,rows:{},operated:false};}
+   else{const plan=W.topologyPlan(E.load());session={version:1,protocol:'topology-workbench-v1',models:currentModels(),params:plan.params,source:plan.source,rows:{},operated:false};}
    comparison=W.topologyCompare(session.params);if(!comparison.valid)throw Error('這組條件有電感電流降到零，超出目前比較模型的範圍。請返回手動實驗確認條件。');
    for(const id of ['buck-ccm-control-output-esr','boost-ccm-control-output']){const c=CircuitModelRegistry.describe(id);el('p',`${c.title} · ${c.id} · ${c.type}`,contracts);el('p',c.validRegion+'；'+c.invalidWhen.join('；'),contracts);const a=el('a','檢視原始模型契約',contracts);a.href='assets/learning/model-contracts-v1.json';}
    $('workbench-context-slot').hidden=false;CircuitWorkbenchContext.mount($('workbench-context-slot'),new URL('.',location.href));
