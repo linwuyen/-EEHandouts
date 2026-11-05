@@ -1,0 +1,97 @@
+name: Verify PR46 corrective delta
+on:
+  push:
+    branches: [ops/pr46-repair-submit-20261105]
+permissions:
+  contents: write
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: payload
+          persist-credentials: false
+      - uses: actions/checkout@v7
+        with:
+          ref: dfb5c08d8b31d7094f7a8140d5e5d84d302a3b7c
+          path: product
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Reconstruct only the five hash-verified product files
+        run: |
+          python3 - <<'PY'
+          import base64, gzip, hashlib, json, subprocess
+          from pathlib import Path
+          root=Path('product').resolve()
+          def git(*args): return subprocess.check_output(['git','-C',str(root),*args],text=True).strip()
+          base='dfb5c08d8b31d7094f7a8140d5e5d84d302a3b7c'
+          tree='acd87c56fd60ad10fb8d21df83981e8235649302'
+          assert git('rev-parse','HEAD') == base
+          assert not git('status','--porcelain')
+          encoded=Path('payload/.pr46-repair/payload.b64').read_text().strip()
+          # Correct one transcription-only base64 insertion; the authoritative digest below is mandatory.
+          encoded=encoded.replace('COERsPp9Flds0N8wB','COERsPp9lds0N8wB')
+          packed=base64.b64decode(encoded,validate=True)
+          assert hashlib.sha256(packed).hexdigest() == '73c954e90af4e2371f955f1df9a858bfd33ccbfe404071211b60cb9839f27ff9'
+          recipe=json.loads(gzip.decompress(packed))
+          assert (recipe['base'],recipe['tree']) == (base,tree)
+          allowed={'package.json','tests/topology-provenance-contracts.mjs','tests/topology-workbench-smoke.mjs','workbench/assets/learning/workspace-topology-ui.js','workbench/source-manifest.json'}
+          assert len(recipe['files']) == 5 and {f['path'] for f in recipe['files']} == allowed
+          for entry in recipe['files']:
+              path=(root/entry['path']).resolve();assert path.is_relative_to(root)
+              raw=path.read_bytes() if path.exists() else b''
+              if entry['before'] is None: assert not path.exists()
+              else: assert hashlib.sha256(raw).hexdigest() == entry['before'], entry['path']
+              text=raw.decode('utf-8');limit=len(text)
+              for start,end,replacement in reversed(entry['edits']):
+                  assert 0 <= start <= end <= limit
+                  text=text[:start]+replacement+text[end:];limit=start
+              raw=text.encode('utf-8');assert hashlib.sha256(raw).hexdigest() == entry['after'],entry['path']
+              path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(raw)
+          git('add','--all');assert git('write-tree') == tree
+          Path('verified-tree.txt').write_text(tree+'\n')
+          print('Verified exact corrected tree',tree)
+          PY
+      - name: Verify provenance red-green and original engineering tests
+        working-directory: product
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          cp workbench/assets/learning/workspace-topology-ui.js /tmp/fixed-ui.js
+          git show HEAD:workbench/assets/learning/workspace-topology-ui.js > workbench/assets/learning/workspace-topology-ui.js
+          set +e
+          node tests/topology-provenance-contracts.mjs > ../provenance-red.log 2>&1
+          red=$?
+          set -e
+          cp /tmp/fixed-ui.js workbench/assets/learning/workspace-topology-ui.js
+          test "$red" != 0
+          grep -q 'future model version: incompatible evidence must not mount' ../provenance-red.log
+          npm run test:ci | tee ../corrected-tests.log
+          git diff --cached --check
+          test "$(git write-tree)" = acd87c56fd60ad10fb8d21df83981e8235649302
+      - name: Publish only a new corrective result branch
+        working-directory: product
+        run: |
+          set -euo pipefail
+          test "$(git ls-remote origin refs/heads/migration/buck-boost-comparison-20261104 | cut -f1)" = dfb5c08d8b31d7094f7a8140d5e5d84d302a3b7c
+          branch=migration/pr46-corrected-result-20261105
+          test -z "$(git ls-remote origin "refs/heads/$branch")"
+          git config user.name Zerofivem
+          git config user.email 15869648+linwuyen@users.noreply.github.com
+          git switch -c "$branch"
+          git commit -m 'fix: preserve topology model provenance and verify visible boundary (#46)' -m 'Reject unknown or missing model IDs/versions before resume and save; only new records receive current provenance. Preserve raw unsupported records, first answers and source numerical/evidence owners. Add actual-owner RED/GREEN tests and real-browser fixtures; open the original scope disclosure before asserting its visible boundary. No main change or deployment; exact-head browsers and independent review remain required.'
+          git push origin "HEAD:refs/heads/$branch"
+          git rev-parse HEAD > ../verified-head.txt
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: pr46-corrective-evidence
+          path: |
+            verified-tree.txt
+            verified-head.txt
+            provenance-red.log
+            corrected-tests.log
+          retention-days: 7
