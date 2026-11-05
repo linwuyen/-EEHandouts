@@ -1,0 +1,29 @@
+name: Export immutable PR46 source
+on:
+  push:
+    branches: [ops/pr46-exact-source-20261105]
+permissions:
+  contents: read
+jobs:
+  export:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: dfb5c08d8b31d7094f7a8140d5e5d84d302a3b7c
+          persist-credentials: false
+      - name: Export tracked files without credentials or Git metadata
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = dfb5c08d8b31d7094f7a8140d5e5d84d302a3b7c
+          mkdir -p /tmp/pr46-source
+          git archive --format=tar.gz HEAD > /tmp/pr46-source/source.tar.gz
+          git ls-files -s > /tmp/pr46-source/git-files.tsv
+          git rev-parse HEAD HEAD^{tree} > /tmp/pr46-source/version.txt
+          cd /tmp/pr46-source && sha256sum source.tar.gz > SHA256SUMS
+      - uses: actions/upload-artifact@v7
+        with:
+          name: pr46-exact-source-dfb5c08d
+          path: /tmp/pr46-source/
+          retention-days: 3
