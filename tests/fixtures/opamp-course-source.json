@@ -1,0 +1,44 @@
+[
+  {
+    "file": "01_slew_rate.html",
+    "sourcePath": "12_opamp_slew_rate/01_slew_rate.html",
+    "sourceBlob": "8fffb858c8b659e0112d88996bcd35d848053ebd",
+    "bodySha256": "718c062c1cbc4f26adef23777b4435b49c4e26a4864cba6e0e8a0e12ec2b8e2a",
+    "heading": "Slew Rate 是輸出斜率上限，不是頻寬"
+  },
+  {
+    "file": "02_step_response.html",
+    "sourcePath": "12_opamp_slew_rate/02_step_response.html",
+    "sourceBlob": "c42c14e47da5f7c5c112dadc35a57c4d3e521070",
+    "bodySha256": "29840220f08dee941a07fea8102045669575ace3006a9621fb18c9e767f36d45",
+    "heading": "Step Response 先看方向，再判斷有沒有 Slew 段"
+  },
+  {
+    "file": "03_sine_fpbw.html",
+    "sourcePath": "12_opamp_slew_rate/03_sine_fpbw.html",
+    "sourceBlob": "1a0f408873eddf7df9cd6ef4a60e7a89e00eee18",
+    "bodySha256": "12afc1bae776dd24ae69e3aedebea958778b00a6e310f79528c9a28b026c7a5e",
+    "heading": "正弦最吃 Slew Rate 的地方在 zero crossing"
+  },
+  {
+    "file": "04_gbw_vs_slew.html",
+    "sourcePath": "12_opamp_slew_rate/04_gbw_vs_slew.html",
+    "sourceBlob": "428fe102881a336310a62eec7115e0e442fa7f06",
+    "bodySha256": "a0bd4a4bad9cc81e8e54cbab39d6562f0245206b4fe985a33c14d91f425a6c31",
+    "heading": "先用「振幅依賴」做 model selection"
+  },
+  {
+    "file": "05_settling_time.html",
+    "sourcePath": "12_opamp_slew_rate/05_settling_time.html",
+    "sourceBlob": "8704e0449cbbe6e2b9cc86ce479e8bb97ced1fff",
+    "bodySha256": "d40d5746da10d13469b06dfc2f00e5d3096b495ec731070775d128f7d4da51ad",
+    "heading": "Settling Time 是「進入誤差帶並待住」"
+  },
+  {
+    "file": "06_datasheet_selection.html",
+    "sourcePath": "12_opamp_slew_rate/06_datasheet_selection.html",
+    "sourceBlob": "4efad80297e8286479933902c847897e3fa51263",
+    "bodySha256": "021a2af0c4db37210bbed0a605213fa57f9a38cb879e916e2791cec937fe4a6d",
+    "heading": "先寫 application envelope，再看 datasheet"
+  }
+]

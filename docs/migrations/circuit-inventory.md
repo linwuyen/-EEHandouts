@@ -14,7 +14,7 @@
 | Buck / Boost 比較 | PR #46 已發布，正式版本 84162dd4；workbench/topology.html | 僅原 owner 的手動設定；CCM 穩態，不帶儲能或故障狀態 |
 | Module 17 四應用 | PR #47 已發布，正式版本 36abe27f；workbench/applications.html | 各自原工具條件；不自動套 Buck 參數或授予正式能力成績 |
 | Module 1 ADC | PR #48 已發布獨立訊號鏈計算器，版本 2b9c516f；舊逐課頁未搬 | 保留舊課 LSB 矛盾待核對 |
-| Module 12 OP AMP | 第四批 4b 本地實作階躍與正弦實驗；未提交、未發布 | 原數值核心不變；診斷、逐課頁與正式評量未搬 |
+| Module 12 OP AMP | PR #49 已發布階躍／正弦實驗（b4a3588e）；本批接入六篇觀念課 | 六篇靜態觀念課與原實驗銜接；診斷、DC Trainer 與正式評量未搬 |
 | Module 9 AFE 雙向功率控制 | 尚未遷入；不是 ADC 類比前端 | 列為功率控制批次，不能以 ADC 教材入口代替 |
 | Module 4 / 16 / 18 PI / transforms / control | 連到 EE 原類比 PI / 工具，不混用係數 | 各自離散化、模型、單位契約 |
 | Module 6 / 13 timing / synchronization | 連到 EE 原時序頁，不授予實機 PASS | 指定器件與 ADCRESULT 證據另驗 |
@@ -62,7 +62,7 @@ EE 起點 `84162dd465385f0b467ca3584ba4cc1cfa15a3f9`；Circuit 來源固定 `11e
 ### 待解來源一致性（未帶入本站）
 固定來源 `1_adc_basics.html` 的提示與回顧將 `Vref/(2^N-1)` 稱為 LSB，並使用 rounding；同一來源的完整計算器及 `engineering-models.js` 則定義 LSB=`Vref/2^N`、code=floor。這是來源內部矛盾，並非本次改寫。舊 ADC 逐課頁、lessons.js 進度機制、AFE/OP 及硬體 ADCRESULT 時序均仍待分批核對與遷移；不能把本計算器當成整個 Module 1 或板級驗證已完成。
 
-## 第四批 4b：OP 階躍／正弦實驗（本地實作，尚未提交／發布）
+## 第四批 4b：OP 階躍／正弦實驗（PR #49 已發布，b4a3588e）
 基準 EE `2b9c516fc57538f7d7bd5f33881a0cdd3884362f`；來源維持 `11ef4e4801b5283f265dc349a4afec0027603228`。
 
 - 來源 `12_opamp_slew_rate/lab_step.html` 與 `lab_sine.html` 遷為本站 `opamp-step.html`、`opamp-sine.html`。原 `assets/opamp.js` 數值與繪圖核心、`opamp.css` 原樣保留；只適配導覽、載入與輸入保護、無障礙標示與行動版佈局。
@@ -71,3 +71,10 @@ EE 起點 `84162dd465385f0b467ca3584ba4cc1cfa15a3f9`；Circuit 來源固定 `11e
 - 兩頁不讀寫學習儲存，不承接或保存 ADC／Buck 參數。離開及重載回到各頁原預設值。非法輸入清除舊讀值並隱藏曲線；資產或繪圖失敗維持停用狀態。
 - 分類更正依來源 `9.afe-tutorial/README.md`：Module 9 是「AFE 雙向控制模擬器」，並非類比前端。移除將這個未遷入工具導到 ADC 教材的錯誤對應，原來源內容不改。
 - 舊 ADC 逐課 LSB 矛盾及其他未遷入功能繼續列案。完整瀏覽器 CI、獨立審查、正式發布必須另驗；本地套件不是發布證明。
+
+## 第四批 4c：OP 六課觀念（本批範圍；發布狀態以對應 PR／CI 為準）
+基準 EE `b4a3588ec121c7b685e3aa4ac6044d8de1ee2d31`；Circuit 仍固定 `11ef4e4801b5283f265dc349a4afec0027603228`。
+六個 `12_opamp_slew_rate/01...06` 概念頁與 `opamp-course.html` 在本站直接閱讀；原課順序、例題、推導保留，透過上冊 OP 與既有 step/sine 實驗進出。精確來源入口仍經原 host 保存；未知、診斷、DC trainer 與評量路徑維持未遷入。
+全部新頁是無腳本靜態閱讀，不讀寫已讀或實驗紀錄，不授予正式分數／實機通過。沒有另建模型、資料格式或第二套學習首頁。
+明示內容修訂：第六課原句的 `noise gain / GBW` 與頻寬量綱不符；改為主導單極點電壓回授近似 `BW ≈ GBW / noise gain`。頁內保留原句與官方 Analog Devices AN-940 Noise Gain 段依據；此改動不回寫舊來源，也不修改原數值／繪圖核心。
+新增 source-body 雜湊、精確路由與保存失敗／版本變動測試、無 JavaScript 與三瀏覽器閱讀流程、各新資產缺失發布反例。舊整站測試不刪除。合併與發布仍須 exact-head review、PR CI、new-main CI、Pages／hosted SHA；不以本地 Node 成績替代。
