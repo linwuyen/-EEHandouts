@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-ee-adc-state="loading">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ADC 訊號鏈計算器｜EEHandouts</title>
+<style>
+:root{--bg:#f5f7fb;--card:#fff;--ink:#1e293b;--muted:#64748b;--line:#dbe3ee;--blue:#2563eb;--green:#047857;--amber:#a16207;--red:#b91c1c;--mono:ui-monospace,Consolas,monospace}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,"Noto Sans TC","Microsoft JhengHei",sans-serif;line-height:1.55}.wrap{max-width:1220px;margin:auto;padding:22px 16px 56px}h1{margin:0 0 5px}.lead{margin:0 0 18px;color:var(--muted)}.notice{padding:12px 14px;border:1px solid #bfdbfe;border-radius:10px;background:#eff6ff;color:#1e3a8a;margin-bottom:16px}.layout{display:grid;grid-template-columns:330px 1fr;gap:16px}.stack{display:grid;gap:14px}.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}.card h2{margin:0 0 12px;font-size:18px}.field{display:grid;grid-template-columns:1fr 130px 46px;gap:8px;align-items:center;margin:9px 0}.field label{font-size:13px;color:#475569}.field input,.field select{width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:7px;background:#fff;text-align:right;font:14px var(--mono)}.unit{color:var(--muted);font-size:12px}.results{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}.metric{padding:12px;border:1px solid var(--line);border-radius:10px;background:#f8fafc}.metric span{display:block;color:var(--muted);font-size:12px}.metric strong{display:block;margin-top:4px;font:800 18px var(--mono);overflow-wrap:anywhere}.metric small{display:block;margin-top:4px;color:var(--muted)}.section{margin-top:14px}.section h3{margin:0 0 8px;font-size:16px}.warns{display:grid;gap:8px;margin-top:12px}.alert{padding:10px 12px;border-radius:9px;font-weight:700}.bad{background:#fef2f2;border:1px solid #fecaca;color:#991b1b}.warn{background:#fffbeb;border:1px solid #fde68a;color:#854d0e}.good{background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46}.bar{position:relative;height:34px;border:1px solid #cbd5e1;border-radius:8px;background:#e2e8f0;overflow:hidden;margin-top:8px}.fill{height:100%;background:#93c5fd}.mark{position:absolute;top:0;bottom:0;width:3px;background:#1d4ed8}.zero{position:absolute;top:0;bottom:0;border-left:2px dashed #475569}.formula,pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#111827;color:#d1fae5;border-radius:10px;padding:13px;font:12px/1.6 var(--mono)}button{padding:8px 12px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;cursor:pointer;font-weight:700}.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}@media(max-width:850px){.layout{grid-template-columns:1fr}.field{grid-template-columns:1fr 120px 42px}}@media(max-width:480px){.field{grid-template-columns:1fr 1fr}.field label{grid-column:1/-1}.unit{align-self:center}}
+.layout>*{min-width:0}.actions a{display:inline-block;padding:8px 10px;border:1px solid var(--line);border-radius:8px;color:var(--blue);background:var(--card)}button:disabled{opacity:.55;cursor:not-allowed}#ee-adc-boundary{overflow-wrap:anywhere}</style>
+
+</head>
+<body>
+<header class="wrap" style="padding-bottom:0">
+<nav class="actions" aria-label="EEHandouts 導覽"><a id="ee-adc-return" href="../index.html#lesson/analog/adc">返回 ADC 教材</a><a href="index.html#experiment">返回已保存的 Buck 實驗</a><a href="records.html">紀錄與備份</a></nav>
+<p id="ee-adc-boundary">EEHandouts 本站工具 · 固定來源 11ef4e48。預設 Gain=8.2、Offset=1.65 V、ADC Vref=3.3 V，與上冊 P.106 範例不同；不自動帶入教材或實驗參數。輸入只暫存於本頁，離開前可複製參數連結；不代表教材已讀、實驗完成或實機驗證。</p>
+<p>理想靜態訊號鏈；不驗證取樣窗、ADCRESULT 可讀時刻或 AFE settling。每顆 Rtop 的分攤估算假設串聯電阻等值，C 參數不是已校準韌體。</p>
+<p id="ee-adc-status" class="notice" role="status" aria-live="polite">正在載入本站計算核心；尚無有效結果。若未載入，請返回 ADC 教材。</p>
+</header>
+<script>
+window.addEventListener('error',function(event){
+  if(event.target&&event.target.tagName==='SCRIPT'){
+    document.documentElement.dataset.eeAdcState='failed';
+    document.getElementById('ee-adc-status').textContent='必要計算資產載入失敗；沒有有效結果，請返回 ADC 教材或重新載入。';
+  }
+},true);
+</script>
+<main class="wrap">
+<h1>🧮 C2000 ADC 訊號鏈計算器</h1>
+<p class="lead">驗證雙向電流量測、高壓分壓、ADC 量化、功耗與韌體 scaling。數值超出適用範圍時會明確警告。</p>
+<div class="notice"><b>量化定義：</b>理想 N-bit ADC 有 2<sup>N</sup> 個 code，LSB = Vref / 2<sup>N</sup>。`2^N−1` 只用於最大 code 與端點顯示換算，不再混作 LSB 分母。</div>
+<div class="layout">
+<aside class="stack">
+<section class="card"><h2>ADC 規格</h2>
+<div class="field"><label for="vref">參考電壓</label><input disabled id="vref" type="number" value="3.3" min="0.1" step="0.1"><span class="unit">V</span></div>
+<div class="field"><label for="bits">解析度</label><select disabled id="bits"><option>10</option><option selected>12</option><option>14</option><option>16</option></select><span class="unit">bit</span></div>
+</section>
+<section class="card"><h2>電流訊號鏈</h2>
+<div class="field"><label for="current">目前電流</label><input disabled id="current" type="number" value="20" step="0.5"><span class="unit">A</span></div>
+<div class="field"><label for="shunt">Shunt</label><input disabled id="shunt" type="number" value="0.005" min="0.000001" step="0.001"><span class="unit">Ω</span></div>
+<div class="field"><label for="gain">放大倍率</label><input disabled id="gain" type="number" value="8.2" min="0.01" step="0.1"><span class="unit">V/V</span></div>
+<div class="field"><label for="offset">Offset</label><input disabled id="offset" type="number" value="1.65" step="0.05"><span class="unit">V</span></div>
+</section>
+<section class="card"><h2>高壓分壓</h2>
+<div class="field"><label for="bus">目前母線</label><input disabled id="bus" type="number" value="400" min="0" step="10"><span class="unit">V</span></div>
+<div class="field"><label for="rtop">Rtop 總值</label><input disabled id="rtop" type="number" value="1000" min="0.001" step="10"><span class="unit">kΩ</span></div>
+<div class="field"><label for="rbot">Rbot</label><input disabled id="rbot" type="number" value="6.8" min="0.001" step="0.1"><span class="unit">kΩ</span></div>
+<div class="field"><label for="seriesCount">Rtop 串聯顆數</label><input disabled id="seriesCount" type="number" value="4" min="1" step="1"><span class="unit">顆</span></div>
+</section>
+</aside>
+<section class="stack">
+<section class="card"><h2>ADC 基本結果</h2><div class="results" id="adcResults"></div></section>
+<section class="card"><h2>電流鏈結果</h2><div class="results" id="currentResults"></div><div class="bar"><div class="fill" id="currentFill"></div><div class="zero" id="currentZero"></div><div class="mark" id="currentMark"></div></div><div class="warns" id="currentWarns"></div></section>
+<section class="card"><h2>分壓與功耗結果</h2><div class="results" id="dividerResults"></div><div class="bar"><div class="fill" id="voltageFill"></div><div class="mark" id="voltageMark"></div></div><div class="warns" id="dividerWarns"></div></section>
+<section class="card"><h2>韌體 scaling</h2><pre id="code"></pre><div class="actions"><button disabled id="copy" type="button">複製 C 參數</button><button disabled id="share" type="button">複製目前參數連結</button></div></section>
+<section class="card"><h2>公式與適用條件</h2><div class="formula" id="formula"></div></section>
+</section>
+</div>
+</main>
+<script src="assets/learning/engineering-models.js"></script>
+<script src="ee-adc.js"></script>
+
+
+
+</body>
+</html>

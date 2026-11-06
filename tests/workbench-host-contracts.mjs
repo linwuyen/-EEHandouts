@@ -37,3 +37,12 @@ console.log('PASS host: allowlisted local return, fail-closed flush, source fail
  const backup={target:'',rel:''};let prevented=false,stopped=false;listeners.get('click')[0]({target:{closest:()=>backup},preventDefault(){prevented=true;},stopImmediatePropagation(){stopped=true;}});assert.equal(stopped,true);assert.equal(prevented,false);assert.equal(backup.target,'_blank');
  console.log('PASS actual Evidence owner: unsupported cross-tab version preserved byte-for-byte before normalization');
 }
+// Slice 4a: source calculator is a local read-only destination, not a bypass around flush.
+for(const source of ['index.html','0_index.html','6_full_calculator.html','c2000_adc_calculator.html']){f=fixture();assert.equal(f.host.referenceHref('1_c2000_adc_calculator/'+source),'adc.html');}
+for(const source of ['1_adc_basics.html','../evil','c2000_adc_calculator.html?from=evil']){f=fixture();assert.equal(f.host.referenceHref('1_c2000_adc_calculator/'+source),'coverage.html');}
+f=fixture();f.host.markReady();assert.equal(await f.host.leave('adc.html'),true);assert.equal(f.nav[0],'https://example.test/-EEHandouts/workbench/adc.html');
+for(const reason of ['pending','conflict','quota']){f=fixture();f.host.markReady();f.ctx.CircuitEvidence.flush=async()=>({saved:false,reason});assert.equal(await f.host.leave('adc.html'),false);assert.equal(f.nav.length,0);}
+f=fixture();f.host.markReady();let release;f.ctx.CircuitEvidence.flush=()=>new Promise(resolve=>release=resolve);const adcPending=f.host.leave('adc.html');assert.equal(f.nav.length,0);assert.equal(await f.host.leave('adc.html'),false);release({saved:true});assert.equal(await adcPending,true);assert.equal(f.nav.length,1);
+f=fixture();f.host.markReady();f.host.setNavigationGuard(()=>false);assert.equal(await f.host.leave('adc.html'),false);assert.equal(f.nav.length,0);
+for(const target of ['adc.html?from=https://attacker.invalid','adc.html#untrusted']){f=fixture();assert.equal(await f.host.leave(target),false);}
+console.log('PASS ADC reference allowlist, deferred legacy pages, existing save/record guard, pending and duplicate navigation');
