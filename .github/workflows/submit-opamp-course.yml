@@ -1,0 +1,85 @@
+name: Verify and submit OP concept-course migration
+on:
+  push:
+    branches: ['ops/opamp-course-20261107']
+permissions:
+  contents: write
+jobs:
+  submit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: transport
+          persist-credentials: false
+      - uses: actions/checkout@v7
+        with:
+          ref: b4a3588ec121c7b685e3aa4ac6044d8de1ee2d31
+          path: product
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Reconstruct and verify exact candidate tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, lzma, pathlib, subprocess
+          p = pathlib.Path('transport/.migration-opamp-course')
+          data = b''.join((p / f'part{i:02d}.xz').read_bytes() for i in range(3))
+          assert hashlib.sha256(data).hexdigest() == '37a0cede6eacc979fb7ca87d74e301a7217ff910a8763996c1b9b15a4086ce7f'
+          patch = lzma.decompress(data)
+          assert hashlib.sha256(patch).hexdigest() == '88a79d2841aae733f1de624596ced5908033dae40356f473dbb7b9dab84205b8'
+          path = pathlib.Path('candidate.patch').resolve()
+          path.write_bytes(patch)
+          def git(*args):
+              return subprocess.check_output(['git', '-C', 'product', *args], text=True).strip()
+          assert git('rev-parse', 'HEAD') == 'b4a3588ec121c7b685e3aa4ac6044d8de1ee2d31'
+          assert git('rev-parse', 'HEAD^{tree}') == 'fbd89a58d3dcd434ab020ae0f041649ce6b5876f'
+          assert not git('status', '--porcelain')
+          git('apply', '--check', '--index', '--unidiff-zero', str(path))
+          git('apply', '--index', '--unidiff-zero', str(path))
+          assert git('write-tree') == '0ac10687bb5c14b625a1a3ee6a5b71ad804867b8'
+          git('diff', '--cached', '--check')
+          print('Exact candidate tree and both transport digests verified')
+          PY
+      - name: Full engineering and preserved source tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          npm run test:ci | tee ../node.log
+      - name: Publish only new isolated product branch
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cd product
+          test "$(gh api repos/linwuyen/-EEHandouts/git/ref/heads/main --jq .object.sha)" = b4a3588ec121c7b685e3aa4ac6044d8de1ee2d31
+          test "$(git write-tree)" = 0ac10687bb5c14b625a1a3ee6a5b71ad804867b8
+          git diff --exit-code
+          gh auth setup-git
+          test -z "$(git ls-remote origin refs/heads/migration/opamp-course-20261107)"
+          git config user.name 'EEHandouts migration'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'feat: integrate six OP concept lessons into EEHandouts' -m 'Slice4c from pinned Circuit source 11ef4e48. Preserve lesson order and instructional bodies except explicitly documented bandwidth correction with AN-940 source. Static local pages, original save-gated host, no progress writes, numerical changes or formal assessment. Exact tree, full Node suite verified; full PR browser CI and independent review remain required. Ops transport is not included.'
+          git push origin HEAD:refs/heads/migration/opamp-course-20261107
+          git rev-parse HEAD > ../product-head.txt
+          git rev-parse HEAD^{tree} > ../product-tree.txt
+          git diff-tree --no-commit-id --name-status -r HEAD > ../changed-files.txt
+          git archive --format=tar HEAD > ../product-source.tar
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: opamp-course-submission-evidence
+          path: |
+            node.log
+            product-head.txt
+            product-tree.txt
+            changed-files.txt
+            product-source.tar
+          retention-days: 7
+          if-no-files-found: warn
