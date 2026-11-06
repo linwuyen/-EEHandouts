@@ -1,67 +1,61 @@
-name: Diagnose PR49 OP browser stall
+name: Verify PR49 OP resize correction
 on:
   push:
     branches: ['ops/pr49-opamp-diagnose-20261106']
 permissions:
   contents: read
 jobs:
-  diagnose:
+  verify:
     runs-on: ubuntu-24.04
-    timeout-minutes: 6
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: bd335a231a40d0f04911de9ab01199198f98ed5d
+          ref: 6cf942d22fdaa3c32628e666003f17a0ac16a9e5
           persist-credentials: false
       - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: npm
-      - name: Verify original tree and install pinned dependencies
+      - name: Verify exact candidate and unchanged source owner
         run: |
-          test "$(git rev-parse HEAD^{tree})" = c3de961c679caad9a01f555a7319f123c0a35e20
+          test "$(git rev-parse HEAD)" = 6cf942d22fdaa3c32628e666003f17a0ac16a9e5
+          test "$(git rev-parse HEAD^{tree})" = 38014e8fee3d1ba8ef81d9374d5bba8e3111dfb9
+          test "$(git hash-object workbench/12_opamp_slew_rate/assets/opamp.js)" = 5eb7fb9b4f49a22794d1c5f500c5449f5f6c775c
+          git rev-parse HEAD HEAD^{tree} > exact-candidate.txt
+      - name: Full engineering and source regressions
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run test:ci 2>&1 | tee opamp-node.log
+      - name: Install pinned browsers and local PDF assets
+        run: |
           npm ci --ignore-scripts --no-audit --no-fund
-          npx playwright install --with-deps firefox webkit
+          npx playwright install --with-deps chromium firefox webkit
           bash scripts/prepare-pdfjs.sh
-      - name: Add diagnostic time bounds to a disposable test copy
-        shell: bash
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          s=Path('tests/opamp-workbench-smoke.mjs').read_text()
-          s=s.replace(' const errors=[],requests=[];', ' ctx.setDefaultTimeout(10000);ctx.setDefaultNavigationTimeout(10000);\n const errors=[],requests=[];')
-          s=s.replace('q=await fail.newPage();', 'q=await fail.newPage();fail.setDefaultTimeout(10000);')
-          s=s.replace('s=await saved.newPage();', 's=await saved.newPage();saved.setDefaultTimeout(10000);')
-          old=' }finally{await ctx.close();await browser.close();}'
-          assert old in s
-          s=s.replace(old, ''' }catch(error){
-           console.error('DIAGNOSTIC FAILURE',name,error);
-           const pageState = await page.evaluate(() => ({url:location.href,state:document.documentElement.dataset.eeOpampState,status:document.getElementById('ee-opamp-status')?.textContent,inputs:[...document.querySelectorAll('input')].map(x=>({id:x.id,value:x.value,defaultValue:x.defaultValue,disabled:x.disabled})),owner:typeof window.CircuitOpampSimulator,adapter:typeof window.EEOpampPage})).catch(e=>({error:String(e)}));
-           console.error('PAGE STATE',JSON.stringify(pageState));
-           await page.screenshot({path:'tests/screenshots/cross-'+name+'-opamp-failure.png',fullPage:true,timeout:5000}).catch(()=>{});
-           throw error;
-          }finally{await ctx.close();await browser.close();}''')
-          Path('tests/opamp-diagnostic.mjs').write_text(s)
-          PY
-          node --check tests/opamp-diagnostic.mjs
-      - name: Run exact OP lifecycle with API tracing
-        shell: bash
+      - name: Run static site
         run: |
           python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/opamp-http.log 2>&1 &
-          for i in $(seq 1 20); do curl -fsS http://127.0.0.1:4173/index.html >/dev/null && break; sleep 1; done
-          set +e
-          DEBUG=pw:api timeout 180s node tests/opamp-diagnostic.mjs --cross-browser > opamp-diagnostic.log 2>&1
-          result=$?
-          tail -160 opamp-diagnostic.log
-          cp /tmp/opamp-http.log opamp-http.log
-          exit "$result"
+          for i in $(seq 1 20); do
+            if curl -fsS http://127.0.0.1:4173/index.html >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+      - name: Exact OP lifecycle in Chromium Firefox and WebKit
+        shell: bash
+        run: |
+          set -o pipefail
+          DEBUG=pw:api node tests/opamp-workbench-smoke.mjs 2>&1 | tee opamp-chromium.log
+          DEBUG=pw:api node tests/opamp-workbench-smoke.mjs --cross-browser 2>&1 | tee opamp-cross.log
+          test -z "$(git status --porcelain --untracked-files=no)"
       - uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: pr49-opamp-stall-diagnostics
+          name: pr49-opamp-correction-verification
           path: |
-            opamp-diagnostic.log
-            opamp-http.log
-            tests/opamp-diagnostic.mjs
+            exact-candidate.txt
+            opamp-node.log
+            opamp-chromium.log
+            opamp-cross.log
             tests/screenshots/cross-*-opamp-*.png
           retention-days: 7
