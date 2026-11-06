@@ -5,10 +5,13 @@
  const bounds={'op-step':[-12,12],'op-sr-plus':[.2,20],'op-sr-minus':[.2,20],'op-gbw':[.5,100],'op-gain':[1,20],'op-tol':[.01,1],'op-freq':[10,1000],'op-vpp':[.5,12]};
  const readings=['op-required-sr','op-fpbw','op-margin','op-step-time','op-settle-time','op-cl-bw','op-state'];
  let started=false,failed=false;
+ function clearCanvas(){
+  const canvas=$('op-scope');if(canvas){canvas.hidden=true;try{canvas.getContext('2d')?.clearRect(0,0,canvas.width,canvas.height);}catch{}}
+ }
  function clear(message,state){
   document.documentElement.dataset.eeOpampState=state;
   for(const id of readings)if($(id))$(id).textContent='';
-  const canvas=$('op-scope');if(canvas){canvas.hidden=true;try{canvas.getContext('2d')?.clearRect(0,0,canvas.width,canvas.height);}catch{}}
+  clearCanvas();
   $('ee-opamp-status').textContent=message+'；先前讀值與曲線已隱藏，沒有保存或評分。';
  }
  function fail(message){failed=true;for(const id of Object.keys(bounds))if($(id))$(id).disabled=true;clear(message,'failed');}
@@ -20,7 +23,7 @@
   }
  }
  function render(){
-  if(failed)return false;
+  if(failed){clearCanvas();return false;}
   try{validate();}catch(error){clear(error.message,'invalid');return false;}
   try{
    const owner=window.CircuitOpampSimulator;
@@ -35,7 +38,11 @@
   }catch(error){fail('實驗無法完成計算或繪圖：'+error.message);return false;}
  }
  function start(){
-  if(started||failed)return false;started=true;
+  if(started)return false;started=true;
+  // The original owner has registered its resize draw by now. Validate/clear
+  // afterwards without swallowing native viewport or unrelated observer events.
+  window.addEventListener('resize',()=>{render();});
+  if(failed)return false;
   if(!['step','sine'].includes(document.body.dataset.mode)){fail('未知實驗模式');return false;}
   if(!window.CircuitOpampSimulator){fail('必要計算資產載入失敗');return false;}
   for(const id of Object.keys(bounds))if($(id))$(id).disabled=false;
@@ -47,6 +54,5 @@
   event.stopImmediatePropagation();
   if(started&&!failed)render();
  },true);
- window.addEventListener('resize',event=>{event.stopImmediatePropagation();if(started&&!failed)render();},true);
  window.EEOpampPage=Object.freeze({start,fail});
 })();
