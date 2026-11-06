@@ -1,7 +1,7 @@
 {
   "sourceRepository": "linwuyen/Circuit-Simulation",
   "sourceCommit": "11ef4e4801b5283f265dc349a4afec0027603228",
-  "scope": "Eight-step Buck, Buck/Boost CCM comparison, four topology applications and standalone ADC signal-chain calculator; not whole-project retirement; two stateless OP step/sine labs (no formal assessment)",
+  "scope": "Eight-step Buck, Buck/Boost CCM comparison, four topology applications and standalone ADC signal-chain calculator; not whole-project retirement; two stateless OP step/sine labs (no formal assessment); six static OP concept lessons (one documented bandwidth wording correction; no assessment)",
   "files": [
     {
       "path": "assets/beginner-lessons.js",
@@ -346,7 +346,7 @@
       "path": "opamp-step.html",
       "sourcePath": "12_opamp_slew_rate/lab_step.html",
       "sourceBlob": "c4badcc7892fc943ee927128f9b51d01db9dc436",
-      "sha256": "f6445d149606401e684cc9bc4e9bafffc96655c243f42181bd0c74d86f61f8e9",
+      "sha256": "ee328621f40ce19a782966529895e7699cfd4b0c6d8cfc9b6c75e6815f7a49ea",
       "adapted": true,
       "adaptation": "Local stateless EE navigation, explicit unported assessment boundary, disabled boot controls and fail-closed adapter; source explanatory content and numerical defaults retained."
     },
@@ -354,7 +354,7 @@
       "path": "opamp-sine.html",
       "sourcePath": "12_opamp_slew_rate/lab_sine.html",
       "sourceBlob": "e4b37e0a1b5266f7dcdd1274918651f9a613c982",
-      "sha256": "17d157d3a85645aea375b9c124f5b429eb75bb0df4644a777ccc7b907b1fa1c4",
+      "sha256": "86d7585c8b21fe01117a451f368025b26700f2f34920f428b8b967d9cef26a05",
       "adapted": true,
       "adaptation": "Local stateless EE navigation, explicit unported assessment boundary, disabled boot controls and fail-closed adapter; source explanatory content and numerical defaults retained."
     },
@@ -369,6 +369,54 @@
       "sourceBlob": "5b7d98c4b5af5cf1b587cbca4bb99daa96ec06d7",
       "sha256": "32d7a26ef7f3dc37b07d6ef22d582f34b90079f1b057153ab254ed45e6a48d60",
       "adapted": false
+    },
+    {
+      "path": "12_opamp_slew_rate/01_slew_rate.html",
+      "sourcePath": "12_opamp_slew_rate/01_slew_rate.html",
+      "sourceBlob": "8fffb858c8b659e0112d88996bcd35d848053ebd",
+      "sha256": "52a97507fd60eb7f2bc2c70129753dacbf00c8740a5c03c24ee15976dc6c8146",
+      "adapted": true,
+      "adaptation": "Static EE reading/navigation only; source instructional body preserved."
+    },
+    {
+      "path": "12_opamp_slew_rate/02_step_response.html",
+      "sourcePath": "12_opamp_slew_rate/02_step_response.html",
+      "sourceBlob": "c42c14e47da5f7c5c112dadc35a57c4d3e521070",
+      "sha256": "03ed4903806d147cde1ddca43277cc1f75ee386c1df1383012d3c579b6a46369",
+      "adapted": true,
+      "adaptation": "Static EE reading/navigation only; source instructional body preserved."
+    },
+    {
+      "path": "12_opamp_slew_rate/03_sine_fpbw.html",
+      "sourcePath": "12_opamp_slew_rate/03_sine_fpbw.html",
+      "sourceBlob": "1a0f408873eddf7df9cd6ef4a60e7a89e00eee18",
+      "sha256": "0adf713e5a954ebfadef52daff570e125cc6fb127efde2572755033375e15ad4",
+      "adapted": true,
+      "adaptation": "Static EE reading/navigation only; source instructional body preserved."
+    },
+    {
+      "path": "12_opamp_slew_rate/04_gbw_vs_slew.html",
+      "sourcePath": "12_opamp_slew_rate/04_gbw_vs_slew.html",
+      "sourceBlob": "428fe102881a336310a62eec7115e0e442fa7f06",
+      "sha256": "eed999d295bd052e47966811dfdc70f86cdf5ec3bdb3c1cbd24ab660b86ea8f1",
+      "adapted": true,
+      "adaptation": "Static EE reading/navigation only; source instructional body preserved."
+    },
+    {
+      "path": "12_opamp_slew_rate/05_settling_time.html",
+      "sourcePath": "12_opamp_slew_rate/05_settling_time.html",
+      "sourceBlob": "8704e0449cbbe6e2b9cc86ce479e8bb97ced1fff",
+      "sha256": "23d36ef40efde9e5a1661e488d193457355659a0b94089e20e86acd4d2b4936c",
+      "adapted": true,
+      "adaptation": "Static EE reading/navigation only; source instructional body preserved."
+    },
+    {
+      "path": "12_opamp_slew_rate/06_datasheet_selection.html",
+      "sourcePath": "12_opamp_slew_rate/06_datasheet_selection.html",
+      "sourceBlob": "4efad80297e8286479933902c847897e3fa51263",
+      "sha256": "831a12a84355f19f245312d72d9a64878454224ddad27aa4af11d41eb1113ab9",
+      "adapted": true,
+      "adaptation": "Static EE reading/navigation only; source instructional body preserved. Explicit bandwidth ratio correction with original wording and AN-940 citation."
     }
   ],
   "testFiles": [
