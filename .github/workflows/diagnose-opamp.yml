@@ -36,12 +36,14 @@ jobs:
           assert old in s
           s=s.replace(old, ''' }catch(error){
            console.error('DIAGNOSTIC FAILURE',name,error);
-           console.error('PAGE STATE',JSON.stringify(await page.evaluate(()=>({url:location.href,state:document.documentElement.dataset.eeOpampState,status:document.getElementById('ee-opamp-status')?.textContent,inputs:[...document.querySelectorAll('input')].map(x=>({id:x.id,value:x.value,defaultValue:x.defaultValue,disabled:x.disabled})),owner:typeof window.CircuitOpampSimulator,adapter:typeof window.EEOpampPage}))).catch(e=>({error:String(e)}))));
+           const pageState = await page.evaluate(() => ({url:location.href,state:document.documentElement.dataset.eeOpampState,status:document.getElementById('ee-opamp-status')?.textContent,inputs:[...document.querySelectorAll('input')].map(x=>({id:x.id,value:x.value,defaultValue:x.defaultValue,disabled:x.disabled})),owner:typeof window.CircuitOpampSimulator,adapter:typeof window.EEOpampPage})).catch(e=>({error:String(e)}));
+           console.error('PAGE STATE',JSON.stringify(pageState));
            await page.screenshot({path:'tests/screenshots/cross-'+name+'-opamp-failure.png',fullPage:true,timeout:5000}).catch(()=>{});
            throw error;
           }finally{await ctx.close();await browser.close();}''')
           Path('tests/opamp-diagnostic.mjs').write_text(s)
           PY
+          node --check tests/opamp-diagnostic.mjs
       - name: Run exact OP lifecycle with API tracing
         shell: bash
         run: |
