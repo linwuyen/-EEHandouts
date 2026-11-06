@@ -13,7 +13,9 @@
 | 舊八課、獨立評量、retention | 既有紀錄保留、可唯讀備份；頁面未搬 | 各自驗收再遷移，不能以閱讀標記替代 |
 | Buck / Boost 比較 | PR #46 已發布，正式版本 84162dd4；workbench/topology.html | 僅原 owner 的手動設定；CCM 穩態，不帶儲能或故障狀態 |
 | Module 17 四應用 | PR #47 已發布，正式版本 36abe27f；workbench/applications.html | 各自原工具條件；不自動套 Buck 參數或授予正式能力成績 |
-| Module 1 / 9 / 12 ADC / AFE / OP | 連到既有 EE 對應教材，不冒稱遷入原工具 | 逐模組遷移量測鏈與 UI |
+| Module 1 ADC | PR #48 已發布獨立訊號鏈計算器，版本 2b9c516f；舊逐課頁未搬 | 保留舊課 LSB 矛盾待核對 |
+| Module 12 OP AMP | 第四批 4b 本地實作階躍與正弦實驗；未提交、未發布 | 原數值核心不變；診斷、逐課頁與正式評量未搬 |
+| Module 9 AFE 雙向功率控制 | 尚未遷入；不是 ADC 類比前端 | 列為功率控制批次，不能以 ADC 教材入口代替 |
 | Module 4 / 16 / 18 PI / transforms / control | 連到 EE 原類比 PI / 工具，不混用係數 | 各自離散化、模型、單位契約 |
 | Module 6 / 13 timing / synchronization | 連到 EE 原時序頁，不授予實機 PASS | 指定器件與 ADCRESULT 證據另驗 |
 | Module 14 / 15 / 19 safety / debug / firmware | 頁面、firmware、HIL 與 Board evidence 未搬 | 保留實機未驗證界線與 authority |
@@ -52,10 +54,20 @@ EE 起點 `84162dd465385f0b467ca3584ba4cc1cfa15a3f9`；Circuit 來源固定 `11e
 - 新增四個 Node 整合契約檔和一個三瀏覽器真 DOM suite；原有測試全部保留。發布檢查新增頁面／entry／validator／UI／style／atlas 資產。
 - 原本地交接階段的環境限制已解除；PR #47 的獨立審查、PR CI、main CI 與 Pages 驗收已完成（36abe27f）。後續批次仍各自驗收。
 
-## 第四批 4a：ADC 訊號鏈計算器（本批實作，待 CI／Review／發布）
+## 第四批 4a：ADC 訊號鏈計算器（PR #48 已發布，2b9c516f）
 基準 EE `36abe27f619bcb39397913ada3fb1832ca49ca6b`；Circuit 來源仍固定 `11ef4e4801b5283f265dc349a4afec0027603228`。
 僅遷入 `1_c2000_adc_calculator/c2000_adc_calculator.html` 的獨立計算器至 `workbench/adc.html`。原數值核心不改；教材入口、保存後引用路徑與固定本地返回接入。計算器沒有讀寫學習儲存，輸入僅在本頁及使用者複製的參數 URL 中；教材已讀、實驗與評量狀態不合併。
 失效輸入、數值溢位或資產缺失會清除舊結果並禁止複製 C 參數；正常輸入可恢復。預設 Gain=8.2 / Offset=1.65 V，與 EE P.106 的 Gain=14 / Offset=1.5 V 明確分開。
 
 ### 待解來源一致性（未帶入本站）
 固定來源 `1_adc_basics.html` 的提示與回顧將 `Vref/(2^N-1)` 稱為 LSB，並使用 rounding；同一來源的完整計算器及 `engineering-models.js` 則定義 LSB=`Vref/2^N`、code=floor。這是來源內部矛盾，並非本次改寫。舊 ADC 逐課頁、lessons.js 進度機制、AFE/OP 及硬體 ADCRESULT 時序均仍待分批核對與遷移；不能把本計算器當成整個 Module 1 或板級驗證已完成。
+
+## 第四批 4b：OP 階躍／正弦實驗（本地實作，尚未提交／發布）
+基準 EE `2b9c516fc57538f7d7bd5f33881a0cdd3884362f`；來源維持 `11ef4e4801b5283f265dc349a4afec0027603228`。
+
+- 來源 `12_opamp_slew_rate/lab_step.html` 與 `lab_sine.html` 遷為本站 `opamp-step.html`、`opamp-sine.html`。原 `assets/opamp.js` 數值與繪圖核心、`opamp.css` 原樣保留；只適配導覽、載入與輸入保護、無障礙標示與行動版佈局。
+- 從上冊 OP 教材及 ADC 計算器可進入。工作台引用僅接受兩個精確來源路徑，仍由原 `EEWorkbenchHost.leave` 執行保存前後檢查與 `Evidence.flush`。尚未搬入的 OP 逐課、診斷、reasoning trainer 入口明確導向範圍說明。
+- 不匯入 tutor、learning-bridge、評量 oracle 或作答紀錄寫入器。正弦來源的 Pass contract 文字保留，但明示本批未啟用；不授予 A 級、正式通過、已讀或 BOARD_PASS。
+- 兩頁不讀寫學習儲存，不承接或保存 ADC／Buck 參數。離開及重載回到各頁原預設值。非法輸入清除舊讀值並隱藏曲線；資產或繪圖失敗維持停用狀態。
+- 分類更正依來源 `9.afe-tutorial/README.md`：Module 9 是「AFE 雙向控制模擬器」，並非類比前端。移除將這個未遷入工具導到 ADC 教材的錯誤對應，原來源內容不改。
+- 舊 ADC 逐課 LSB 矛盾及其他未遷入功能繼續列案。完整瀏覽器 CI、獨立審查、正式發布必須另驗；本地套件不是發布證明。

@@ -34,7 +34,7 @@ assert.ok(verify.includes('run: bash scripts/prepare-pdfjs.sh'),'CI must prepare
 assert.ok(publish.includes('run: bash scripts/prepare-pdfjs.sh'),'Pages must bundle verified PDF.js assets');
 
 assert.ok(pkg.scripts['test:browser'].includes('tests/middle-engineering.mjs'), 'Keep the newer middle-volume DCM engineering regression in the suite');
-assert.equal(pkg.scripts['test:cross-browser'],'node tests/cross-browser.mjs && node tests/review-fixes-smoke.mjs --cross-browser && node tests/review-round2-smoke.mjs --cross-browser && node tests/buck-workbench-smoke.mjs --cross-browser && node tests/topology-workbench-smoke.mjs --cross-browser && node tests/applications-workbench-smoke.mjs --cross-browser && node tests/adc-workbench-smoke.mjs --cross-browser','Firefox/WebKit original and review suites run in the separate CI job');
+assert.equal(pkg.scripts['test:cross-browser'],'node tests/cross-browser.mjs && node tests/review-fixes-smoke.mjs --cross-browser && node tests/review-round2-smoke.mjs --cross-browser && node tests/buck-workbench-smoke.mjs --cross-browser && node tests/topology-workbench-smoke.mjs --cross-browser && node tests/applications-workbench-smoke.mjs --cross-browser && node tests/adc-workbench-smoke.mjs --cross-browser && node tests/opamp-workbench-smoke.mjs --cross-browser','Firefox/WebKit original and review suites run in the separate CI job');
 for(const file of ['llc-accuracy.mjs','pfc-event-time.mjs','advanced-control-defaults.mjs'])
   assert.ok(pkg.scripts['test:ci'].includes('tests/'+file),'Round2 numerical/event/control regression required: '+file);
 assert.ok(pkg.scripts['test:browser'].includes('tests/review-round2-smoke.mjs'),'Round2 Chromium DOM regression required');
@@ -110,7 +110,7 @@ printf '%s\\n' "$MOCK_REMOTE_SHA"
 // Post-deploy verifier must reject stale/nonexistent public SHA.
 const publicationScript=readFileSync('scripts/check-published-head.sh','utf8');
 assert.ok(publicationScript.includes('release-sha.txt'),'Public artifact SHA marker required');
-for(const asset of ['workbench/adc.html','workbench/ee-adc.js','workbench/index.html','workbench/topology.html','workbench/ee-host.js','workbench/ee-topology-entry.js','workbench/assets/learning/workspace-topology-ui.js','workbench/assets/learning/model-contracts-v1.json','workbench/applications.html','workbench/ee-applications-entry.js','workbench/ee-applications-contract.js','workbench/ee-applications.css','workbench/assets/learning/topology-application-ui.js','workbench/17_power_topology_control/app.js','workbench/17_power_topology_control/style.css'])assert.ok(publicationScript.includes(asset),'Public workbench asset required: '+asset);
+for(const asset of ['workbench/opamp-step.html', 'workbench/opamp-sine.html', 'workbench/ee-opamp.js', 'workbench/ee-opamp.css', 'workbench/12_opamp_slew_rate/assets/opamp.js', 'workbench/12_opamp_slew_rate/assets/opamp.css','workbench/adc.html','workbench/ee-adc.js','workbench/index.html','workbench/topology.html','workbench/ee-host.js','workbench/ee-topology-entry.js','workbench/assets/learning/workspace-topology-ui.js','workbench/assets/learning/model-contracts-v1.json','workbench/applications.html','workbench/ee-applications-entry.js','workbench/ee-applications-contract.js','workbench/ee-applications.css','workbench/assets/learning/topology-application-ui.js','workbench/17_power_topology_control/app.js','workbench/17_power_topology_control/style.css'])assert.ok(publicationScript.includes(asset),'Public workbench asset required: '+asset);
 const publicationTemp=mkdtempSync(join(tmpdir(),'eehandouts-publication-guard-'));
 try{
   const mockCurl=join(publicationTemp,'curl');
@@ -132,7 +132,7 @@ exit 0
     }});
   }
   assert.equal(checkPublic(verified).status,0,'Correct hosted exact SHA must pass');
-  for(const asset of ['workbench/adc.html','workbench/ee-adc.js','workbench/topology.html','workbench/assets/learning/model-contracts-v1.json','workbench/applications.html','workbench/ee-applications-entry.js','workbench/ee-applications-contract.js','workbench/assets/learning/topology-application-ui.js','workbench/17_power_topology_control/app.js','workbench/17_power_topology_control/style.css'])assert.notEqual(checkPublic(verified,asset).status,0,'Missing published workbench asset must fail: '+asset);
+  for(const asset of ['workbench/opamp-step.html', 'workbench/opamp-sine.html', 'workbench/ee-opamp.js', 'workbench/ee-opamp.css', 'workbench/12_opamp_slew_rate/assets/opamp.js', 'workbench/12_opamp_slew_rate/assets/opamp.css','workbench/adc.html','workbench/ee-adc.js','workbench/topology.html','workbench/assets/learning/model-contracts-v1.json','workbench/applications.html','workbench/ee-applications-entry.js','workbench/ee-applications-contract.js','workbench/assets/learning/topology-application-ui.js','workbench/17_power_topology_control/app.js','workbench/17_power_topology_control/style.css'])assert.notEqual(checkPublic(verified,asset).status,0,'Missing published workbench asset must fail: '+asset);
   assert.notEqual(checkPublic('d'.repeat(40)).status,0,'Stale hosted SHA must fail');
   assert.notEqual(checkPublic('').status,0,'Empty hosted SHA must fail');
 }finally{rmSync(publicationTemp,{recursive:true,force:true})}

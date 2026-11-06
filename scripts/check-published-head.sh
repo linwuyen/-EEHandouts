@@ -12,7 +12,7 @@ for (( i=1; i<=tries; i++ )); do
     "$base/release-sha.txt?verified=$VERIFIED_SHA&attempt=$i" 2>/dev/null || true)"
   if [[ "$observed" == "$VERIFIED_SHA" ]]; then
     for asset in index.html middle.html advanced.html advanced-models.js \
-      workbench/adc.html workbench/ee-adc.js workbench/index.html workbench/topology.html workbench/ee-host.js \
+      workbench/opamp-step.html workbench/opamp-sine.html workbench/ee-opamp.js workbench/ee-opamp.css workbench/12_opamp_slew_rate/assets/opamp.js workbench/12_opamp_slew_rate/assets/opamp.css workbench/adc.html workbench/ee-adc.js workbench/index.html workbench/topology.html workbench/ee-host.js \
       workbench/ee-topology-entry.js workbench/assets/learning/workspace-topology-ui.js \
       workbench/assets/learning/model-contracts-v1.json workbench/source-manifest.json workbench/applications.html workbench/ee-applications-entry.js workbench/ee-applications-contract.js workbench/ee-applications.css workbench/assets/learning/topology-application-ui.js workbench/17_power_topology_control/app.js workbench/17_power_topology_control/style.css; do
       curl --fail --location --silent --show-error --connect-timeout 5 --max-time 12 \

@@ -1,0 +1,11 @@
+/* Integration layout only; original numerical and plot owner are unchanged. */
+[hidden]{display:none!important}
+html:not([data-ee-opamp-state="ready"]) .metrics,html:not([data-ee-opamp-state="ready"]) #op-state{display:none}
+.ee-opamp-boundary{margin:18px 0;padding:16px;border:1px solid var(--line);border-radius:12px;background:var(--panel);overflow-wrap:anywhere}
+#ee-opamp-status{font-weight:700;overflow-wrap:anywhere}
+.control output{font-variant-numeric:tabular-nums;color:var(--accent)}
+.scope{min-width:0;min-height:240px}.panel,.hero,.metric{min-width:0;overflow-wrap:anywhere}
+.lab{grid-template-columns:minmax(0,1fr) minmax(260px,360px)}
+.top{position:relative}.nav{align-items:center}.nav a:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+@media(max-width:850px){.lab{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:400px){.hero{padding:20px}.panel{padding:14px}.metrics{grid-template-columns:1fr}.nav a{padding:5px}.page{width:calc(100% - 24px)}.top{padding:12px}.scope canvas{height:260px}}
