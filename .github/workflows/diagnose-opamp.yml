@@ -1,0 +1,65 @@
+name: Diagnose PR49 OP browser stall
+on:
+  push:
+    branches: ['ops/pr49-opamp-diagnose-20261106']
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: bd335a231a40d0f04911de9ab01199198f98ed5d
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Verify original tree and install pinned dependencies
+        run: |
+          test "$(git rev-parse HEAD^{tree})" = c3de961c679caad9a01f555a7319f123c0a35e20
+          npm ci --ignore-scripts --no-audit --no-fund
+          npx playwright install --with-deps firefox webkit
+          bash scripts/prepare-pdfjs.sh
+      - name: Add diagnostic time bounds to a disposable test copy
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path('tests/opamp-workbench-smoke.mjs').read_text()
+          s=s.replace(' const errors=[],requests=[];', ' ctx.setDefaultTimeout(10000);ctx.setDefaultNavigationTimeout(10000);\n const errors=[],requests=[];')
+          s=s.replace('q=await fail.newPage();', 'q=await fail.newPage();fail.setDefaultTimeout(10000);')
+          s=s.replace('s=await saved.newPage();', 's=await saved.newPage();saved.setDefaultTimeout(10000);')
+          old=' }finally{await ctx.close();await browser.close();}'
+          assert old in s
+          s=s.replace(old, ''' }catch(error){
+           console.error('DIAGNOSTIC FAILURE',name,error);
+           console.error('PAGE STATE',JSON.stringify(await page.evaluate(()=>({url:location.href,state:document.documentElement.dataset.eeOpampState,status:document.getElementById('ee-opamp-status')?.textContent,inputs:[...document.querySelectorAll('input')].map(x=>({id:x.id,value:x.value,defaultValue:x.defaultValue,disabled:x.disabled})),owner:typeof window.CircuitOpampSimulator,adapter:typeof window.EEOpampPage}))).catch(e=>({error:String(e)}))));
+           await page.screenshot({path:'tests/screenshots/cross-'+name+'-opamp-failure.png',fullPage:true,timeout:5000}).catch(()=>{});
+           throw error;
+          }finally{await ctx.close();await browser.close();}''')
+          Path('tests/opamp-diagnostic.mjs').write_text(s)
+          PY
+      - name: Run exact OP lifecycle with API tracing
+        shell: bash
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/opamp-http.log 2>&1 &
+          for i in $(seq 1 20); do curl -fsS http://127.0.0.1:4173/index.html >/dev/null && break; sleep 1; done
+          set +e
+          DEBUG=pw:api timeout 180s node tests/opamp-diagnostic.mjs --cross-browser > opamp-diagnostic.log 2>&1
+          result=$?
+          tail -160 opamp-diagnostic.log
+          cp /tmp/opamp-http.log opamp-http.log
+          exit "$result"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: pr49-opamp-stall-diagnostics
+          path: |
+            opamp-diagnostic.log
+            opamp-http.log
+            tests/opamp-diagnostic.mjs
+            tests/screenshots/cross-*-opamp-*.png
+          retention-days: 7
