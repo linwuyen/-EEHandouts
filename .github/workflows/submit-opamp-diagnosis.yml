@@ -1,0 +1,61 @@
+name: Verify and submit OP diagnosis 4d migration
+on:
+  push:
+    branches:
+      - ops/opamp-diagnosis-20261108
+permissions:
+  contents: write
+jobs:
+  submit:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout isolated transport
+        uses: actions/checkout@v7
+      - name: Checkout exact released base
+        uses: actions/checkout@v7
+        with:
+          ref: f696a0945ade3c68e90f3238c864b244fd5b417f
+          path: base
+          fetch-depth: 1
+      - name: Use Node 22
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: base/package-lock.json
+      - name: Verify xz payload, exact tree and full Node regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C base rev-parse HEAD)" = "f696a0945ade3c68e90f3238c864b244fd5b417f"
+          test "$(git -C base rev-parse HEAD^{tree})" = "0ac10687bb5c14b625a1a3ee6a5b71ad804867b8"
+          cp ops/slice4d.patch.xz "$RUNNER_TEMP/slice4d.patch.xz"
+          echo "2ecdbecd7283303dbde4d6271f7206c016457228755d95ded55f6356df1f6a8e  $RUNNER_TEMP/slice4d.patch.xz" | sha256sum -c -
+          xz -dc "$RUNNER_TEMP/slice4d.patch.xz" > "$RUNNER_TEMP/slice4d.patch"
+          echo "905dd1be7ad61423579e0d6736f254f7d008c78c0fb749a8d2ce8b0baadae020  $RUNNER_TEMP/slice4d.patch" | sha256sum -c -
+          git -C base apply --check "$RUNNER_TEMP/slice4d.patch"
+          git -C base apply "$RUNNER_TEMP/slice4d.patch"
+          cd base
+          git add -A
+          git diff --cached --check
+          test "$(git write-tree)" = "b838c337a6a9c62ce2cb629f096b124306daa961"
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run test:ci
+      - name: Push isolated product branch only
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd base
+          test "$(git write-tree)" = "b838c337a6a9c62ce2cb629f096b124306daa961"
+          git config user.name 'EEHandouts migration'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'feat: migrate stateless OP diagnosis exercise into EEHandouts'
+          git push origin HEAD:refs/heads/migration/opamp-diagnosis-20261108
+      - name: Upload verification evidence
+        uses: actions/upload-artifact@v7
+        with:
+          name: opamp-diagnosis-submission-evidence
+          path: |
+            ops/slice4d.patch.xz
+            base/tests/opamp-diagnosis-contracts.mjs
+          retention-days: 7
