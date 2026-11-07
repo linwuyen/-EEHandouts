@@ -47,13 +47,13 @@ f=fixture();f.host.markReady();f.host.setNavigationGuard(()=>false);assert.equal
 for(const target of ['adc.html?from=https://attacker.invalid','adc.html#untrusted']){f=fixture();assert.equal(await f.host.leave(target),false);}
 console.log('PASS ADC reference allowlist, deferred legacy pages, existing save/record guard, pending and duplicate navigation');
 // Slice 4b: only the two migrated OP labs are new destinations. AFE is power control, not an ADC lesson.
-for(const [source,target]of [['12_opamp_slew_rate/lab_step.html','opamp-step.html'],['12_opamp_slew_rate/lab_sine.html','opamp-sine.html']]){
+for(const [source,target]of [['12_opamp_slew_rate/lab_step.html','opamp-step.html'],['12_opamp_slew_rate/lab_sine.html','opamp-sine.html'],['12_opamp_slew_rate/lab_diagnose.html','opamp-diagnosis.html']]){
  f=fixture();assert.equal(f.host.referenceHref(source),target);f.host.markReady();assert.equal(await f.host.leave(target),true);
  for(const reason of ['pending','conflict','quota']){f=fixture();f.host.markReady();f.ctx.CircuitEvidence.flush=async()=>({saved:false,reason});assert.equal(await f.host.leave(target),false);assert.equal(f.nav.length,0);}
  f=fixture();f.host.markReady();f.host.setNavigationGuard(()=>false);assert.equal(await f.host.leave(target),false);assert.equal(f.nav.length,0);
  f=fixture();f.host.markReady();let release;f.ctx.CircuitEvidence.flush=()=>new Promise(resolve=>release=resolve);const pending=f.host.leave(target);assert.equal(f.nav.length,0);f.storage.set('circuit-learning-state-v5',future);release({saved:true});assert.equal(await pending,false);assert.equal(f.nav.length,0);
 }
 f=fixture();assert.equal(f.host.referenceHref('12_opamp_slew_rate/index.html'),'opamp-course.html');
-for(const source of ['12_opamp_slew_rate/lab_diagnose.html','12_opamp_slew_rate/lab_step.html?from=evil','12_opamp_slew_rate/../evil','9.afe-tutorial/afe.html']){f=fixture();assert.equal(f.host.referenceHref(source),'coverage.html');}
+for(const source of ['12_opamp_slew_rate/lab_diagnose.html?formal=true','12_opamp_slew_rate/lab_step.html?from=evil','12_opamp_slew_rate/../evil','9.afe-tutorial/afe.html']){f=fixture();assert.equal(f.host.referenceHref(source),'coverage.html');}
 for(const target of ['opamp-step.html?from=evil','opamp-sine.html#unexpected']){f=fixture();assert.equal(await f.host.leave(target),false);}
 console.log('PASS OP exact routes, unported AFE/OP coverage, pending-save/conflict/quota/future-schema guards and no arbitrary destinations');

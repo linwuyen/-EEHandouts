@@ -1,0 +1,43 @@
+import assert from 'node:assert/strict';
+import {readFileSync, existsSync, mkdtempSync, writeFileSync, chmodSync, rmSync} from 'node:fs';
+import {spawnSync} from 'node:child_process';
+import {join,delimiter} from 'node:path';
+import {tmpdir} from 'node:os';
+import {createRequire} from 'node:module';
+const require=createRequire(import.meta.url);
+const {createSession}=require('../workbench/ee-opamp-diagnosis.js');
+const read=p=>readFileSync(p,'utf8');
+const source={A:'sr',B:'gbw',C:'settling'};
+assert.ok(existsSync('workbench/opamp-diagnosis.html'),'local diagnosis page missing');
+const s=createSession(source);
+assert.deepEqual(s.choose('A','gbw'),{correct:false,firstWasCorrect:false,firstCorrect:0,done:1,total:3});
+assert.deepEqual(s.choose('A','sr'),{correct:true,firstWasCorrect:false,firstCorrect:0,done:1,total:3});
+assert.deepEqual(s.choose('B','gbw'),{correct:true,firstWasCorrect:true,firstCorrect:1,done:2,total:3});
+assert.deepEqual(s.choose('C','settling'),{correct:true,firstWasCorrect:true,firstCorrect:2,done:3,total:3});
+assert.throws(()=>s.choose('D','gbw'));
+assert.throws(()=>s.choose('B','unknown'));
+const html=read('workbench/opamp-diagnosis.html');
+for(const [id,answer] of Object.entries(source))assert.match(html,new RegExp(`data-case="${id}"[^>]*data-answer="${answer}"`));
+for(const phrase of ['100 kHz','0.5 Vpp','8 Vpp','50 mVpp','−3 dB','0.1%','zero-crossing','frequency sweep','ramp-end'])assert.ok(html.includes(phrase),'missing source instruction '+phrase);
+for(const frag of ['不授予正式','不寫入學習紀錄','來源固定','<noscript>'])assert.ok(html.includes(frag),'missing scope '+frag);
+assert.doesNotMatch(html,/localStorage|sessionStorage|CircuitEvidence|<iframe\b|https?:\/\//);
+assert.match(read('workbench/opamp-course.html'),/href="opamp-diagnosis\.html"/);
+assert.match(read('workbench/12_opamp_slew_rate/04_gbw_vs_slew.html'),/href="\.\.\/opamp-diagnosis\.html"/);
+assert.match(read('workbench/coverage.html'),/href="opamp-diagnosis\.html"/);
+const host=read('workbench/ee-host.js');
+assert.match(host,/source==='12_opamp_slew_rate\/lab_diagnose\.html'/);
+assert.match(host,/opamp-diagnosis\.html/);
+for(const p of ['workbench/opamp-diagnosis.html','workbench/ee-opamp-diagnosis.js'])assert.ok(read('scripts/check-published-head.sh').includes(p),'missing release asset check '+p);
+const manifest=JSON.parse(read('workbench/source-manifest.json'));
+const entry=manifest.files.find(x=>x.path==='opamp-diagnosis.html');
+assert.equal(entry?.sourcePath,'12_opamp_slew_rate/lab_diagnose.html');
+assert.equal(entry?.sourceBlob,'63b41a4cff601dba31067fcebe1c28e0bc0b5f70');
+// The actual hosted check must fail when either new asset is absent.
+const tmp=mkdtempSync(join(tmpdir(),'ee-diag-release-'));
+try {
+ const stub=join(tmp,'curl');writeFileSync(stub,'#!/usr/bin/env bash\nset -euo pipefail\nfor arg in "$@"; do\n if [[ -n "${MISSING:-}" && "$arg" == *"${MISSING}"* ]]; then exit 22; fi\n if [[ "$arg" == *release-sha.txt* ]]; then printf "%s\n" "$VERIFIED_SHA"; exit 0; fi\ndone\n');chmodSync(stub,0o755);
+ const check=missing=>spawnSync('bash',['scripts/check-published-head.sh'],{encoding:'utf8',env:{...process.env,PATH:tmp+delimiter+process.env.PATH,PAGES_URL:'https://example.invalid/site',VERIFIED_SHA:'a'.repeat(40),VERIFY_ATTEMPTS:'1',VERIFY_DELAY_SECONDS:'0',MISSING:missing}});
+ assert.equal(check('').status,0);
+ for(const asset of ['workbench/opamp-diagnosis.html','workbench/ee-opamp-diagnosis.js'])assert.notEqual(check(asset).status,0,'missing hosted asset must fail '+asset);
+}finally{rmSync(tmp,{recursive:true,force:true});}
+console.log('PASS OP diagnosis: first choice immutable, exact source cases, local routes, stateless scope, release assets and provenance');

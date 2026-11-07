@@ -78,3 +78,9 @@ EE 起點 `84162dd465385f0b467ca3584ba4cc1cfa15a3f9`；Circuit 來源固定 `11e
 全部新頁是無腳本靜態閱讀，不讀寫已讀或實驗紀錄，不授予正式分數／實機通過。沒有另建模型、資料格式或第二套學習首頁。
 明示內容修訂：第六課原句的 `noise gain / GBW` 與頻寬量綱不符；改為主導單極點電壓回授近似 `BW ≈ GBW / noise gain`。頁內保留原句與官方 Analog Devices AN-940 Noise Gain 段依據；此改動不回寫舊來源，也不修改原數值／繪圖核心。
 新增 source-body 雜湊、精確路由與保存失敗／版本變動測試、無 JavaScript 與三瀏覽器閱讀流程、各新資產缺失發布反例。舊整站測試不刪除。合併與發布仍須 exact-head review、PR CI、new-main CI、Pages／hosted SHA；不以本地 Node 成績替代。
+
+## 第四批 4d：OP 三題診斷練習（PR/CI/發布待驗）
+
+固定 EE 基準 `f696a0945ade3c68e90f3238c864b244fd5b417f`，Circuit 來源 `11ef4e4801b5283f265dc349a4afec0027603228`。移植 `12_opamp_slew_rate/lab_diagnose.html` 為 `workbench/opamp-diagnosis.html`，保留三題原狀況、選項、下一步量測和首次回答得分語意；暫態只有本頁記憶體，刷新後清空，不讀寫 Evidence/學習紀錄。
+
+由六課觀念、OP step/sine 與受保存閘門保護的原工作台進入；正式評量、B 等級、DC Trainer、Bayesian Troubleshooting、BOARD_PASS 均不授予。原計算／繪圖／儲存 owner 不變；任何舊路由的 query/hash 擴張皆維持拒絕。遠端驗證與合併另外執行。
