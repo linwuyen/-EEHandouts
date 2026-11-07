@@ -5,7 +5,7 @@ import {join,delimiter} from 'node:path';
 import {tmpdir} from 'node:os';
 import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url);
-const {createSession}=require('../workbench/ee-opamp-diagnosis.js');
+const {createSession,mount}=require('../workbench/ee-opamp-diagnosis.js');
 const read=p=>readFileSync(p,'utf8');
 const source={A:'sr',B:'gbw',C:'settling'};
 assert.ok(existsSync('workbench/opamp-diagnosis.html'),'local diagnosis page missing');
@@ -16,6 +16,21 @@ assert.deepEqual(s.choose('B','gbw'),{correct:true,firstWasCorrect:true,firstCor
 assert.deepEqual(s.choose('C','settling'),{correct:true,firstWasCorrect:true,firstCorrect:2,done:3,total:3});
 assert.throws(()=>s.choose('D','gbw'));
 assert.throws(()=>s.choose('B','unknown'));
+// Exercise actual DOM controller callbacks; the second selection must say it is
+// now correct without changing or obscuring the first-answer score.
+function button(choice){const callbacks={};return{dataset:{choice},disabled:true,addEventListener:(type,cb)=>callbacks[type]=cb,click:()=>callbacks.click(),classList:{toggle:()=>{}},setAttribute:()=>{}};}
+const feedback=Object.fromEntries(['A','B','C'].map(k=>[k,{textContent:''}]));
+const score={textContent:'',className:''};
+const boxes=Object.entries(source).map(([key,answer])=>{const buttons=(key==='C'?['sr','gbw','settling']:['sr','gbw','rail']).map(button);return{dataset:{case:key,answer},buttons,querySelectorAll:()=>buttons};});
+const fake={documentElement:{dataset:{}},getElementById:id=>id==='diagnose-score'?score:feedback[id.replace('feedback-','')],querySelectorAll:()=>boxes};
+mount(fake);
+boxes[0].buttons.find(b=>b.dataset.choice==='gbw').click();
+assert.match(feedback.A.textContent,/這次選擇不正確/);
+boxes[0].buttons.find(b=>b.dataset.choice==='sr').click();
+assert.match(feedback.A.textContent,/這次選擇正確/);
+assert.match(feedback.A.textContent,/首次判斷不正確/);
+assert.match(score.textContent,/0\/3 first choices correct · 1\/3 completed/);
+
 const html=read('workbench/opamp-diagnosis.html');
 for(const [id,answer] of Object.entries(source))assert.match(html,new RegExp(`data-case="${id}"[^>]*data-answer="${answer}"`));
 for(const phrase of ['100 kHz','0.5 Vpp','8 Vpp','50 mVpp','−3 dB','0.1%','zero-crossing','frequency sweep','ramp-end'])assert.ok(html.includes(phrase),'missing source instruction '+phrase);

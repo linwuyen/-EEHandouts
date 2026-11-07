@@ -31,7 +31,7 @@ function mount(doc) {
     buttons.forEach(button=>button.addEventListener('click',()=>{
       const result=session.choose(box.dataset.case,button.dataset.choice);
       for(const b of buttons){b.classList.toggle('correct',b===button&&result.correct);b.classList.toggle('wrong',b===button&&!result.correct);b.setAttribute('aria-pressed',String(b===button));}
-      feedback.textContent=result.firstWasCorrect?'本題首次判斷正確。':'本題首次判斷不正確；後續改選不會更改首次得分。';
+      feedback.textContent=(result.correct?'這次選擇正確。':'這次選擇不正確。')+(result.firstWasCorrect?'本題首次判斷正確。':'本題首次判斷不正確；後續改選不會更改首次得分。');
       score.textContent=`${result.firstCorrect}/3 first choices correct · ${result.done}/3 completed（僅此頁練習，不是正式成績）`;
       score.className='status '+(result.done===3&&result.firstCorrect===3?'':'warn');
     }));

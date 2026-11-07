@@ -21,8 +21,10 @@ for(const [name,type] of Object.entries(process.argv.includes('--cross-browser')
   assert.deepEqual(await page.evaluate(()=>window.eeDiagnosisStorageCalls),[]);
   phase='first answer immutable';await page.locator('[data-case="A"] [data-choice="gbw"]').click();
   assert.match(await page.locator('#diagnose-score').innerText(),/0\/3 first choices correct · 1\/3 completed/);
+  assert.match(await page.locator('#feedback-A').innerText(),/這次選擇不正確/);
   await page.locator('[data-case="A"] [data-choice="sr"]').click();
   assert.match(await page.locator('#diagnose-score').innerText(),/0\/3 first choices correct · 1\/3 completed/);
+  assert.match(await page.locator('#feedback-A').innerText(),/這次選擇正確/);
   assert.match(await page.locator('#feedback-A').innerText(),/首次判斷不正確/);
   await page.locator('[data-case="B"] [data-choice="gbw"]').click();
   await page.locator('[data-case="C"] [data-choice="settling"]').click();
