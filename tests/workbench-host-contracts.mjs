@@ -53,6 +53,7 @@ for(const [source,target]of [['12_opamp_slew_rate/lab_step.html','opamp-step.htm
  f=fixture();f.host.markReady();f.host.setNavigationGuard(()=>false);assert.equal(await f.host.leave(target),false);assert.equal(f.nav.length,0);
  f=fixture();f.host.markReady();let release;f.ctx.CircuitEvidence.flush=()=>new Promise(resolve=>release=resolve);const pending=f.host.leave(target);assert.equal(f.nav.length,0);f.storage.set('circuit-learning-state-v5',future);release({saved:true});assert.equal(await pending,false);assert.equal(f.nav.length,0);
 }
-for(const source of ['12_opamp_slew_rate/index.html','12_opamp_slew_rate/lab_diagnose.html','12_opamp_slew_rate/lab_step.html?from=evil','12_opamp_slew_rate/../evil','9.afe-tutorial/afe.html']){f=fixture();assert.equal(f.host.referenceHref(source),'coverage.html');}
+f=fixture();assert.equal(f.host.referenceHref('12_opamp_slew_rate/index.html'),'opamp-course.html');
+for(const source of ['12_opamp_slew_rate/lab_diagnose.html','12_opamp_slew_rate/lab_step.html?from=evil','12_opamp_slew_rate/../evil','9.afe-tutorial/afe.html']){f=fixture();assert.equal(f.host.referenceHref(source),'coverage.html');}
 for(const target of ['opamp-step.html?from=evil','opamp-sine.html#unexpected']){f=fixture();assert.equal(await f.host.leave(target),false);}
 console.log('PASS OP exact routes, unported AFE/OP coverage, pending-save/conflict/quota/future-schema guards and no arbitrary destinations');

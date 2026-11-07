@@ -1,0 +1,9 @@
+/* Reading layout only. No numerical, learning-state or grade owner. */
+.top{position:static}.hero,.card,.panel,.grid>*{min-width:0;overflow-wrap:anywhere}
+.ee-course-note{margin:20px 0;padding:16px;border:1px solid var(--line);border-radius:12px;background:var(--panel);overflow-wrap:anywhere}
+.ee-course-list{display:grid;gap:12px;padding:0;list-style:none}.ee-course-list a{display:block;padding:18px;border:1px solid var(--line);border-radius:12px;text-decoration:none;background:var(--panel)}
+.ee-course-list span,.ee-course-list strong{display:block}.ee-course-list strong{color:var(--ink);margin-top:6px;overflow-wrap:anywhere}
+.ee-course-pager{display:flex;gap:12px;flex-wrap:wrap;margin-top:26px}.ee-course-pager a{padding:6px}[aria-current="page"]{font-weight:900;text-decoration:underline}
+.ee-skip{position:absolute;left:12px;top:-80px;background:var(--panel);padding:10px;z-index:10}.ee-skip:focus{top:8px}
+a:focus-visible{outline:3px solid var(--accent);outline-offset:4px}.nav{flex-wrap:wrap}
+@media(max-width:400px){.page{width:calc(100% - 24px)}.top{padding:12px}.hero{padding:20px}.nav a{padding:5px}.ee-course-note,.card,.panel{padding:14px}}
