@@ -62,7 +62,9 @@ function boot(win){
   const doc=win.document,root=doc.querySelector('[data-opamp-dc-trainer]'),status=doc.getElementById('ee-trainer-status'),exportButton=doc.getElementById('ee-trainer-export');
   if(!root||!status||!exportButton)return;
   const lock=reason=>{doc.documentElement.dataset.eeTrainerState='protected';root.inert=true;status.textContent='儲存或紀錄版本發生問題：'+reason+'。練習已停止；原有紀錄保留。請下載備份。';};
-  const guard=createGuard(win.localStorage,event=>{if(event.type==='protected')lock(event.reason);else if(event.type==='saved')status.textContent='本題 mastery 進度已保存於此瀏覽器（非正式評量）';});
+  // Some privacy modes throw while reading the localStorage property itself.
+  let nativeStorage=null;try{nativeStorage=win.localStorage;}catch(_){}
+  const guard=createGuard(nativeStorage,event=>{if(event.type==='protected')lock(event.reason);else if(event.type==='saved')status.textContent='本題 mastery 進度已保存於此瀏覽器（非正式評量）';});
   win.EETrainerStorage=guard.storage;
   exportButton.disabled=false;
   exportButton.addEventListener('click',()=>{
