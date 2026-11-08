@@ -53,6 +53,16 @@ test('unknown and malformed existing records stay byte-identical and fail closed
   assert.equal(guard.ok(),false);assert.equal(store.raw(),raw);assert.equal(guard.backup().raw,raw);
  }
 });
+test('same-version unknown fields and fractional counters preserve raw bytes',()=>{
+ const base=JSON.parse(snapshot());
+ const extraTop=JSON.stringify({...base,future:'unrecognized'});
+ const extraSkill=JSON.stringify({...base,skills:{...base.skills,UNIT_CONVERSION:{...base.skills.UNIT_CONVERSION,future:1}}});
+ const fractional=JSON.stringify({...base,skills:{...base.skills,UNIT_CONVERSION:{...base.skills.UNIT_CONVERSION,attempts:0.5,correct_count:0.5}}});
+ for(const raw of [extraTop,extraSkill,fractional]){
+  const store=fixture(raw),guard=createGuard(store);
+  assert.equal(guard.ok(),false);assert.equal(store.raw(),raw);assert.equal(guard.backup().raw,raw);
+ }
+});
 test('foreign tab winner is protected against stale same-version write',()=>{
  const old=snapshot(),store=fixture(old),guard=createGuard(store);
  const winner=JSON.stringify({version:'999.0.0',owner:'other'});
