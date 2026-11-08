@@ -19,7 +19,17 @@ for(const [engine,type] of Object.entries(process.argv.includes('--cross-browser
   assert.equal(await page.evaluate(k=>JSON.parse(localStorage.getItem(k)).skills.UNIT_CONVERSION.attempts,KEY),1);
   await page.reload();await page.waitForFunction(()=>document.documentElement.dataset.eeTrainerState==='ready');
   assert.equal(await page.evaluate(k=>JSON.parse(localStorage.getItem(k)).skills.UNIT_CONVERSION.attempts,KEY),1);
-  for(const width of [320,390]){await page.setViewportSize({width,height:800});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),'overflow '+width);}
+  assert.equal(await page.locator('[data-trainer-choices]').isVisible(),false,'unused choice UI must remain hidden');
+  assert.equal(await page.locator('[data-trainer-report]').isVisible(),false,'unfinished report must remain hidden');
+  for(const width of [320,390]){
+    await page.setViewportSize({width,height:800});
+    const metrics=await page.evaluate(()=>({
+      viewport:innerWidth,
+      scrollWidth:document.documentElement.scrollWidth,
+      offenders:[...document.body.querySelectorAll('*')].filter(el=>el.getBoundingClientRect().right>innerWidth+2).slice(0,8).map(el=>({tag:el.tagName,className:el.getAttribute('class'),right:Math.round(el.getBoundingClientRect().right)}))
+    }));
+    assert.ok(metrics.scrollWidth<=metrics.viewport+2,'overflow '+width+': '+JSON.stringify(metrics));
+  }
   await page.screenshot({path:'tests/screenshots/cross-'+engine+'-opamp-dc-trainer.png',fullPage:true});
   const quota=await browser.newContext(),qp=await quota.newPage();await qp.goto(PAGE);await qp.waitForFunction(()=>document.documentElement.dataset.eeTrainerState==='ready');
   const original=await qp.evaluate(k=>localStorage.getItem(k),KEY);
@@ -43,6 +53,13 @@ for(const [engine,type] of Object.entries(process.argv.includes('--cross-browser
   const missing=await browser.newContext(),mp=await missing.newPage();await missing.route('**/assets/opamp-dc-trainer.js',r=>r.abort());await mp.goto(PAGE);
   await mp.waitForFunction(()=>document.documentElement.dataset.eeTrainerState==='protected');
   assert.equal(await mp.locator('[data-trainer-submit]').isEnabled(),false);await missing.close();
+  const denied=await browser.newContext(),dp=await denied.newPage();
+  await dp.addInitScript(()=>Object.defineProperty(window,'localStorage',{configurable:true,get(){throw new DOMException('denied','SecurityError');}}));
+  await dp.goto(PAGE);
+  await dp.waitForFunction(()=>document.documentElement.dataset.eeTrainerState==='protected');
+  assert.equal(await dp.locator('[data-trainer-submit]').isEnabled(),false);
+  assert.equal(await dp.locator('#ee-trainer-export').isEnabled(),true);
+  await denied.close();
   assert.deepEqual(errors,[]);assert.deepEqual(old,[]);
   console.log('PASS OP DC Trainer '+engine+': original model, persisted mastery, reload, quota draft, conflict, future schema, mobile, missing JS');
  }finally{await ctx.close();await browser.close();}
