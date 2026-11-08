@@ -445,7 +445,7 @@
       "path": "opamp-dc-trainer.html",
       "sourcePath": "12_opamp_slew_rate/reasoning_trainer.html",
       "sourceBlob": "2572559ddf4a49a68bc48cdb3416ceff5c2cd250",
-      "sha256": "f717aa49914e5db2c28517a5df6bd42f7bf3462a73c1e6b111de7f269b7da06c",
+      "sha256": "bce326291f475aec39a94b28fbc6cc71da6c8d0084dd3b96d64586096d123c55",
       "adapted": true,
       "adaptation": "Local routes, local assets, guarded startup, disabled inputs, explicit scope and backup control."
     },
