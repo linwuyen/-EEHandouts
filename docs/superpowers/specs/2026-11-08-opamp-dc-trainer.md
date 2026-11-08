@@ -15,6 +15,8 @@ Absorb pinned Circuit \`12_opamp_slew_rate/reasoning_trainer.html\` and Level 0â
 - Enforce exact version, skill IDs and snapshot shape on startup and every write. If malformed/future or competing write, quota, missing source script, readback mismatch: stop interaction, keep original bytes, offer raw and in-memory draft export; never claim saved.
 - Reset requires explicit consent and uses one replacement write, never removeItem followed by a fallible write. Do not reset unsupported or conflicting history.
 - Existing saved Buck workbench routes through \`EEWorkbenchHost.leave\` and its Evidence.flush before entering exact old source route; query/hash variants remain rejected.
+- A source-format extension under the same version is treated as unknown, not normalized; the copied Circuit CSS and tests retain their original blobs, with responsive fixes in an EE-only stylesheet.
+- Synchronous localStorage cannot provide cross-tab compare-and-swap. Baseline checks and storage events detect observed conflicts, but truly simultaneous writes remain a residual lost-update risk; this browser-local practice is not authoritative evidence.
 - Original source works offline after site deployment; no Circuit-Simulation runtime/CI clone, CDN or secondary home page.
 - Negative feedback and linear OP region are **assumptions**, no saturation, slew, rail, actual board timing or certified score.
 
