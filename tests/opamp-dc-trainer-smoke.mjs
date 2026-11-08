@@ -19,6 +19,23 @@ for(const [engine,type] of Object.entries(process.argv.includes('--cross-browser
   assert.equal(await page.evaluate(k=>JSON.parse(localStorage.getItem(k)).skills.UNIT_CONVERSION.attempts,KEY),1);
   await page.reload();await page.waitForFunction(()=>document.documentElement.dataset.eeTrainerState==='ready');
   assert.equal(await page.evaluate(k=>JSON.parse(localStorage.getItem(k)).skills.UNIT_CONVERSION.attempts,KEY),1);
+  const beforeReset=await page.evaluate(k=>localStorage.getItem(k),KEY);
+  await page.evaluate(k=>{
+    const original=Storage.prototype.removeItem;
+    window.__trainerNativeRemoves=0;
+    Storage.prototype.removeItem=function(key){
+      if(key===k)window.__trainerNativeRemoves++;
+      return original.call(this,key);
+    };
+  },KEY);
+  page.once('dialog',dialog=>dialog.dismiss());
+  await page.locator('[data-trainer-reset]').click();
+  assert.equal(await page.evaluate(k=>localStorage.getItem(k),KEY),beforeReset,'cancel must retain original bytes');
+  page.once('dialog',dialog=>dialog.accept());
+  await page.locator('[data-trainer-reset]').click();
+  assert.equal(await page.evaluate(k=>JSON.parse(localStorage.getItem(k)).skills.UNIT_CONVERSION.attempts,KEY),0,'confirmed reset must replace with empty mastery');
+  assert.equal(await page.evaluate(()=>window.__trainerNativeRemoves),0,'reset must not call native removeItem before replacement');
+  assert.equal(await page.evaluate(()=>document.documentElement.dataset.eeTrainerState),'ready');
   assert.equal(await page.locator('[data-trainer-choices]').isVisible(),false,'unused choice UI must remain hidden');
   assert.equal(await page.locator('[data-trainer-report]').isVisible(),false,'unfinished report must remain hidden');
   for(const width of [320,390]){
