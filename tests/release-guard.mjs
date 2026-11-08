@@ -109,6 +109,7 @@ printf '%s\\n' "$MOCK_REMOTE_SHA"
 }finally{rmSync(directory,{recursive:true,force:true})}
 // Post-deploy verifier must reject stale/nonexistent public SHA.
 const publicationScript=readFileSync('scripts/check-published-head.sh','utf8');
+assert.ok(publicationScript.includes('workbench/ee-opamp-dc.css'),'Hosted trainer CSS override must be verified');
 assert.ok(publicationScript.includes('release-sha.txt'),'Public artifact SHA marker required');
 for(const asset of ['workbench/opamp-step.html', 'workbench/opamp-sine.html', 'workbench/ee-opamp.js', 'workbench/ee-opamp.css', 'workbench/12_opamp_slew_rate/assets/opamp.js', 'workbench/12_opamp_slew_rate/assets/opamp.css','workbench/adc.html','workbench/ee-adc.js','workbench/index.html','workbench/topology.html','workbench/ee-host.js','workbench/ee-topology-entry.js','workbench/assets/learning/workspace-topology-ui.js','workbench/assets/learning/model-contracts-v1.json','workbench/applications.html','workbench/ee-applications-entry.js','workbench/ee-applications-contract.js','workbench/ee-applications.css','workbench/assets/learning/topology-application-ui.js','workbench/17_power_topology_control/app.js','workbench/17_power_topology_control/style.css'])assert.ok(publicationScript.includes(asset),'Public workbench asset required: '+asset);
 const publicationTemp=mkdtempSync(join(tmpdir(),'eehandouts-publication-guard-'));
