@@ -1,0 +1,10 @@
+/* A 320px viewport must not inherit the SVG's 760px intrinsic grid minimum. */
+.trainer-shell,.trainer-workspace,.trainer-circuit,.trainer-status,.trainer-question,.trainer-report{min-width:0}
+.trainer-shell [hidden]{display:none!important}
+@media(max-width:600px){
+  .trainer-workspace{grid-template-columns:minmax(0,1fr)}
+  .trainer-circuit,.trainer-status,.trainer-question,.trainer-report{padding:14px}
+  .trainer-circuit svg{min-height:0}
+  .trainer-status-grid{grid-template-columns:repeat(2,minmax(0,1fr)}
+  .mastery-row{grid-template-columns:minmax(0,1fr) 62px 34px;gap:6px}
+}

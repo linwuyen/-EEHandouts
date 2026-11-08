@@ -16,6 +16,8 @@ for(const [source,dest] of routes){
  f=fixture();f.host.markReady();let release;f.c.CircuitEvidence.flush=()=>new Promise(r=>{release=r;});const pending=f.host.leave(dest);assert.equal(f.nav.length,0);release({saved:true});assert.equal(await pending,true);
 }
 let f=fixture();
-for(const src of ['12_opamp_slew_rate/reasoning_trainer.html','12_opamp_slew_rate/01_slew_rate.html?done=true','12_opamp_slew_rate/01_slew_rate.html#grade','12_opamp_slew_rate/unknown.html'])assert.equal(f.host.referenceHref(src),'coverage.html','unported path '+src);
+for(const src of ['12_opamp_slew_rate/01_slew_rate.html?done=true','12_opamp_slew_rate/01_slew_rate.html#grade','12_opamp_slew_rate/unknown.html'])assert.equal(f.host.referenceHref(src),'coverage.html','unported path '+src);
 for(const dest of ['opamp-course.html?from=https://evil.invalid','12_opamp_slew_rate/lab_diagnose.html?grade=A','https://evil.invalid/01_slew_rate.html','//evil.invalid/opamp-course.html','12_opamp_slew_rate/01_slew_rate.html?done=true'])assert.equal(await f.host.leave(dest),false,'not allowlisted '+dest);
+f=fixture();assert.equal(f.host.referenceHref('12_opamp_slew_rate/reasoning_trainer.html'),'opamp-dc-trainer.html');
+for(const bad of ['12_opamp_slew_rate/reasoning_trainer.html?x=1','12_opamp_slew_rate/reasoning_trainer.html#grade'])assert.equal(f.host.referenceHref(bad),'coverage.html');
 console.log('PASS OP course host: 8 exact routes, pending/quota/conflict/future versions, async flush and unknown/query destinations');
