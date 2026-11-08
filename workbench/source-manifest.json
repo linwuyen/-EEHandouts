@@ -346,7 +346,7 @@
       "path": "opamp-step.html",
       "sourcePath": "12_opamp_slew_rate/lab_step.html",
       "sourceBlob": "c4badcc7892fc943ee927128f9b51d01db9dc436",
-      "sha256": "03b05d04a474427b814a7841a670e663ad5f31ca2289d4afbb444114c120bd2a",
+      "sha256": "05e04d7a6a1803433ba1180fc8dcedcc70703e07c6730538c28f598dbb0a9cd9",
       "adapted": true,
       "adaptation": "Local stateless EE navigation, explicit unported assessment boundary, disabled boot controls and fail-closed adapter; source explanatory content and numerical defaults retained."
     },
@@ -354,7 +354,7 @@
       "path": "opamp-sine.html",
       "sourcePath": "12_opamp_slew_rate/lab_sine.html",
       "sourceBlob": "e4b37e0a1b5266f7dcdd1274918651f9a613c982",
-      "sha256": "56bab2dbd803373eb3392a46cff5a1bfa8b016c7b9d32fed4b7cce152b791e0f",
+      "sha256": "a0f7c858e62513b7212b1ff67aadb2061add2d551a3b45c999a243ea66740661",
       "adapted": true,
       "adaptation": "Local stateless EE navigation, explicit unported assessment boundary, disabled boot controls and fail-closed adapter; source explanatory content and numerical defaults retained."
     },
@@ -422,7 +422,7 @@
       "path": "opamp-diagnosis.html",
       "sourcePath": "12_opamp_slew_rate/lab_diagnose.html",
       "sourceBlob": "63b41a4cff601dba31067fcebe1c28e0bc0b5f70",
-      "sha256": "65f5b6c38c2fb5516806bd347b841607daa6ee4886c551d86412849cb48aebc1",
+      "sha256": "e1e3e6b2dbbadd2cbf2485f7b55ade41787cfcbc0187137f30b139c14f670446",
       "adapted": true,
       "adaptation": "Local navigation, disabled-until-ready interactive choices, unchanged first-choice/no-persistence logic and explicit formative-not-assessment boundary."
     },
