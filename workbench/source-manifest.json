@@ -1,7 +1,7 @@
 {
   "sourceRepository": "linwuyen/Circuit-Simulation",
   "sourceCommit": "11ef4e4801b5283f265dc349a4afec0027603228",
-  "scope": "Eight-step Buck, Buck/Boost CCM comparison, four topology applications and standalone ADC signal-chain calculator; not whole-project retirement; two stateless OP step/sine labs (no formal assessment); six static OP concept lessons (one documented bandwidth wording correction; no assessment); stateless three-case OP formative diagnosis (no certification)",
+  "scope": "Eight-step Buck, Buck/Boost CCM comparison, four topology applications and standalone ADC signal-chain calculator; not whole-project retirement; two stateless OP step/sine labs (no formal assessment); six static OP concept lessons (one documented bandwidth wording correction; no assessment); stateless three-case OP formative diagnosis (no certification); OP DC Level 0–5 trainer with guarded browser-local mastery, not official assessment",
   "files": [
     {
       "path": "assets/beginner-lessons.js",
@@ -425,6 +425,36 @@
       "sha256": "65f5b6c38c2fb5516806bd347b841607daa6ee4886c551d86412849cb48aebc1",
       "adapted": true,
       "adaptation": "Local navigation, disabled-until-ready interactive choices, unchanged first-choice/no-persistence logic and explicit formative-not-assessment boundary."
+    },
+    {
+      "path": "12_opamp_slew_rate/assets/opamp-dc-trainer.js",
+      "sourcePath": "12_opamp_slew_rate/assets/opamp-dc-trainer.js",
+      "sourceBlob": "ebf8c29f013ffbb935e15dafaa38d07002131886",
+      "sha256": "5e37fced8061210beb3a432ebfafccc512a980a5194534e9cc5c8ba1ccdaec4a",
+      "adapted": true,
+      "adaptation": "Only original autoMount passes EE-owned storage adapter; solver/mastery/grade owner unchanged."
+    },
+    {
+      "path": "12_opamp_slew_rate/assets/opamp-dc-trainer.css",
+      "sourcePath": "12_opamp_slew_rate/assets/opamp-dc-trainer.css",
+      "sourceBlob": "3c41d2b3c34d6b2244d3a07f282306425ef836e1",
+      "sha256": "1a5bb93fc4b834826eae0d65e39535dca6dd923d54904eb986b1ed8797aeb9ef",
+      "adapted": false
+    },
+    {
+      "path": "opamp-dc-trainer.html",
+      "sourcePath": "12_opamp_slew_rate/reasoning_trainer.html",
+      "sourceBlob": "2572559ddf4a49a68bc48cdb3416ceff5c2cd250",
+      "sha256": "f717aa49914e5db2c28517a5df6bd42f7bf3462a73c1e6b111de7f269b7da06c",
+      "adapted": true,
+      "adaptation": "Local routes, local assets, guarded startup, disabled inputs, explicit scope and backup control."
+    },
+    {
+      "path": "tests/opamp-dc-trainer.test.mjs",
+      "sourcePath": "tests/opamp-dc-trainer.test.mjs",
+      "sourceBlob": "ee3e518ef9714053aca511e91f598f9a79287beb",
+      "sha256": "eaf0dd7f378eeae91523a5ac3efb476b5e38e1c7815d075754eba8b8da403ad0",
+      "adapted": false
     }
   ],
   "testFiles": [
@@ -444,6 +474,7 @@
     "tests/topology-transfer.test.mjs",
     "tests/topology-applications.test.mjs",
     "tests/models.test.mjs",
-    "tests/model-invariants.test.mjs"
+    "tests/model-invariants.test.mjs",
+    "tests/opamp-dc-trainer.test.mjs"
   ]
 }
