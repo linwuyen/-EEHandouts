@@ -70,6 +70,29 @@ test('foreign tab winner is protected against stale same-version write',()=>{
  assert.throws(()=>guard.storage.setItem(KEY,snapshot()),/changed/);
  assert.equal(store.raw(),winner);assert.equal(guard.ok(),false);
 });
+test('protected exports retain baseline bytes after another tab clears or overwrites an unsupported record',()=>{
+ const original=JSON.stringify({version:'999.0.0',skills:{},future:{important:true}});
+ for(const next of [null,'different tab bytes']){
+  const store=fixture(original),guard=createGuard(store);
+  assert.equal(guard.ok(),false);
+  store.foreign(next);
+  const data=guard.backup();
+  assert.equal(data.raw,original,'the rejected original must survive');
+  assert.equal(data.currentRaw,next,'the latest bytes must be separately visible');
+  assert.equal(data.currentReadError,false);
+  assert.equal(data.protected,true);
+ }
+});
+test('protected exports retain last accepted bytes after a storage read error',()=>{
+ const original=snapshot(),store=fixture(original),guard=createGuard(store);
+ store.getItem=()=>{throw new Error('denied')};
+ assert.throws(()=>guard.storage.getItem(KEY),/storage read failed/);
+ const data=guard.backup();
+ assert.equal(data.raw,original);
+ assert.equal(data.currentRaw,null);
+ assert.equal(data.currentReadError,true);
+ assert.equal(data.protected,true);
+});
 test('storage clear and same-key events trigger protection, unrelated keys do not',()=>{
  const store=fixture(snapshot()),guard=createGuard(store);
  guard.onStorage({key:'unrelated'});assert.equal(guard.ok(),true);

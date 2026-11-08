@@ -1,7 +1,7 @@
 /* Real browser acceptance, not a mock grade or model. */
 import assert from 'node:assert/strict';
 import {chromium,firefox,webkit} from 'playwright';
-import {mkdirSync} from 'node:fs';
+import {mkdirSync,readFileSync} from 'node:fs';
 const BASE=process.env.PLAYWRIGHT_BASE_URL||'http://127.0.0.1:4173';
 const PAGE=BASE+'/workbench/opamp-dc-trainer.html',KEY='opamp-dc-reasoning-trainer-v2';
 mkdirSync('tests/screenshots',{recursive:true});
@@ -61,7 +61,19 @@ for(const [engine,type] of Object.entries(process.argv.includes('--cross-browser
   await fp.evaluate(([k,v])=>localStorage.setItem(k,v),[KEY,raw]);await fp.goto(PAGE);
   await fp.waitForFunction(()=>document.documentElement.dataset.eeTrainerState==='protected');
   assert.equal(await fp.evaluate(k=>localStorage.getItem(k),KEY),raw);
-  assert.equal(await fp.locator('[data-trainer-submit]').isEnabled(),false);await future.close();
+  assert.equal(await fp.locator('[data-trainer-submit]').isEnabled(),false);
+  // Clear the rejected record from a second tab AFTER the trainer entered protection.
+  const foreign=await future.newPage();
+  await foreign.goto(BASE+'/workbench/opamp-course.html');
+  await foreign.evaluate(k=>localStorage.removeItem(k),KEY);
+  await foreign.close();
+  const futureDownload=fp.waitForEvent('download');
+  await fp.locator('#ee-trainer-export').click();
+  const futureBackup=JSON.parse(readFileSync(await (await futureDownload).path(),'utf8'));
+  assert.equal(futureBackup.raw,raw,'backup must preserve rejected baseline after cross-tab deletion');
+  assert.equal(futureBackup.currentRaw,null);
+  assert.equal(futureBackup.currentReadError,false);
+  await future.close();
   const conflict=await browser.newContext(),a=await conflict.newPage(),b=await conflict.newPage();await a.goto(PAGE);await b.goto(PAGE);
   await a.waitForFunction(()=>document.documentElement.dataset.eeTrainerState==='ready');await b.waitForFunction(()=>document.documentElement.dataset.eeTrainerState==='ready');
   const q3=await b.evaluate(()=>document.querySelector('[data-opamp-dc-trainer]').__trainer.session.current);

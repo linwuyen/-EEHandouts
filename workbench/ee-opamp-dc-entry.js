@@ -60,7 +60,7 @@ function createGuard(nativeStorage,notify=()=>{}){
     // Source reset calls removeItem then save; make it one replacement write.
     removeItem(key){if(key!==KEY)throw Error('invalid key');ensure();}
   };
-  return Object.freeze({storage,ok:()=>!blocked,onStorage(event){if((event.key===KEY||event.key===null)&&!blocked){try{ensure();}catch(_){}}},backup(){let current=baseline;try{current=nativeStorage.getItem(KEY);}catch(_){}return {key:KEY,version:VERSION,raw:current,draft,protected:blocked,reason};}});
+  return Object.freeze({storage,ok:()=>!blocked,onStorage(event){if((event.key===KEY||event.key===null)&&!blocked){try{ensure();}catch(_){}}},backup(){let current=null,readError=false;try{current=nativeStorage.getItem(KEY);}catch(_){readError=true;}return {key:KEY,version:VERSION,raw:baseline,currentRaw:current,currentReadError:readError,draft,protected:blocked,reason};}});
 }
 function boot(win){
   const doc=win.document,root=doc.querySelector('[data-opamp-dc-trainer]'),status=doc.getElementById('ee-trainer-status'),exportButton=doc.getElementById('ee-trainer-export');
