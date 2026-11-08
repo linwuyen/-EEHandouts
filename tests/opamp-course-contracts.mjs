@@ -42,7 +42,7 @@ for(const lesson of lessons){
 for(const page of ['workbench/opamp-step.html','workbench/opamp-sine.html'])assert.match(read(page),/id="ee-opamp-course-link" href="opamp-course\.html"/);
 assert.match(read('workbench/coverage.html'),/id="opamp-unavailable"/);
 const note=read('workbench/12_opamp_slew_rate/06_datasheet_selection.html');assert.doesNotMatch(note,/href="[^"\n]*quiz\.html/);assert.match(note,/正式 Transfer（尚未遷入）/);
-assert.match(read('workbench/12_opamp_slew_rate/04_gbw_vs_slew.html'),/診斷 Lab（尚未遷入）/);
+assert.match(read('workbench/12_opamp_slew_rate/04_gbw_vs_slew.html'),/三選一診斷 Lab（形成性練習）/);
 const pkg=JSON.parse(read('package.json'));
 assert.ok(pkg.scripts['test:ci'].includes('tests/opamp-course-contracts.mjs'));
 assert.ok(pkg.scripts['test:ci'].includes('tests/opamp-course-host.mjs'));

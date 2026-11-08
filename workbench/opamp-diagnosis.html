@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-ee-diagnosis-state="loading">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OP 診斷三題｜EEHandouts</title>
+<link rel="stylesheet" href="12_opamp_slew_rate/assets/opamp.css"><link rel="stylesheet" href="ee-opamp-course.css">
+<style>
+.choice button:disabled{opacity:.6;cursor:not-allowed}.ee-diagnosis-feedback{min-height:1.5em;color:var(--muted)}.choice button[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset:2px} .ee-diagnosis-boundary{margin:18px 0}
+</style></head>
+<body><a class="ee-skip" href="#ee-diagnosis-main">跳至診斷題目</a>
+<header class="top"><a class="brand" href="../index.html#lesson/analog/op">EEHandouts · OP 教材</a><nav class="nav" aria-label="OP 診斷導覽"><a href="opamp-course.html">六課觀念</a><a href="opamp-step.html">階躍實驗</a><a href="opamp-sine.html">正弦實驗</a><a href="coverage.html#opamp-unavailable">遷移範圍</a></nav></header>
+<main class="page" id="ee-diagnosis-main"><aside class="ee-course-note ee-diagnosis-boundary" id="ee-diagnosis-boundary">
+<p><strong>本站形成性診斷 · 來源固定 Circuit 11ef4e48。</strong>三題保留來源的首次選擇計分，選錯後改選正解不會改寫首次得分；重新載入則重新開始。所有結果僅保留在此頁記憶體，<strong>不寫入學習紀錄、不授予正式通過、B 級或 BOARD_PASS</strong>。</p>
+<p>題目用波形症狀選擇最可能限制機制，再決定下一項量測；不能單憑症狀認定實機故障。供電 rail、負載、穩定度與 ADC 取樣時序未由本頁證明；原正式評量、DC Trainer、進階 Bayesian troubleshooting 尚未遷入。</p>
+<noscript><p>JavaScript 未啟用；三題互動保持停用，未記錄任何得分。可閱讀下方原始情境與下一步量測。</p></noscript>
+</aside>
+<section class="hero"><div class="eyebrow">Diagnostic Lab</div><h1>不要看見「波形變差」就一律怪 GBW</h1><p class="lead">每個 case 先選限制機制，再說出下一個最有資訊的量測。這個 Lab ceiling B：它是工程診斷判斷，不硬造單一數值 oracle。</p></section>
+<section class="grid"><article class="card"><span class="tag">Case A</span><h3>100 kHz：0.5 Vpp 正常，8 Vpp triangle-like</h3><div class="choice" data-case="A" data-answer="sr"><button aria-pressed="false" data-choice="sr" disabled="" type="button">Slew Rate / FPBW</button><button aria-pressed="false" data-choice="gbw" disabled="" type="button">Small-signal GBW</button><button aria-pressed="false" data-choice="rail" disabled="" type="button">Output rail</button></div><p aria-live="polite" class="ee-diagnosis-feedback" id="feedback-A" role="status"></p></article><article class="card"><span class="tag">Case B</span><h3>50 mVpp sweep：頻率升高後 gain −3 dB、phase lag 增加</h3><div class="choice" data-case="B" data-answer="gbw"><button aria-pressed="false" data-choice="sr" disabled="" type="button">Slew Rate / FPBW</button><button aria-pressed="false" data-choice="gbw" disabled="" type="button">Small-signal bandwidth</button><button aria-pressed="false" data-choice="rail" disabled="" type="button">Output rail</button></div><p aria-live="polite" class="ee-diagnosis-feedback" id="feedback-B" role="status"></p></article><article class="card"><span class="tag">Case C</span><h3>大 step 前段直線已結束，最後 0.1% 仍慢慢收斂</h3><div class="choice" data-case="C" data-answer="settling"><button aria-pressed="false" data-choice="sr" disabled="" type="button">只看 SR</button><button aria-pressed="false" data-choice="gbw" disabled="" type="button">只看 GBW</button><button aria-pressed="false" data-choice="settling" disabled="" type="button">Settling / closed-loop dynamics</button></div><p aria-live="polite" class="ee-diagnosis-feedback" id="feedback-C" role="status"></p></article></section>
+<section class="panel" style="margin-top:22px"><h2>最有資訊的下一步</h2><p class="muted">A：同頻降低 Vpp + 量 zero-crossing dV/dt。B：保持小振幅做 frequency sweep。C：分別量 ramp-end、進入精度帶與保持在精度帶的時間，再看 load/phase margin。</p><div class="status warn" id="diagnose-score">互動載入中（尚未作答）</div></section>
+<section class="callout"><strong>Bayesian 版：</strong>回到網站 Troubleshooting 還有 `opamp-slew-vs-bandwidth-game`，會用 posterior entropy reduction 計算每個測試的 information gain。</section>
+<div class="footer"><a class="button primary" href="opamp-course.html">返回六課觀念</a><a class="button" href="12_opamp_slew_rate/04_gbw_vs_slew.html">返回第 4 課</a><a class="button" href="opamp-step.html">階躍實驗</a><a class="button" href="opamp-sine.html">正弦實驗</a></div>
+</main><script src="ee-opamp-diagnosis.js"></script></body></html>
