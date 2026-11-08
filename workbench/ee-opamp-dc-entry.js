@@ -13,11 +13,15 @@ function valid(raw){
   let data;
   try{data=JSON.parse(raw);}catch(_){return false;}
   if(!data||Array.isArray(data)||data.version!==VERSION||!data.skills||typeof data.skills!=='object'||Array.isArray(data.skills))return false;
-  if(Object.keys(data.skills).length!==SKILLS.length)return false;
+  // A same-version extension must not be silently rewritten by source snapshot().
+  if(Object.keys(data).length!==2||Object.keys(data.skills).length!==SKILLS.length)return false;
+  const fields=['skill_id','attempts','correct_count','incorrect_count','current_streak','best_streak','mastery_score','hint_count','last_error_type','last_seen_at','recent','clean_streak','parameter_signatures'];
   for(const key of SKILLS){
-    const s=data.skills[key];if(!s||s.skill_id!==key)return false;
+    const s=data.skills[key];if(!s||s.skill_id!==key||Object.keys(s).length!==fields.length||fields.some(f=>!Object.prototype.hasOwnProperty.call(s,f)))return false;
     for(const field of ['attempts','correct_count','incorrect_count','current_streak','best_streak','mastery_score','hint_count','clean_streak'])if(!Number.isFinite(s[field])||s[field]<0)return false;
-    if(!Number.isInteger(s.attempts)||s.correct_count+s.incorrect_count!==s.attempts||s.mastery_score>1)return false;
+    for(const f of ['attempts','correct_count','incorrect_count','current_streak','best_streak','hint_count','clean_streak'])if(!Number.isSafeInteger(s[f]))return false;
+    if(s.correct_count+s.incorrect_count!==s.attempts||s.mastery_score>1||s.current_streak>s.best_streak||s.best_streak>s.attempts||s.clean_streak>s.current_streak||s.hint_count>s.attempts)return false;
+    if(s.last_error_type!==null&&typeof s.last_error_type!=='string')return false;
     if(!Array.isArray(s.recent)||s.recent.length>5||s.recent.some(x=>typeof x!=='boolean'))return false;
     if(!Array.isArray(s.parameter_signatures)||s.parameter_signatures.length>12||s.parameter_signatures.some(x=>typeof x!=='string'))return false;
     if(!(s.last_seen_at===null||typeof s.last_seen_at==='string'))return false;
@@ -61,7 +65,7 @@ function createGuard(nativeStorage,notify=()=>{}){
 function boot(win){
   const doc=win.document,root=doc.querySelector('[data-opamp-dc-trainer]'),status=doc.getElementById('ee-trainer-status'),exportButton=doc.getElementById('ee-trainer-export');
   if(!root||!status||!exportButton)return;
-  const lock=reason=>{doc.documentElement.dataset.eeTrainerState='protected';root.inert=true;status.textContent='儲存或紀錄版本發生問題：'+reason+'。練習已停止；原有紀錄保留。請下載備份。';};
+  const lock=reason=>{doc.documentElement.dataset.eeTrainerState='protected';root.inert=true;status.textContent='儲存或紀錄版本發生問題：'+reason+'。練習已停止，資料可能未成功保存。請下載可讀的原始紀錄與本次草稿備份。';};
   // Some privacy modes throw while reading the localStorage property itself.
   let nativeStorage=null;try{nativeStorage=win.localStorage;}catch(_){}
   const guard=createGuard(nativeStorage,event=>{if(event.type==='protected')lock(event.reason);else if(event.type==='saved')status.textContent='本題 mastery 進度已保存於此瀏覽器（非正式評量）';});
