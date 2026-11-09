@@ -1,7 +1,7 @@
 {
   "sourceRepository": "linwuyen/Circuit-Simulation",
   "sourceCommit": "11ef4e4801b5283f265dc349a4afec0027603228",
-  "scope": "Eight-step Buck, Buck/Boost CCM comparison, four topology applications and standalone ADC signal-chain calculator; not whole-project retirement; two stateless OP step/sine labs (no formal assessment); six static OP concept lessons (one documented bandwidth wording correction; no assessment); stateless three-case OP formative diagnosis (no certification); OP DC Level 0–5 trainer with guarded browser-local mastery, not official assessment; OP AMP Slew Rate first-attempt, transfer and 1/7/30/90-day review in existing V5 Evidence (not BOARD_PASS); C2000 ADC five-lesson read-only course referencing existing ADC calculator, with no old progress migration; ADC formal 3 question families (levels/codes, divider power, signed-current offset), source V5 first-attempt/transfer/retention; no alternative scoring store",
+  "scope": "Eight-step Buck, Buck/Boost CCM comparison, four topology applications and standalone ADC signal-chain calculator; not whole-project retirement; two stateless OP step/sine labs (no formal assessment); six static OP concept lessons (one documented bandwidth wording correction; no assessment); stateless three-case OP formative diagnosis (no certification); OP DC Level 0–5 trainer with guarded browser-local mastery, not official assessment; OP AMP Slew Rate first-attempt, transfer and 1/7/30/90-day review in existing V5 Evidence (not BOARD_PASS); C2000 ADC five-lesson read-only course referencing existing ADC calculator, with no old progress migration; ADC formal 3 question families (levels/codes, divider power, signed-current offset), source V5 first-attempt/transfer/retention; no alternative scoring store; SPI three-family first attempt/changed-condition transfer/1/7/30/90-day retention backed by existing V5 Evidence; not actual hardware validation or all remaining formal families",
   "files": [
     {
       "path": "assets/beginner-lessons.js",
@@ -478,6 +478,22 @@
       "sha256": "a8b875b2b6d7c1da0229d0ba9d2e39ffc17d30cf53a821f17fecc09813fe0ff1",
       "adapted": true,
       "adaptation": "EE local multi-family formal quiz shell; original quiz bank, assessment, retention and V5 Evidence owners untouched; no leaderboard or BOARD_PASS"
+    },
+    {
+      "path": "spi-assessment.html",
+      "sourcePath": "quiz.html",
+      "sourceBlob": "61ad104246926cea2ea5b94ce9ded605c34340da",
+      "sha256": "5527382fcdbcd91ba3b45af806ecb41501d1e7e23034f3ebb8c35f53b2ac0fb0",
+      "adapted": true,
+      "adaptation": "EE-only SPI three-family V5 assessment UI; original quiz-bank, grading, retention and Evidence source libraries remain unchanged; no BOARD_PASS."
+    },
+    {
+      "path": "ee-spi-assessment.js",
+      "sourcePath": "quiz.html",
+      "sourceBlob": "61ad104246926cea2ea5b94ce9ded605c34340da",
+      "sha256": "71766c209844900307527c5c02bb88f43df6790387e7b05359668ee92f1bb125",
+      "adapted": true,
+      "adaptation": "EE-only SPI three-family V5 assessment UI; original quiz-bank, grading, retention and Evidence source libraries remain unchanged; no BOARD_PASS."
     }
   ],
   "testFiles": [

@@ -48,6 +48,11 @@ f=fixture();f.host.markReady();let release;f.ctx.CircuitEvidence.flush=()=>new P
 f=fixture();f.host.markReady();f.host.setNavigationGuard(()=>false);assert.equal(await f.host.leave('adc.html'),false);assert.equal(f.nav.length,0);
 for(const target of ['adc.html?from=https://attacker.invalid','adc.html#untrusted']){f=fixture();assert.equal(await f.host.leave(target),false);}
 f=fixture();assert.equal(f.host.referenceHref('quiz.html?module=adc'),'adc-assessment.html');
+f=fixture();assert.equal(f.host.referenceHref('quiz.html?module=spi'),'spi-assessment.html');
+for(const src of ['quiz.html?module=spi#passed','quiz.html?module=spi&score=100','quiz.html?module=spix']){f=fixture();assert.equal(f.host.referenceHref(src),'coverage.html');}
+for(const dest of ['spi-assessment.html?grade=pass','spi-assessment.html#passed']){f=fixture();assert.equal(await f.host.leave(dest),false);}
+for(const reason of ['pending','conflict','quota']){f=fixture();f.host.markReady();f.ctx.CircuitEvidence.flush=async()=>({saved:false,reason});assert.equal(await f.host.leave('spi-assessment.html'),false);assert.equal(f.nav.length,0);}
+f=fixture();f.host.markReady();assert.equal(await f.host.leave('spi-assessment.html'),true);assert.match(f.nav[0],/spi-assessment\.html$/);
 for(const dest of ['adc-assessment.html?grade=pass','adc-assessment.html#passed']){f=fixture();assert.equal(await f.host.leave(dest),false);}
 for(const reason of ['pending','conflict','quota']){f=fixture();f.host.markReady();f.ctx.CircuitEvidence.flush=async()=>({saved:false,reason});assert.equal(await f.host.leave('adc-assessment.html'),false);assert.equal(f.nav.length,0);}
 console.log('PASS ADC reference allowlist, deferred legacy pages, existing save/record guard, pending and duplicate navigation');
