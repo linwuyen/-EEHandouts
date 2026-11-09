@@ -1,7 +1,7 @@
 {
   "sourceRepository": "linwuyen/Circuit-Simulation",
   "sourceCommit": "11ef4e4801b5283f265dc349a4afec0027603228",
-  "scope": "Eight-step Buck, Buck/Boost CCM comparison, four topology applications and standalone ADC signal-chain calculator; not whole-project retirement; two stateless OP step/sine labs (no formal assessment); six static OP concept lessons (one documented bandwidth wording correction; no assessment); stateless three-case OP formative diagnosis (no certification); OP DC Level 0–5 trainer with guarded browser-local mastery, not official assessment; OP AMP Slew Rate first-attempt, transfer and 1/7/30/90-day review in existing V5 Evidence (not BOARD_PASS)",
+  "scope": "Eight-step Buck, Buck/Boost CCM comparison, four topology applications and standalone ADC signal-chain calculator; not whole-project retirement; two stateless OP step/sine labs (no formal assessment); six static OP concept lessons (one documented bandwidth wording correction; no assessment); stateless three-case OP formative diagnosis (no certification); OP DC Level 0–5 trainer with guarded browser-local mastery, not official assessment; OP AMP Slew Rate first-attempt, transfer and 1/7/30/90-day review in existing V5 Evidence (not BOARD_PASS); C2000 ADC five-lesson read-only course referencing existing ADC calculator, with no old progress migration",
   "files": [
     {
       "path": "assets/beginner-lessons.js",
@@ -462,6 +462,14 @@
       "sourceBlob": "353e71b253d895976e93ef9c2259e618b702de80",
       "sha256": "e35f4558241755c282554f16db14c29363dd4ace29f69e1d2972c84d38e46d02",
       "adapted": false
+    },
+    {
+      "path": "adc-course.html",
+      "sourcePath": "1_c2000_adc_calculator/0_index.html",
+      "sourceBlob": "c7998688fdb9af9db5d62570c089ec5fc423595e",
+      "sha256": "70b6ebb18b22a99762026acec116108d83e9c2af39c3e0e36755fe8eb2010e07",
+      "adapted": true,
+      "adaptation": "Five source-order ADC lessons plus reference rewritten as original stateless EE tutorial; numerical verification uses the unchanged CircuitModels; no old progress writer, scoring engine or calculator."
     }
   ],
   "testFiles": [
@@ -483,5 +491,35 @@
     "tests/models.test.mjs",
     "tests/model-invariants.test.mjs",
     "tests/opamp-dc-trainer.test.mjs"
+  ],
+  "adcCourseSourcePages": [
+    {
+      "sourcePath": "1_c2000_adc_calculator/0_index.html",
+      "sourceBlob": "c7998688fdb9af9db5d62570c089ec5fc423595e"
+    },
+    {
+      "sourcePath": "1_c2000_adc_calculator/1_adc_basics.html",
+      "sourceBlob": "9173bc8a71e24c536486d79f01f4d0fb493f46f4"
+    },
+    {
+      "sourcePath": "1_c2000_adc_calculator/2_current_to_voltage.html",
+      "sourceBlob": "a4a4a9cceb97f6e11234f367beb3e4171edd1eb0"
+    },
+    {
+      "sourcePath": "1_c2000_adc_calculator/3_why_offset.html",
+      "sourceBlob": "bca4b4385253b4aee802c35b6c97b1a61b354070"
+    },
+    {
+      "sourcePath": "1_c2000_adc_calculator/4_voltage_divider.html",
+      "sourceBlob": "d66f990d808514fd56aec0098ca56f62564bda0d"
+    },
+    {
+      "sourcePath": "1_c2000_adc_calculator/5_firmware_scaling.html",
+      "sourceBlob": "d4595923d462f8c11798a42424a1bee1c239cadd"
+    },
+    {
+      "sourcePath": "1_c2000_adc_calculator/ref_formulas.html",
+      "sourceBlob": "e1350daa05ac45da2a8c3f3ce83c0cf7b9a9da8b"
+    }
   ]
 }
