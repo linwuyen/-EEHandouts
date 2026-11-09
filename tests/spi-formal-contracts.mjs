@@ -7,6 +7,7 @@ const A=require('../workbench/assets/learning/learning-assessment.js');
 const E=require('../workbench/assets/learning/learning-evidence.js');
 const H=require('../workbench/ee-spi-assessment.js');
 const KEY=H.KEY;
+const gated=storage=>H.gate(storage,A,Q);
 const store=(data={})=>({getItem:k=>Object.hasOwn(data,k)?data[k]:null});
 const questions=H.familyModel(A,Q);
 test('three original source SPI question families, no grade copy',()=>{
@@ -20,21 +21,21 @@ test('three original source SPI question families, no grade copy',()=>{
  }
 });
 test('unknown/future V5, malformed nested sections and SPI family records fail closed',()=>{
- const raw=JSON.stringify(E.emptyState());assert.equal(H.gate(store({[KEY]:raw})).ok,true);
+ const raw=JSON.stringify(E.emptyState());assert.equal(gated(store({[KEY]:raw})).ok,true);
  for(const bad of ['{broken',JSON.stringify({schema:'circuit-learning-state',version:999,questions:{}}),JSON.stringify({schema:'circuit-learning-state',version:5,questions:[]} )]){
-  const g=H.gate(store({[KEY]:bad}));assert.equal(g.ok,false);assert.equal(g.raw,bad);
+  const g=gated(store({[KEY]:bad}));assert.equal(g.ok,false);assert.equal(g.raw,bad);
  }
  for(const id of H.FAMILIES){
   const data=E.emptyState();data.questions[id]={history:'foreign bytes'};
   const before=JSON.stringify(data);
-  const g=H.gate(store({[KEY]:before}));assert.equal(g.ok,false,id);assert.equal(g.raw,before,id);
+  const g=gated(store({[KEY]:before}));assert.equal(g.ok,false,id);assert.equal(g.raw,before,id);
  }
  for(const section of ['evidence','reports','predictions','benchmark','migrations','identityAliases']){
   const data=E.emptyState();data[section]='future section';
-  const g=H.gate(store({[KEY]:JSON.stringify(data)}));assert.equal(g.ok,false,section);
+  const g=gated(store({[KEY]:JSON.stringify(data)}));assert.equal(g.ok,false,section);
  }
- const legacy=H.gate(store({'circuit-learning-state-v4':'{"version":4}'}));assert.equal(legacy.ok,false);
- const inaccessible=H.gate({getItem(){throw new Error('denied');}});assert.equal(inaccessible.ok,false);
+ const legacy=gated(store({'circuit-learning-state-v4':'{"version":4}'}));assert.equal(legacy.ok,false);
+ const inaccessible=gated({getItem(){throw new Error('denied');}});assert.equal(inaccessible.ok,false);
 });
 test('cross-family foreign identities and swapped role/variant cannot earn SPI credit',()=>{
  const id=H.FAMILIES[0],original=E.emptyState();
@@ -43,15 +44,15 @@ test('cross-family foreign identities and swapped role/variant cannot earn SPI c
  A.recordAttempt(original,fake,fake.options.find(o=>o.correct),{at:'2026-11-09T10:00:00Z'});
  const other=original.questions[foreignQ.id].history[0];
  original.questions[id]={history:[{...other,variantId:'B',assessmentRole:'transfer',correct:true,firstAttemptForVariant:true}]};
- assert.equal(H.gate(store({[KEY]:JSON.stringify(original)})).ok,false,'foreign ADC evidence cannot unlock SPI transfer');
+ assert.equal(gated(store({[KEY]:JSON.stringify(original)})).ok,false,'foreign ADC evidence cannot unlock SPI transfer');
  const valid=E.emptyState(),q=questions.find(x=>x.familyId===id&&x.variantId==='A');
  A.recordAttempt(valid,q,q.options.find(o=>o.correct),{at:'2026-11-09T10:00:00Z'});
- const raw=JSON.stringify(valid);assert.equal(H.gate(store({[KEY]:raw})).ok,true,'original SPI baseline remains compatible');
+ const raw=JSON.stringify(valid);assert.equal(gated(store({[KEY]:raw})).ok,true,'original SPI baseline remains compatible');
  valid.questions[id].history[0].assessmentRole='transfer';
- assert.equal(H.gate(store({[KEY]:JSON.stringify(valid)})).ok,false,'A cannot masquerade as transfer');
+ assert.equal(gated(store({[KEY]:JSON.stringify(valid)})).ok,false,'A cannot masquerade as transfer');
  const transferOnly=E.emptyState(),t=questions.find(x=>x.familyId===id&&x.variantId==='B');
  A.recordAttempt(transferOnly,t,t.options.find(o=>o.correct),{at:'2026-11-09T10:00:00Z'});
- assert.equal(H.gate(store({[KEY]:JSON.stringify(transferOnly)})).ok,false,'transfer cannot be first family attempt');
+ assert.equal(gated(store({[KEY]:JSON.stringify(transferOnly)})).ok,false,'transfer cannot be first family attempt');
 });
 test('startup cannot adopt a new V5 raw baseline beside the previously loaded question state',()=>{
  const state=E.emptyState(),before=JSON.stringify(state);
@@ -60,6 +61,29 @@ test('startup cannot adopt a new V5 raw baseline beside the previously loaded qu
  assert.equal(H.startupConsistent(before,state,JSON.stringify(changed)),false,'foreign valid V5 raw cannot be treated as this snapshot');
  assert.equal(H.startupConsistent(null,state,JSON.stringify(state)),true,'initial first write of the exact loaded state is expected');
  assert.equal(H.startupConsistent(null,state,JSON.stringify(changed)),false,'first write must not silently adopt another state');
+});
+test('original option outcome / choice ID and future-dated retention cannot impersonate SPI mastery',()=>{
+ const id=H.FAMILIES[0],base=questions.find(q=>q.familyId===id&&q.variantId==='A'),transfer=questions.find(q=>q.familyId===id&&q.variantId==='B'),retention=questions.find(q=>q.familyId===id&&q.variantId==='D');
+ const state=E.emptyState(),t=Date.now()-2*A.DAY_MS;
+ A.recordAttempt(state,base,base.options.find(o=>o.correct),{at:new Date(t).toISOString()});
+ A.recordAttempt(state,transfer,transfer.options.find(o=>!o.correct),{at:new Date(t+1000).toISOString()});
+ assert.equal(gated(store({[KEY]:JSON.stringify(state)})).ok,true);
+ const history=state.questions[id].history;
+ history[1].correct=true;
+ assert.equal(gated(store({[KEY]:JSON.stringify(state)})).ok,false,'flipping a wrong choice to correct must not grant transfer');
+ history[1].correct=false;history[1].choiceId='nonexistent';
+ assert.equal(gated(store({[KEY]:JSON.stringify(state)})).ok,false,'missing source option must not be accepted');
+ history[1].choiceId=transfer.options.find(o=>!o.correct).id;
+ const due=new Date(Date.now()+30*A.DAY_MS).toISOString();
+ A.recordAttempt(state,retention,retention.options.find(o=>o.correct),{at:due});
+ assert.equal(gated(store({[KEY]:JSON.stringify(state)})).ok,false,'future review must not be counted as due or retained');
+});
+test('loaded source snapshot must match the preflight raw exactly',()=>{
+ const state=E.emptyState(),raw=JSON.stringify(state);
+ assert.equal(H.snapshotMatches(raw,state),true);
+ const changed=structuredClone(state);changed.questions.foreign={history:[]};
+ assert.equal(H.snapshotMatches(raw,changed),false);
+ assert.equal(H.snapshotMatches(null,state),false);
 });
 test('first wrong answer never becomes passed baseline; three families advance with source transfer and due logic',()=>{
  const state=E.emptyState(),t0=Date.parse('2026-11-09T10:00:00.000Z');

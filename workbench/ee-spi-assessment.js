@@ -15,7 +15,7 @@ const FAMILIES=Object.freeze(['spi-clock-throughput','spi-rx-overrun','spi-cpol-
 const LABELS=Object.freeze({'spi-clock-throughput':'SCLK 傳輸時間','spi-rx-overrun':'RX FIFO Overrun','spi-cpol-cpha':'CPOL / CPHA 模式'});
 const LEGACY=['circuit-learning-state-v4','circuit-learning-state-v3','circuit-learning-state-v2'];
 function plain(x){return x!==null&&typeof x==='object'&&!Array.isArray(x);}
-function gate(storage){
+function gate(storage,assessment,bank){
   try{
     const raw=storage.getItem(KEY);
     if(raw===null){
@@ -28,16 +28,42 @@ function gate(storage){
     for(const key of ['evidence','reports','predictions','openResponses','diagnosticGames','benchmark','migrations','identityAliases'])
       if(!plain(data[key]))return {ok:false,raw,reason:'unsupported V5 section '+key};
     if(!Array.isArray(data.events)||typeof data.updatedAt!=='string')return {ok:false,raw,reason:'unsupported V5 metadata'};
+    // Compare persisted answers against the original source questions, not an EE scorer.
+    // When source libraries are missing we can still export the raw V5, but not trust credit.
+    let sourceVariants=[];
+    if(FAMILIES.some(id=>data.questions[id]!==undefined)){
+      try{sourceVariants=familyModel(assessment,bank);}catch(_){return {ok:false,raw,reason:'SPI source grading model missing'};}
+    }
+    const sourceFor=(id,h)=>{
+      const fixed=sourceVariants.find(q=>q.familyId===id&&q.variantId===h.variantId);
+      if(fixed)return fixed;
+      const base=sourceVariants.find(q=>q.familyId===id&&q.variantId==='A');
+      if(!base||typeof assessment?.generateVariant!=='function')return null;
+      const t=/^T([1-9]\d*)$/.exec(h.variantId);
+      const review=/^R([1-4])-([1-9]\d*)$/.exec(h.variantId);
+      const depth=t?Number(t[1])+2:review?Number(review[2])+3:null;
+      if(!Number.isSafeInteger(depth)||depth>500)return null;
+      return assessment.generateVariant(base,h.variantId,h.assessmentRole,depth);
+    };
+    const sourceMatch=(id,h)=>{
+      const q=sourceFor(id,h);
+      const chosen=q?.options?.find(o=>o.id===h.choiceId);
+      return !!(q&&chosen&&q.id===h.questionId&&q.familyId===id&&
+        q.assessmentRole===h.assessmentRole&&h.correct===!!chosen.correct&&
+        h.competency===q.competency&&h.seed===q.seed&&h.transferDepth===Number(q.transferDepth||0)&&
+        (h.representation??null)===(q.representation??null));
+    };
     for(const id of FAMILIES){
       const rec=data.questions[id];if(rec===undefined)continue;
       const allowed=['history','choiceId','correct','attempts','updatedAt'];
       const roleFor=v=>v==='A'?'baseline':v==='B'||v==='C'||/^T[1-9]\d*$/.test(v)?'transfer':v==='D'||/^R[1-4]-[1-9]\d*$/.test(v)?'retention':null;
       if(!plain(rec)||!Array.isArray(rec.history)||Object.keys(rec).some(k=>!allowed.includes(k))||
-        rec.history.some((h,index)=>!plain(h)||typeof h.at!=='string'||!Number.isFinite(Date.parse(h.at))||
+        rec.history.some((h,index)=>!plain(h)||typeof h.at!=='string'||!Number.isFinite(Date.parse(h.at))||Date.parse(h.at)>Date.now()+60000||
           h.familyId!==id||h.questionId!==(h.variantId==='A'?id:id+'-'+String(h.variantId).toLowerCase())||
           h.assessmentRole!==roleFor(h.variantId)||typeof h.correct!=='boolean'||typeof h.firstAttemptForVariant!=='boolean'||
           (index===0&&h.assessmentRole!=='baseline')||
-          h.firstAttemptForVariant===rec.history.slice(0,index).some(prev=>prev.variantId===h.variantId)))
+          h.firstAttemptForVariant===rec.history.slice(0,index).some(prev=>prev.variantId===h.variantId)||
+          !sourceMatch(id,h)))
         return {ok:false,raw,reason:'unsupported SPI family history '+id};
     }
     return {ok:true,raw};
@@ -46,6 +72,9 @@ function gate(storage){
 // The state passed to show() must be derived from the same raw V5 bytes
 // acknowledged after the awaited startup flush; never adopt an updated raw
 // baseline beside a stale in-memory question snapshot.
+function snapshotMatches(raw,state){
+  return typeof raw==='string'&&JSON.stringify(state)===raw;
+}
 function startupConsistent(beforeRaw,loadedState,afterRaw){
   return afterRaw===(beforeRaw===null?JSON.stringify(loadedState):beforeRaw);
 }
@@ -101,14 +130,14 @@ function boot(win){
     status.textContent='紀錄未安全保存，SPI 正式題已停止：'+reason+'。請下載保留的原始紀錄與草稿；未認定通過。';
     installSafeBackup();
   }
-  initialRaw=readRaw();const preflight=gate(storage);baselineRaw=preflight.raw;
+  initialRaw=readRaw();const preflight=gate(storage,A,bank);baselineRaw=preflight.raw;
   if(!preflight.ok){lock(preflight.reason);return;}
   if(!A||!E||!bank){lock('source assessment or Evidence missing');return;}
   if(typeof win.navigator?.locks?.request!=='function'){lock('Web Locks unavailable');return;}
   try{variants=familyModel(A,bank);canExportDraft=true;}catch(e){lock(e.message);return;}
   win.addEventListener('storage',event=>{
     if(blocked||(event.key!==KEY&&event.key!==null))return;
-    const fresh=gate(storage);if(!fresh.ok||fresh.raw!==baselineRaw)lock('another tab changed V5 history');
+    const fresh=gate(storage,A,bank);if(!fresh.ok||fresh.raw!==baselineRaw)lock('another tab changed V5 history');
   });
   win.addEventListener('beforeunload',event=>{if(!busy)return;event.preventDefault();event.returnValue='';});
   function show(state){
@@ -134,29 +163,34 @@ function boot(win){
     try{
       const expectedBefore=preflight.raw;
       const state=E.load(),ack=await E.flush();if(!ack.saved)throw Error(ack.reason||'initial V5 pending');
-      const fresh=gate(storage);if(blocked||!fresh.ok)throw Error(fresh.reason||'V5 conflict');
+      const fresh=gate(storage,A,bank);if(blocked||!fresh.ok)throw Error(fresh.reason||'V5 conflict');
       // A fresh empty V5 is initialized by the source Evidence owner; existing
       // records must not change during awaited flush or we'd render a stale quiz.
-      if(!startupConsistent(expectedBefore,state,fresh.raw))throw Error('V5 changed while initializing assessment');
+      if(!startupConsistent(expectedBefore,state,fresh.raw)||!snapshotMatches(fresh.raw,state))throw Error('V5 source snapshot changed while initializing assessment');
       baselineRaw=fresh.raw;show(state);
     }catch(e){lock(e.message||'initialization failed');}
   }
   submit.addEventListener('click',async()=>{
     if(blocked||busy||!current)return;
     const selected=panel.querySelector('input[name="ee-formal-choice"]:checked');if(!selected){status.textContent='請先選一個選項。';return;}
-    const fresh=gate(storage);if(!fresh.ok||fresh.raw!==baselineRaw){lock('V5 changed before submit');return;}
+    const fresh=gate(storage,A,bank);if(!fresh.ok||fresh.raw!==baselineRaw){lock('V5 changed before submit');return;}
     const opt=current.options.find(o=>o.id===selected.value);if(!opt){lock('invalid selected option');return;}
     busy=true;submit.disabled=true;panel.inert=true;status.textContent='正在儲存，目前未認定通過。';
     const q=current;
     try{
       const previous=await E.flush();if(!previous.saved)throw Error(previous.reason||'previous save pending');
-      const again=gate(storage);
+      const again=gate(storage,A,bank);
       if(blocked||!again.ok||again.raw!==baselineRaw)throw Error('V5 changed during previous flush');
       const state=E.load();
+      // E.load() itself may observe a different cross-tab V5 snapshot. The
+      // source owner's Web Lock protects its *loaded* state, not this displayed q.
+      const loaded=gate(storage,A,bank);
+      if(blocked||!loaded.ok||loaded.raw!==baselineRaw||!snapshotMatches(baselineRaw,state))
+        throw Error('V5 source snapshot changed before answering');
       // Do not turn an omitted confidence into 0%: the original owner maps null to 0.
       const entry=A.recordAttempt(state,q,opt,{at:new Date().toISOString(),elapsedMs:Math.max(0,Date.now()-startedAt),confidence:confidence.value===''?undefined:Number(confidence.value)});
       E.save(state);const ack=await E.flush();if(!ack.saved)throw Error(ack.reason||'write failed');
-      const written=gate(storage),history=written.ok?JSON.parse(written.raw).questions?.[q.familyId]?.history:[];
+      const written=gate(storage,A,bank),history=written.ok?JSON.parse(written.raw).questions?.[q.familyId]?.history:[];
       if(!written.ok||!history?.some(x=>x.id===entry.id))throw Error('readback mismatch');
       if(blocked)throw Error('stale conflict');
       baselineRaw=written.raw;status.textContent='SPI 本題首次結果已安全保存於正式 V5（非硬體認證）。';
@@ -166,9 +200,9 @@ function boot(win){
   });
   next.addEventListener('click',()=>{
     if(blocked||busy)return;
-    try{if(!E.storageStatus().saved)throw Error('unsaved V5');const fresh=gate(storage);if(!fresh.ok||fresh.raw!==baselineRaw)throw Error('V5 changed before next');show(E.load());}catch(e){lock(e.message);}
+    try{if(!E.storageStatus().saved)throw Error('unsaved V5');const fresh=gate(storage,A,bank);if(!fresh.ok||fresh.raw!==baselineRaw)throw Error('V5 changed before next');show(E.load());}catch(e){lock(e.message);}
   });
   start();
 }
-return {KEY,FAMILIES,gate,startupConsistent,familyModel,projection,boot};
+return {KEY,FAMILIES,gate,snapshotMatches,startupConsistent,familyModel,projection,boot};
 });

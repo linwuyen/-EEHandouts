@@ -89,6 +89,31 @@ for(const [name,engine] of Object.entries(process.argv.includes('--cross-browser
    assert.equal(await fp.locator('#ee-formal-submit').isEnabled(),false);await future.close();
    // Held Web Lock: foreign tab wins; retained baseline backup remains reachable
    // from the original Evidence conflict notice's permitted click surface.
+   // Missing storage event is not enough to allow a stale displayed baseline.
+   // Make Evidence.load observe a competing valid V5 snapshot right after
+   // this page has checked its old raw baseline, before it records the answer.
+   const snapshotCtx=await browser.newContext(),sc=await snapshotCtx.newPage();
+   await sc.goto(PAGE);await sc.waitForFunction(()=>document.querySelector('#ee-spi-formal-root')?.dataset.state==='ready');
+   await sc.evaluate(k=>{
+     const E=window.CircuitEvidence,original=E.load;let injected=false;
+     E.load=function(){
+       if(!injected){
+         injected=true;const snapshot=original(),changed=JSON.parse(JSON.stringify(snapshot));
+         changed.events.push({at:new Date().toISOString(),event:'competing-tab'});
+         localStorage.setItem(k,JSON.stringify(changed));
+       }
+       return original();
+     };
+   },KEY);
+   const prior=await sc.evaluate(k=>JSON.parse(localStorage.getItem(k)),KEY);
+   const firstCorrect=await sc.evaluate(()=>window.CircuitQuizBank.questions.find(q=>q.id==='spi-clock-throughput').options.find(o=>o.correct).id);
+   await sc.locator('input[name="ee-formal-choice"][value="'+firstCorrect+'"]').check();
+   await sc.locator('#ee-formal-submit').click();
+   await sc.waitForFunction(()=>document.querySelector('#ee-spi-formal-root')?.dataset.state==='protected');
+   const after=await sc.evaluate(k=>JSON.parse(localStorage.getItem(k)),KEY);
+   assert.equal(after.questions['spi-clock-throughput'],undefined,'stale displayed baseline must not write accepted answer');
+   assert.equal(after.events.length,prior.events.length+1,'only the other tab writes V5');
+   await snapshotCtx.close();
    const otherCtx=await browser.newContext({acceptDownloads:true}),a=await otherCtx.newPage(),b=await otherCtx.newPage();
    await a.goto(PAGE);await a.waitForFunction(()=>document.querySelector('#ee-spi-formal-root')?.dataset.state==='ready');
    const before=await a.evaluate(k=>localStorage.getItem(k),KEY);
