@@ -1,0 +1,12 @@
+.formal-panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;margin-top:18px;padding:22px;min-width:0}
+.formal-panel button{background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:9px;padding:12px 14px;cursor:pointer}
+.formal-panel button:disabled{opacity:.45;cursor:not-allowed}
+.formal-panel [hidden]{display:none!important}
+.formal-choices{display:grid;gap:10px;margin:18px 0}
+.formal-choices label{display:flex;gap:10px;align-items:flex-start;background:var(--panel2);border:1px solid var(--line);padding:14px;border-radius:12px;overflow-wrap:anywhere}
+.formal-choices input{margin-top:6px;flex:none}
+.formal-confidence{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:16px 0}
+.formal-confidence select{font:inherit;padding:8px;color:var(--ink);background:var(--panel2)}
+#ee-formal-feedback{padding:12px;border-left:3px solid var(--good)}
+#ee-formal-root[data-state="protected"] #ee-formal-status{color:var(--bad);font-weight:800}
+@media(max-width:600px){.formal-panel{padding:14px}.hero{padding:18px}.hero h1{overflow-wrap:anywhere}}

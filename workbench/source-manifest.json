@@ -1,7 +1,7 @@
 {
   "sourceRepository": "linwuyen/Circuit-Simulation",
   "sourceCommit": "11ef4e4801b5283f265dc349a4afec0027603228",
-  "scope": "Eight-step Buck, Buck/Boost CCM comparison, four topology applications and standalone ADC signal-chain calculator; not whole-project retirement; two stateless OP step/sine labs (no formal assessment); six static OP concept lessons (one documented bandwidth wording correction; no assessment); stateless three-case OP formative diagnosis (no certification); OP DC Level 0–5 trainer with guarded browser-local mastery, not official assessment",
+  "scope": "Eight-step Buck, Buck/Boost CCM comparison, four topology applications and standalone ADC signal-chain calculator; not whole-project retirement; two stateless OP step/sine labs (no formal assessment); six static OP concept lessons (one documented bandwidth wording correction; no assessment); stateless three-case OP formative diagnosis (no certification); OP DC Level 0–5 trainer with guarded browser-local mastery, not official assessment; OP AMP Slew Rate first-attempt, transfer and 1/7/30/90-day review in existing V5 Evidence (not BOARD_PASS)",
   "files": [
     {
       "path": "assets/beginner-lessons.js",
@@ -454,6 +454,13 @@
       "sourcePath": "tests/opamp-dc-trainer.test.mjs",
       "sourceBlob": "ee3e518ef9714053aca511e91f598f9a79287beb",
       "sha256": "eaf0dd7f378eeae91523a5ac3efb476b5e38e1c7815d075754eba8b8da403ad0",
+      "adapted": false
+    },
+    {
+      "path": "assets/learning/opamp-assessment.js",
+      "sourcePath": "assets/learning/opamp-assessment.js",
+      "sourceBlob": "353e71b253d895976e93ef9c2259e618b702de80",
+      "sha256": "e35f4558241755c282554f16db14c29363dd4ace29f69e1d2972c84d38e46d02",
       "adapted": false
     }
   ],
