@@ -20,6 +20,18 @@ function gate(storage){
     let data;
     try{data=JSON.parse(raw);}catch(_){return {ok:false,raw,reason:'malformed V5'};}
     if(!data||Array.isArray(data)||data.schema!=='circuit-learning-state'||data.version!==5||!data.questions||typeof data.questions!=='object'||Array.isArray(data.questions))return {ok:false,raw,reason:'unsupported V5 record'};
+    const plain=x=>x!==null&&typeof x==='object'&&!Array.isArray(x);
+    // Source Evidence.normalizeState() silently resets non-object sections.
+    for(const key of ['evidence','reports','predictions','openResponses','diagnosticGames','benchmark','migrations','identityAliases'])
+      if(!plain(data[key]))return {ok:false,raw,reason:'unsupported V5 section '+key};
+    if(!Array.isArray(data.events)||typeof data.updatedAt!=='string')return {ok:false,raw,reason:'unsupported V5 event metadata'};
+    const record=data.questions[FAMILY];
+    if(record!==undefined){
+      const allowed=['history','choiceId','correct','attempts','updatedAt'];
+      if(!plain(record)||!Array.isArray(record.history)||Object.keys(record).some(k=>!allowed.includes(k))||
+         record.history.some(h=>!plain(h)||typeof h.at!=='string'||typeof h.variantId!=='string'||typeof h.correct!=='boolean'||typeof h.firstAttemptForVariant!=='boolean'))
+        return {ok:false,raw,reason:'unsupported OP family history'};
+    }
     return {ok:true,raw};
   }catch(_){return {ok:false,raw:null,reason:'storage unavailable'};}
 }
@@ -52,16 +64,31 @@ function boot(win){
     if(blocked)return;
     blocked=true;root.dataset.state='protected';panel.inert=true;submit.disabled=true;next.disabled=true;
     status.textContent='紀錄未安全保存，已停止作答：'+reason+'。可先下載備份；不會宣稱已取得正式成績。';
+    installConflictBackup();
   }
   function download(payload){
     const url=win.URL.createObjectURL(new win.Blob([JSON.stringify(payload,null,2)],{type:'application/json'}));
     const a=doc.createElement('a');a.download='eehandouts-opamp-assessment-v5-backup.json';a.href=url;a.click();
     win.setTimeout(()=>win.URL.revokeObjectURL(url),1000);
   }
-  backup.addEventListener('click',()=>{
+  function exportFormalBackup(){
     let evidence=null;try{if(E&&canExportDraft)evidence=JSON.parse(E.exportBackup());}catch(_){}
     download({format:'eehandouts-opamp-assessment-backup-v1',key:KEY,initialRaw,baselineRaw,currentRaw:readRaw(),evidence,reason:blocked?status.textContent:null});
-  });
+  }
+  backup.addEventListener('click',exportFormalBackup);
+  // Source Evidence intercepts conflict clicks globally except inside its own notice.
+  // Put the retained-raw backup in that explicitly permitted surface as well.
+  function installConflictBackup(){
+    const notice=doc.getElementById('learning-storage-status');
+    if(!notice||notice.querySelector('#ee-formal-safe-backup'))return;
+    const button=doc.createElement('button');button.id='ee-formal-safe-backup';button.type='button';
+    button.textContent='下載原始 V5 與未儲存草稿';
+    button.addEventListener('click',exportFormalBackup);
+    notice.appendChild(button);
+  }
+  const observer=new win.MutationObserver(installConflictBackup);
+  observer.observe(doc.body,{childList:true,subtree:true});
+  installConflictBackup();
   try{initialRaw=readRaw();}catch(_){}
   const preflight=gate(storage);
   baselineRaw=preflight.raw;
@@ -92,7 +119,7 @@ function boot(win){
       root.dataset.state='ready';
       return;
     }
-    panel.hidden=false;panel.inert=false;choices.replaceChildren();
+    panel.hidden=false;panel.inert=false;choices.inert=false;choices.replaceChildren();
     panel.dataset.role=current.assessmentRole;panel.dataset.variant=current.variantId;
     prompt.textContent=current.prompt;
     for(const opt of current.options){
@@ -126,6 +153,9 @@ function boot(win){
     const q=current;
     try{
       const previous=await E.flush();if(!previous.saved)throw Error(previous.reason||'previous save pending');
+      // An in-flight Web Lock can allow a second tab to commit while we await.
+      const again=gate(storage);
+      if(blocked||!again.ok||again.raw!==baselineRaw)throw Error('V5 changed while awaiting previous flush');
       const state=E.load();
       const entry=A.recordAttempt(state,q,opt,{at:new Date().toISOString(),elapsedMs:Math.max(0,Date.now()-startedAt),confidence:confidence.value===''?null:Number(confidence.value)});
       E.save(state);
@@ -134,9 +164,10 @@ function boot(win){
       const written=gate(storage);
       const history=written.ok?JSON.parse(written.raw).questions?.[FAMILY]?.history:[];
       if(!written.ok||!history?.some(x=>x.id===entry.id))throw Error('readback mismatch');
+      if(blocked)throw Error('stale record conflict');
       baselineRaw=written.raw;status.textContent='首次作答結果已安全保存（站內正式評量，非板級認證）。';
       feedback.textContent=(entry.correct?'本題正確。':'本題錯誤。')+' '+(opt.feedback||'')+' 首次結果不會因重新作答而覆寫。';
-      feedback.hidden=false;next.hidden=false;next.disabled=false;
+      feedback.hidden=false;next.hidden=false;next.disabled=false;choices.inert=true;panel.inert=false;
     }catch(e){lock(e.message||'save failed');}
     finally{busy=false;}
   });

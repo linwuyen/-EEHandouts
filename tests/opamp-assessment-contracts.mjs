@@ -22,6 +22,14 @@ test('V5 gate preserves unknown/future/malformed bytes, no silent legacy migrati
  for(const raw of ['{broken',JSON.stringify({schema:'circuit-learning-state',version:999,questions:{}}),JSON.stringify({schema:'circuit-learning-state',version:5,questions:[]} )]){
    const check=H.gate(store({[KEY]:raw}));assert.equal(check.ok,false);assert.equal(check.raw,raw);
  }
+ const malformed=E.emptyState();malformed.evidence='original payload';
+ const badEvidence=JSON.stringify(malformed);
+ assert.equal(H.gate(store({[KEY]:badEvidence})).ok,false);
+ malformed.evidence={};
+ malformed.questions[F]={history:'original history',extra:'keep'};
+ const badHistory=JSON.stringify(malformed);
+ assert.equal(H.gate(store({[KEY]:badHistory})).ok,false);
+ assert.equal(H.gate(store({[KEY]:badHistory})).raw,badHistory);
  const legacy=H.gate(store({'circuit-learning-state-v4':'{"version":4}'}));
  assert.equal(legacy.ok,false);assert.match(legacy.reason,/legacy/);
 });

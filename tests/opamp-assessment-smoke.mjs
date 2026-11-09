@@ -15,6 +15,8 @@ for(const [name,type] of Object.entries(engines)){
   await page.locator('input[name="ee-formal-choice"][value="'+id+'"]').check();
   await page.locator('#ee-formal-submit').click();
   await page.waitForFunction(()=>document.querySelector('#ee-formal-feedback')?.hidden===false);
+  assert.equal(await page.locator('#ee-formal-question').evaluate(el=>el.inert),false,'accepted feedback and next must be accessible');
+  assert.equal(await page.locator('#ee-formal-next').isEnabled(),true);
   let info=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)).questions['opamp-slew-large-signal'],KEY);
   assert.equal(info.history.length,1);assert.equal(info.history[0].correct,false);
   await page.reload();await page.waitForFunction(()=>document.querySelector('#ee-formal-root')?.dataset.state==='ready');
@@ -61,6 +63,30 @@ for(const [name,type] of Object.entries(engines)){
   await fp.waitForFunction(()=>document.querySelector('#ee-formal-root')?.dataset.state==='protected');
   assert.equal(await fp.evaluate(k=>localStorage.getItem(k),KEY),raw);
   assert.equal(await fp.locator('#ee-formal-submit').isEnabled(),false);await future.close();
+  const conflictCtx=await browser.newContext({acceptDownloads:true});
+  const waiting=await conflictCtx.newPage(),writer=await conflictCtx.newPage();
+  await waiting.goto(BASE+'/workbench/opamp-assessment.html');
+  await waiting.waitForFunction(()=>document.querySelector('#ee-formal-root')?.dataset.state==='ready');
+  const savedBefore=await waiting.evaluate(k=>localStorage.getItem(k),KEY);
+  await writer.goto(BASE+'/workbench/opamp-course.html');
+  await writer.evaluate(k=>{
+    navigator.locks.request(k,{mode:'exclusive'},()=>new Promise(resolve=>{window.__releaseFormalLock=resolve;}));
+  },KEY);
+  await writer.waitForFunction(()=>typeof window.__releaseFormalLock==='function');
+  const one=await waiting.evaluate(()=>window.CircuitOpampAssessment.baseQuestion.options.find(o=>o.correct).id);
+  await waiting.locator('input[name="ee-formal-choice"][value="'+one+'"]').check();
+  await waiting.locator('#ee-formal-submit').click();
+  const other=JSON.stringify({schema:'circuit-learning-state',version:999,questions:{},winner:'other tab'});
+  await writer.evaluate(([k,v])=>localStorage.setItem(k,v),[KEY,other]);
+  await waiting.waitForFunction(()=>document.querySelector('#ee-formal-root')?.dataset.state==='protected');
+  await writer.evaluate(()=>window.__releaseFormalLock());
+  await waiting.waitForFunction(()=>document.querySelector('#ee-formal-safe-backup')!==null);
+  const conflictDownload=waiting.waitForEvent('download');
+  await waiting.locator('#ee-formal-safe-backup').click();
+  const rawBackup=JSON.parse(readFileSync(await (await conflictDownload).path(),'utf8'));
+  assert.equal(rawBackup.baselineRaw,savedBefore,'original V5 must remain accessible during actual Evidence conflict');
+  assert.equal(rawBackup.currentRaw,other);
+  await conflictCtx.close();
   assert.deepEqual(errors,[]);
   console.log('PASS OP formal assessment '+name+': first answer, transfer/reload, due boundary, V5, backup, 320/390');
  }finally{await browser.close();}
