@@ -40,7 +40,7 @@
  const applicationRoutes=['applications.html','applications.html#guided-applications',...['buck','boost','pfc','psfb','llc','inverter'].map(id=>'applications.html#'+id),...['pfc','psfb','llc','inverter'].map(id=>'applications.html?lesson='+id+'#guided-applications')];
  const opampCourseFiles=["01_slew_rate.html","02_step_response.html","03_sine_fpbw.html","04_gbw_vs_slew.html","05_settling_time.html","06_datasheet_selection.html"];
  const opampCourseRoutes=opampCourseFiles.map(file=>'12_opamp_slew_rate/'+file);
- const destinations=new Set([...applicationRoutes,'opamp-course.html','opamp-diagnosis.html','opamp-dc-trainer.html','opamp-assessment.html',...opampCourseRoutes,course,'opamp-step.html','opamp-sine.html','adc.html','topology.html','index.html#experiment','index.html#experiment-energy','../middle.html#lesson/mid-boost/mid-boost-ccm','records.html','coverage.html','../index.html','../index.html#lesson/analog/adc','../index.html#lesson/analog/op','../index.html#lesson/analog/pi','../advanced.html#timing']);
+ const destinations=new Set([...applicationRoutes,'opamp-course.html','opamp-diagnosis.html','opamp-dc-trainer.html','opamp-assessment.html',...opampCourseRoutes,course,'opamp-step.html','opamp-sine.html','adc.html','adc-course.html',...['lesson-0','lesson-1','lesson-2','lesson-3','lesson-4','lesson-5','formulas'].map(id=>'adc-course.html#'+id),'topology.html','index.html#experiment','index.html#experiment-energy','../middle.html#lesson/mid-boost/mid-boost-ccm','records.html','coverage.html','../index.html','../index.html#lesson/analog/adc','../index.html#lesson/analog/op','../index.html#lesson/analog/pi','../advanced.html#timing']);
  function safeDestination(path){
   const u=new URL(path,location.href);
   return [...destinations].some(p=>new URL(p,location.href).href===u.href)?u:null;
@@ -77,7 +77,12 @@
   if(source==='map.html')return 'records.html';
   if(source==='catalog.html')return '../index.html';
   if(source.startsWith('0_buck_converter_'))return course;
-  if(['1_c2000_adc_calculator/index.html','1_c2000_adc_calculator/0_index.html','1_c2000_adc_calculator/6_full_calculator.html','1_c2000_adc_calculator/c2000_adc_calculator.html'].includes(source))return 'adc.html';
+  if(['1_c2000_adc_calculator/index.html','1_c2000_adc_calculator/0_index.html'].includes(source))return 'adc-course.html#lesson-0';
+  const adcLessons=['1_adc_basics.html','2_current_to_voltage.html','3_why_offset.html','4_voltage_divider.html','5_firmware_scaling.html'];
+  const adcIndex=adcLessons.indexOf(source.replace(/^1_c2000_adc_calculator\//,''));
+  if(source.startsWith('1_c2000_adc_calculator/')&&adcIndex!==-1)return 'adc-course.html#lesson-'+(adcIndex+1);
+  if(source==='1_c2000_adc_calculator/ref_formulas.html')return 'adc-course.html#formulas';
+  if(['1_c2000_adc_calculator/6_full_calculator.html','1_c2000_adc_calculator/c2000_adc_calculator.html'].includes(source))return 'adc.html';
   if(source.startsWith('1_c2000_adc_calculator'))return 'coverage.html';
   if(source.startsWith('9.afe-tutorial'))return 'coverage.html'; // Source Module 9 is bidirectional power control, not an ADC analog front end.
   if(source==='12_opamp_slew_rate/index.html')return 'opamp-course.html';
@@ -97,8 +102,8 @@
   box.hidden=false;$('reference-frame').hidden=true;$('reference-frame').removeAttribute('src');
   $('reference-title').textContent=title||'返回教材';const links=$('reference-links');links.replaceChildren();
   const destination=referenceHref(source),p=document.createElement('p');
-  p.textContent=(destination==='opamp-course.html'||opampCourseRoutes.includes(destination))?'本站六課觀念不記錄已讀或評量通過；進入前先保存目前實驗。':destination==='opamp-diagnosis.html'?'本站 OP 三題診斷只在本頁記錄首次選擇，不授予正式成績；進入前先保存目前實驗。':destination==='opamp-assessment.html'?'本站 OP Slew Rate 首答、遷移與到期複習使用原有 V5 Evidence 記錄，不是 BOARD_PASS；進入前先保存目前實驗。':destination==='opamp-dc-trainer.html'?'本站 OP DC Trainer Level 0–5 只將 mastery 儲存在瀏覽器本地，不授予正式成績；進入前先保存目前實驗。':destination.startsWith('opamp-')?'本站 OP 實驗不帶入目前實驗參數、不保存輸入或授予評量通過；進入前先保存目前實驗。':destination==='adc.html'?'本站 ADC 計算器只暫存自己的輸入，不帶入實驗參數，也不改寫作答紀錄；離開前先保存目前實驗。':source==='map.html'?'實驗、舊課及正式評量紀錄各自保留。可開啟唯讀紀錄頁並匯出完整備份。':destination==='coverage.html'?'這個進階功能尚未遷入 EEHandouts。既有作答仍保留，不會改成已完成；本批不連回舊網站。':'開啟 EEHandouts 對應教材；它的模型與參數不會自動套用到本實驗。';links.append(p);
-  const b=document.createElement('button');b.type='button';b.textContent=(destination==='opamp-course.html'||opampCourseRoutes.includes(destination))?'保存後開啟 OP 觀念課':destination==='opamp-diagnosis.html'?'保存後開啟 OP 診斷練習':destination==='opamp-assessment.html'?'保存後開啟 OP 正式題目':destination==='opamp-dc-trainer.html'?'保存後開啟 OP DC 推理訓練':destination.startsWith('opamp-')?'保存後開啟 OP 實驗':destination==='adc.html'?'保存後開啟 ADC 計算器':source==='map.html'?'保存後查看紀錄與備份':destination==='coverage.html'?'保存後查看遷移範圍':'保存後開啟本站教材';b.onclick=()=>leave(destination);links.append(b);box.scrollIntoView({block:'start'});
+  p.textContent=(destination==='opamp-course.html'||opampCourseRoutes.includes(destination))?'本站六課觀念不記錄已讀或評量通過；進入前先保存目前實驗。':destination==='opamp-diagnosis.html'?'本站 OP 三題診斷只在本頁記錄首次選擇，不授予正式成績；進入前先保存目前實驗。':destination==='opamp-assessment.html'?'本站 OP Slew Rate 首答、遷移與到期複習使用原有 V5 Evidence 記錄，不是 BOARD_PASS；進入前先保存目前實驗。':destination==='opamp-dc-trainer.html'?'本站 OP DC Trainer Level 0–5 只將 mastery 儲存在瀏覽器本地，不授予正式成績；進入前先保存目前實驗。':destination.startsWith('opamp-')?'本站 OP 實驗不帶入目前實驗參數、不保存輸入或授予評量通過；進入前先保存目前實驗。':destination.startsWith('adc-course.html')?'本站 ADC 逐課閱讀不記錄正式成績、不改寫舊進度；進入前先儲存目前實驗。':destination==='adc.html'?'本站 ADC 計算器只暫存自己的輸入，不帶入實驗參數，也不改寫作答紀錄；離開前先保存目前實驗。':source==='map.html'?'實驗、舊課及正式評量紀錄各自保留。可開啟唯讀紀錄頁並匯出完整備份。':destination==='coverage.html'?'這個進階功能尚未遷入 EEHandouts。既有作答仍保留，不會改成已完成；本批不連回舊網站。':'開啟 EEHandouts 對應教材；它的模型與參數不會自動套用到本實驗。';links.append(p);
+  const b=document.createElement('button');b.type='button';b.textContent=(destination==='opamp-course.html'||opampCourseRoutes.includes(destination))?'保存後開啟 OP 觀念課':destination==='opamp-diagnosis.html'?'保存後開啟 OP 診斷練習':destination==='opamp-assessment.html'?'保存後開啟 OP 正式題目':destination==='opamp-dc-trainer.html'?'保存後開啟 OP DC 推理訓練':destination.startsWith('opamp-')?'保存後開啟 OP 實驗':destination.startsWith('adc-course.html')?'保存後開啟 ADC 逐課導讀':destination==='adc.html'?'保存後開啟 ADC 計算器':source==='map.html'?'保存後查看紀錄與備份':destination==='coverage.html'?'保存後查看遷移範圍':'保存後開啟本站教材';b.onclick=()=>leave(destination);links.append(b);box.scrollIntoView({block:'start'});
  }
  function recommendation(next,button){
   if(next.id==='applications'){button.hidden=false;button.textContent='保存後接續四種電路應用';button.dataset.route='applications.html';button.onclick=()=>leave('applications.html');return;}
