@@ -47,6 +47,9 @@ for(const reason of ['pending','conflict','quota']){f=fixture();f.host.markReady
 f=fixture();f.host.markReady();let release;f.ctx.CircuitEvidence.flush=()=>new Promise(resolve=>release=resolve);const adcPending=f.host.leave('adc.html');assert.equal(f.nav.length,0);assert.equal(await f.host.leave('adc.html'),false);release({saved:true});assert.equal(await adcPending,true);assert.equal(f.nav.length,1);
 f=fixture();f.host.markReady();f.host.setNavigationGuard(()=>false);assert.equal(await f.host.leave('adc.html'),false);assert.equal(f.nav.length,0);
 for(const target of ['adc.html?from=https://attacker.invalid','adc.html#untrusted']){f=fixture();assert.equal(await f.host.leave(target),false);}
+f=fixture();assert.equal(f.host.referenceHref('quiz.html?module=adc'),'adc-assessment.html');
+for(const dest of ['adc-assessment.html?grade=pass','adc-assessment.html#passed']){f=fixture();assert.equal(await f.host.leave(dest),false);}
+for(const reason of ['pending','conflict','quota']){f=fixture();f.host.markReady();f.ctx.CircuitEvidence.flush=async()=>({saved:false,reason});assert.equal(await f.host.leave('adc-assessment.html'),false);assert.equal(f.nav.length,0);}
 console.log('PASS ADC reference allowlist, deferred legacy pages, existing save/record guard, pending and duplicate navigation');
 // Slice 4b: only the two migrated OP labs are new destinations. AFE is power control, not an ADC lesson.
 for(const [source,target]of [['12_opamp_slew_rate/lab_step.html','opamp-step.html'],['12_opamp_slew_rate/lab_sine.html','opamp-sine.html'],['12_opamp_slew_rate/lab_diagnose.html','opamp-diagnosis.html']]){
