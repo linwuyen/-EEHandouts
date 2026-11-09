@@ -157,7 +157,7 @@ function boot(win){
       const again=gate(storage);
       if(blocked||!again.ok||again.raw!==baselineRaw)throw Error('V5 changed while awaiting previous flush');
       const state=E.load();
-      const entry=A.recordAttempt(state,q,opt,{at:new Date().toISOString(),elapsedMs:Math.max(0,Date.now()-startedAt),confidence:confidence.value===''?null:Number(confidence.value)});
+      const entry=A.recordAttempt(state,q,opt,{at:new Date().toISOString(),elapsedMs:Math.max(0,Date.now()-startedAt),confidence:confidence.value===''?undefined:Number(confidence.value)});
       E.save(state);
       const ack=await E.flush();
       if(!ack.saved)throw Error(ack.reason||'write failed');

@@ -37,7 +37,8 @@ test('first answer immutable, transfer creates due review, source retention inte
  const variants=H.familyModel(A,Q),state=E.emptyState(),t0=Date.parse('2026-11-09T10:00:00.000Z');
  let q=H.projection(A,variants,state,t0).next;
  assert.equal(q.assessmentRole,'baseline');
- A.recordAttempt(state,q,q.options.find(o=>!o.correct),{at:new Date(t0).toISOString()});
+ const first=A.recordAttempt(state,q,q.options.find(o=>!o.correct),{at:new Date(t0).toISOString(),confidence:undefined});
+ assert.equal(first.confidence,null,'no confidence must not become zero');
  q=H.projection(A,variants,state,t0+1).next;
  assert.equal(q.assessmentRole,'transfer');
  A.recordAttempt(state,q,q.options.find(o=>o.correct),{at:new Date(t0+1000).toISOString()});

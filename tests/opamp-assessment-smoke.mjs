@@ -19,6 +19,7 @@ for(const [name,type] of Object.entries(engines)){
   assert.equal(await page.locator('#ee-formal-next').isEnabled(),true);
   let info=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)).questions['opamp-slew-large-signal'],KEY);
   assert.equal(info.history.length,1);assert.equal(info.history[0].correct,false);
+  assert.equal(info.history[0].confidence,null,'omitted confidence must not become explicit 0%');
   await page.reload();await page.waitForFunction(()=>document.querySelector('#ee-formal-root')?.dataset.state==='ready');
   assert.equal(await page.locator('#ee-formal-question').getAttribute('data-role'),'transfer');
   const variant=await page.locator('#ee-formal-question').getAttribute('data-variant');
