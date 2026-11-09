@@ -45,7 +45,7 @@ function boot(win){
   const submit=$('ee-formal-submit'),next=$('ee-formal-next'),feedback=$('ee-formal-feedback'),summary=$('ee-formal-summary');
   const backup=$('ee-formal-backup'),confidence=$('ee-formal-confidence');
   const A=win.CircuitAssessment,E=win.CircuitEvidence,bank=win.CircuitQuizBank;
-  let storage=null,initialRaw=null,baselineRaw=null,variants=[],current=null,busy=false,blocked=false,startedAt=0;
+  let storage=null,initialRaw=null,baselineRaw=null,variants=[],current=null,busy=false,blocked=false,startedAt=0,canExportDraft=false;
   try{storage=win.localStorage;}catch(_){}
   function readRaw(){try{return storage?.getItem(KEY)??null;}catch(_){return null;}}
   function lock(reason){
@@ -59,7 +59,7 @@ function boot(win){
     win.setTimeout(()=>win.URL.revokeObjectURL(url),1000);
   }
   backup.addEventListener('click',()=>{
-    let evidence=null;try{if(E&&!blocked)evidence=JSON.parse(E.exportBackup());}catch(_){}
+    let evidence=null;try{if(E&&canExportDraft)evidence=JSON.parse(E.exportBackup());}catch(_){}
     download({format:'eehandouts-opamp-assessment-backup-v1',key:KEY,initialRaw,baselineRaw,currentRaw:readRaw(),evidence,reason:blocked?status.textContent:null});
   });
   try{initialRaw=readRaw();}catch(_){}
@@ -68,7 +68,7 @@ function boot(win){
   if(!preflight.ok){lock(preflight.reason);return;}
   if(!A||!E||!bank||!win.CircuitOpampAssessment){lock('assessment source missing');return;}
   if(typeof win.navigator?.locks?.request!=='function'){lock('Web Locks unavailable');return;}
-  try{variants=familyModel(A,bank);}catch(e){lock(e.message);return;}
+  try{variants=familyModel(A,bank);canExportDraft=true;}catch(e){lock(e.message);return;}
   win.addEventListener('storage',event=>{
     if(blocked||(event.key!==KEY&&event.key!==null))return;
     const fresh=gate(storage);

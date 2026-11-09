@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {chromium,firefox,webkit} from 'playwright';
 const BASE=process.env.PLAYWRIGHT_BASE_URL||'http://127.0.0.1:4173',KEY='circuit-learning-state-v5';
 const engines=process.argv.includes('--cross-browser')?{firefox,webkit}:{chromium};
@@ -36,6 +37,23 @@ for(const [name,type] of Object.entries(engines)){
   const backupPromise=page.waitForEvent('download');await page.locator('#ee-formal-backup').click();
   assert.match((await backupPromise).suggestedFilename(),/backup\.json$/);
   await ctx.close();
+  const quota=await browser.newContext({acceptDownloads:true}),qp=await quota.newPage();
+  await qp.goto(BASE+'/workbench/opamp-assessment.html');
+  await qp.waitForFunction(()=>document.querySelector('#ee-formal-root')?.dataset.state==='ready');
+  const oldRecord=await qp.evaluate(k=>localStorage.getItem(k),KEY);
+  await qp.evaluate(k=>{
+    const original=Storage.prototype.setItem;
+    Storage.prototype.setItem=function(key,value){if(key===k)throw new DOMException('full','QuotaExceededError');return original.call(this,key,value);};
+  },KEY);
+  const wrong=await qp.evaluate(()=>window.CircuitOpampAssessment.baseQuestion.options.find(o=>!o.correct).id);
+  await qp.locator('input[name="ee-formal-choice"][value="'+wrong+'"]').check();
+  await qp.locator('#ee-formal-submit').click();
+  await qp.waitForFunction(()=>document.querySelector('#ee-formal-root')?.dataset.state==='protected');
+  assert.equal(await qp.evaluate(k=>localStorage.getItem(k),KEY),oldRecord,'failed write must retain original V5');
+  const quotaDownload=qp.waitForEvent('download');await qp.locator('#ee-formal-backup').click();
+  const quotaBackup=JSON.parse(readFileSync(await (await quotaDownload).path(),'utf8'));
+  assert.ok(quotaBackup.evidence?.questions?.['opamp-slew-large-signal']?.history?.length>=1,'quota must export unsaved V5 draft');
+  await quota.close();
   const future=await browser.newContext(),fp=await future.newPage();await fp.goto(BASE+'/workbench/opamp-course.html');
   const raw=JSON.stringify({schema:'circuit-learning-state',version:999,questions:{},future:'keep'});
   await fp.evaluate(([k,v])=>localStorage.setItem(k,v),[KEY,raw]);
