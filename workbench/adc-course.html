@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>C2000 ADC 訊號鏈｜五課逐步導讀｜EEHandouts</title>
+<link rel="stylesheet" href="ee-adc-course.css">
+</head>
+<body>
+<a class="skip" href="#main">跳到課程內容</a>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../index.html#lesson/analog/adc">EEHandouts · ADC 逐課導讀</a>
+  <nav aria-label="本站工具"><a href="adc.html">開啟共用 ADC 計算器</a><a href="coverage.html">遷移範圍</a><a href="records.html">紀錄與備份</a></nav>
+</div></header>
+<main id="main" class="wrap" data-ee-adc-course>
+  <section class="hero" id="lesson-0" tabindex="-1">
+    <p class="eyebrow">Module 1 · Slice 6a · 概念課程 0–5</p>
+    <h1>從電流、母線電壓走到 ADCRESULT</h1>
+    <p>先處理類比訊號鏈的量程，再看 ADC 量化，最後換算成有單位的工程量。每一步都可以使用本站<strong>同一套</strong> ADC 計算器驗證，不另外建立公式引擎。</p>
+    <div class="scope"><strong>這是教學模型：</strong>原始 Circuit 教材的分段概念已改寫成本站導讀；不複製其進度寫入機制。閱讀、展開答案或進入計算器，都不會新增正式學習證據、評分或 BOARD_PASS。實機須以 MCU 型號 TRM、datasheet、量測波形與校準結果為準。</div>
+    <div class="paths">
+      <div><strong>電流路徑</strong><p>電流 I → Shunt 電壓 → Amplifier Gain → 雙向 Offset → 濾波/ADC → count → A</p></div>
+      <div><strong>電壓路徑</strong><p>母線 Vbus → 分壓 Rtop/Rbot → 濾波/ADC → count → V</p></div>
+    </div>
+  </section>
+  <nav class="toc" aria-label="五堂課與公式速查">
+    <a href="#lesson-1">01 ADC 量化</a><a href="#lesson-2">02 Shunt / Gain</a>
+    <a href="#lesson-3">03 雙向 Offset</a><a href="#lesson-4">04 母線分壓</a>
+    <a href="#lesson-5">05 韌體 Scaling</a><a href="#formulas">公式 / 驗證邊界</a>
+  </nav>
+  <article class="lesson" id="lesson-1" tabindex="-1">
+    <p class="eyebrow">第 1 課 · ADC 量化</p><h2>4096 個 code，最大編號是 4095</h2>
+    <p>理想 12-bit ADC 一共有 2<sup>12</sup> = 4096 個量化區間，但編號從 0 起算，因此最大輸出 code 是 4095。這兩個數字不能放到同一個分母而不說明假設。</p>
+    <div class="equation"><strong>本站共用計算核心採用</strong><code>LSB = Vref / 2^N</code><code>code = clamp(floor(Vadc / LSB), 0, 2^N - 1)</code></div>
+    <p>舊課程採 <code>Vref / (2^N−1)</code> 並四捨五入，屬於端點對映近似；本站將它保留為「端點顯示步距」的概念，不當成量化 LSB 或 ADCRESULT 的實際轉換規則。</p>
+    <div class="example"><b>數值驗證 · 3.3 V / 12-bit</b><p>LSB = 3.3 / 4096 = <strong>0.805664 mV</strong>。Vadc = 1.650 V → code 2048；Vadc ≥ 3.3 V → 最高 code 4095。最高 code 不能用來證明未曾飽和。</p></div>
+    <details><summary>理解題：4095 與 4096 哪個是滿刻度 code？</summary><p>4095 是最大 code；4096 是不同 code 的總數。將分母 4095 用於端點比例時，不能再把該結果當成 4096 區間的理想量化 LSB。</p></details>
+    <p class="foot"><a href="adc.html?current=0&amp;offset=1.65&amp;vref=3.3&amp;bits=12">在共用計算器觀察 2048 code</a></p>
+  </article>
+  <article class="lesson" id="lesson-2" tabindex="-1">
+    <p class="eyebrow">第 2 課 · Shunt 與放大器</p><h2>ADC 不讀安培，只讀輸入腳位的電壓</h2>
+    <p>電流穿過精密分流電阻產生壓差，再由放大器放大。量測方向、輸入共模範圍、Kelvin 走線、功耗與噪聲都可能限制電路，不是調大 Gain 就能改善解析度。</p>
+    <div class="equation"><code>Vshunt = I × Rshunt</code><code>Vsignal = Vshunt × Gain</code><code>Pshunt = I_rms² × Rshunt</code></div>
+    <div class="example"><b>數值驗證 · 30 A、5 mΩ、Gain 8.2</b><p>Vshunt = 30 × 0.005 = <strong>0.150 V</strong>；放大訊號 = <strong>1.230 V</strong>。若是連續 30 A RMS，Shunt 損耗 = <strong>4.5 W</strong>，不可忽略封裝溫升與額定。</p></div>
+    <p>RC 抗雜訊濾波會增加相位延遲；ADC sample-and-hold 在取樣期間也會向前級取電荷。請將 R/C、放大器輸出阻抗與 acquisition window 一起估算，而非只看靜態增益。</p>
+    <details><summary>理解題：Gain 從 8.2 提高到 20，一定比較好嗎？</summary><p>不一定。相同輸入電流的輸出電壓會更高，可能先碰到 0/Vref 或放大器輸出擺幅上限；同時必須驗證噪聲、頻寬和穩定時間。</p></details>
+    <p class="foot"><a href="adc.html?current=30&amp;shunt=0.005&amp;gain=8.2&amp;offset=1.65">在原有計算器套用 Shunt 範例</a></p>
+  </article>
+  <article class="lesson" id="lesson-3" tabindex="-1">
+    <p class="eyebrow">第 3 課 · 雙向 Offset</p><h2>把零電流移到 ADC 動態範圍中間</h2>
+    <p>單端 ADC 的輸入下限通常不能接受負電壓。將零電流偏移到 1.65 V，正負方向的訊號便分別朝上限與下限移動；Offset 漂移仍需另行校準。</p>
+    <div class="equation"><code>Vadc = I × Rshunt × Gain + Offset</code><code>I = (Vadc − Offset) / (Rshunt × Gain)</code></div>
+    <div class="example"><b>數值驗證 · Rshunt=5 mΩ、Gain=8.2、Offset=1.65 V</b><p>I = 0 A → 1.65 V、2048 code；I = −20 A → <strong>0.83 V、1030 code</strong>；I = +20 A → <strong>2.47 V、3065 code</strong>。理想可量邊界約 ±40.24 A，但實際設計必須預留容差及瞬態裕度。</p></div>
+    <details><summary>理解題：Offset = 0 V 時能否測到 −20 A？</summary><p>不能直接用此單端 0…3.3 V 模型讀取負電壓。該訊號會低於量測範圍；回傳 0 code 不代表真實電流恰好是 0 A。</p></details>
+    <p class="foot"><a href="adc.html?current=-20&amp;shunt=0.005&amp;gain=8.2&amp;offset=1.65">在共用計算器驗證負電流</a></p>
+  </article>
+  <article class="lesson" id="lesson-4" tabindex="-1">
+    <p class="eyebrow">第 4 課 · 母線分壓與元件應力</p><h2>把高電壓縮小，但不要只確認 ADC 沒超量程</h2>
+    <p>分壓的兩個電阻必須同時考慮比值誤差、功耗、元件實際 working voltage、突波與 PCB 佈線。高阻值電阻鏈可能增加 ADC 取樣電容的充電時間，分壓比例正確不代表取樣結果正確。</p>
+    <div class="equation"><code>Vadc = Vbus × Rbot / (Rtop + Rbot)</code><code>Idiv = Vbus / (Rtop + Rbot)</code><code>Ptop = Idiv² × Rtop</code></div>
+    <div class="example"><b>數值驗證 · Vbus 800 V、Rbot 8.25 kΩ</b><p>Rtop = 2 MΩ 時，Vadc ≈ <strong>3.286 V</strong>，幾乎沒有上限裕度；Rtop 改為 2.45 MΩ 時，Vadc ≈ <strong>2.685 V</strong>。但 800 V 仍分攤在高阻值電阻鏈上，必須逐顆檢查耐壓、功率及失效方式。</p></div>
+    <details><summary>理解題：四顆等值 Rtop 串聯，就保證安全嗎？</summary><p>不能。理想條件下電壓平均分配，但單顆的額定工作電壓、爬電距離、分布電容、surge 及失效模式都要另外驗證。</p></details>
+    <p class="foot"><a href="adc.html?bus=800&amp;rtop=2450&amp;rbot=8.25&amp;seriesCount=4">在共用計算器驗證分壓與每顆應力</a></p>
+  </article>
+  <article class="lesson" id="lesson-5" tabindex="-1">
+    <p class="eyebrow">第 5 課 · Firmware Scaling</p><h2>從 ADC code 恢復電流及母線電壓</h2>
+    <p>若類比路徑已確認可用，韌體才把整數 code 換算為工程單位。零電流校準、ADC offset/gain error、ADCRESULT 的有效時序，均不能從一個理想係數自動推得。</p>
+    <div class="equation"><code>K_I = (Vref / 2^N) / (Rshunt × Gain)   [A/count]</code><code>Current_A ≈ (code − zeroCount) × K_I</code><code>K_V = (Vref / 2^N) × (Rtop + Rbot) / Rbot   [V/count]</code><code>Bus_V ≈ code × K_V</code></div>
+    <div class="example"><b>數值驗證 · 3.3 V、12-bit、5 mΩ、Gain 8.2</b><p>K_I ≈ <strong>0.01965034 A/count</strong>，zeroCount = 2048。量化後再反推有約一個 LSB 的不確定性，因此數值與理想 20.000 A 不會完全相等。只有完成量測和校準，係數才可能作為產品韌體的參數。</p></div>
+    <div class="scope"><strong>實際 C2000 時序：</strong>以 F28004x 的 100 MHz SYSCLK 為例，取樣時間依 SOC 的 ACQPS 設定；ACQPS = 7 對應 8 個 SYSCLK 週期 = 80 ns。TI 的 75 ns 最短取樣窗條件限定低源阻抗（Rs ≤ 50 Ω），高阻抗或 RC 設計需另行做 settling 分析。此處不產生可直接燒錄的 register configuration。F28004x 的 ADC 是 12-bit；工具其他位元數僅為通用理想模型。</div>
+    <details><summary>理解題：ADCRESULT=4095 可以直接表示精確的 3.3 V 嗎？</summary><p>不行。最高 code 可能已包含飽和、量化與參考電壓誤差；還要檢查 ADC conversion/EOC 時序，以及取樣網路的 settling。</p></details>
+    <p class="foot"><a href="adc.html?current=20&amp;vref=3.3&amp;bits=12">在共用計算器檢視 K_I 與 C 參數</a></p>
+  </article>
+  <section class="lesson" id="formulas" tabindex="-1">
+    <p class="eyebrow">參考 · 不可省略的限制</p><h2>公式索引、反證與硬體規格</h2>
+    <div class="grid">
+      <div><h3>模型假設</h3><p>正向增益、理想 Offset、固定 Vref、靜態輸入與有限電阻。數值中的 0…Vref 是<strong>模擬可量範圍</strong>，不代表所有 C2000 機型相同。</p></div>
+      <div><h3>資料責任</h3><p>本課不操作 <code>c2000_adc_progress</code>、<code>circuit-learning-state-v5</code> 或上冊閱讀記錄。正式學習進度與此概念閱讀彼此隔離；資料仍留在原瀏覽器。</p></div>
+      <div><h3>實測關卡</h3><p>查 MCU datasheet / TRM → 量測 Shunt 與 Offset → 示波器驗證 SOC/ADCINT/ISR → 量化與誤差校準 → 再決定控制迴路使用方式。</p></div>
+      <div><h3>來源與驗證</h3><p>依固定 Circuit Module 1 課程順序重寫本站導讀，數字範例使用 EEHandouts 已移入的 <code>CircuitModels</code> 驗證，實際硬體時間參考 TI 官方 F28004x datasheet。</p></div>
+    </div>
+    <p class="foot"><a href="https://www.ti.com/lit/ds/symlink/tms320f280049.pdf" rel="noopener noreferrer">TI F28004x Datasheet（ADC operating conditions）</a> · <a href="https://www.ti.com/lit/ug/sprui33c/sprui33c.pdf" rel="noopener noreferrer">TI F28004x TRM</a></p>
+    <p class="foot"><a href="#lesson-0">回到總覽</a> · <a href="adc.html">使用現有 ADC 訊號鏈工具</a> · <a href="../index.html#lesson/analog/adc">返回上冊 ADC 教材</a></p>
+  </section>
+</main>
+<footer class="wrap footer"><p>EEHandouts · 理想訊號鏈逐課閱讀。此頁沒有獨立數值模型、評量結果或儲存程序。</p></footer>
+</body></html>
