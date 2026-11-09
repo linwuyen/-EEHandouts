@@ -31,12 +31,23 @@ function gate(storage){
     for(const id of FAMILIES){
       const rec=data.questions[id];if(rec===undefined)continue;
       const allowed=['history','choiceId','correct','attempts','updatedAt'];
+      const roleFor=v=>v==='A'?'baseline':v==='B'||v==='C'||/^T[1-9]\d*$/.test(v)?'transfer':v==='D'||/^R[1-4]-[1-9]\d*$/.test(v)?'retention':null;
       if(!plain(rec)||!Array.isArray(rec.history)||Object.keys(rec).some(k=>!allowed.includes(k))||
-        rec.history.some(h=>!plain(h)||typeof h.at!=='string'||typeof h.variantId!=='string'||typeof h.correct!=='boolean'||typeof h.firstAttemptForVariant!=='boolean'))
+        rec.history.some((h,index)=>!plain(h)||typeof h.at!=='string'||!Number.isFinite(Date.parse(h.at))||
+          h.familyId!==id||h.questionId!==(h.variantId==='A'?id:id+'-'+String(h.variantId).toLowerCase())||
+          h.assessmentRole!==roleFor(h.variantId)||typeof h.correct!=='boolean'||typeof h.firstAttemptForVariant!=='boolean'||
+          (index===0&&h.assessmentRole!=='baseline')||
+          h.firstAttemptForVariant===rec.history.slice(0,index).some(prev=>prev.variantId===h.variantId)))
         return {ok:false,raw,reason:'unsupported ADC family history '+id};
     }
     return {ok:true,raw};
   }catch(_){return {ok:false,raw:null,reason:'storage unavailable'};}
+}
+// The state passed to show() must be derived from the same raw V5 bytes
+// acknowledged after the awaited startup flush; never adopt an updated raw
+// baseline beside a stale in-memory question snapshot.
+function startupConsistent(beforeRaw,loadedState,afterRaw){
+  return afterRaw===(beforeRaw===null?JSON.stringify(loadedState):beforeRaw);
 }
 function familyModel(assessment,bank){
   if(typeof assessment?.expandQuestions!=='function'||!Array.isArray(bank?.questions))throw Error('assessment source missing');
@@ -121,8 +132,12 @@ function boot(win){
   }
   async function start(){
     try{
+      const expectedBefore=preflight.raw;
       const state=E.load(),ack=await E.flush();if(!ack.saved)throw Error(ack.reason||'initial V5 pending');
       const fresh=gate(storage);if(blocked||!fresh.ok)throw Error(fresh.reason||'V5 conflict');
+      // A fresh empty V5 is initialized by the source Evidence owner; existing
+      // records must not change during awaited flush or we'd render a stale quiz.
+      if(!startupConsistent(expectedBefore,state,fresh.raw))throw Error('V5 changed while initializing assessment');
       baselineRaw=fresh.raw;show(state);
     }catch(e){lock(e.message||'initialization failed');}
   }
@@ -155,5 +170,5 @@ function boot(win){
   });
   start();
 }
-return {KEY,FAMILIES,gate,familyModel,projection,boot};
+return {KEY,FAMILIES,gate,startupConsistent,familyModel,projection,boot};
 });

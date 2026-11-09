@@ -36,6 +36,31 @@ test('unknown/future V5, malformed nested sections and ADC family records fail c
  const legacy=H.gate(store({'circuit-learning-state-v4':'{"version":4}'}));assert.equal(legacy.ok,false);
  const inaccessible=H.gate({getItem(){throw new Error('denied');}});assert.equal(inaccessible.ok,false);
 });
+test('cross-family foreign identities and swapped role/variant cannot earn ADC credit',()=>{
+ const id=H.FAMILIES[0],original=E.emptyState();
+ const foreignQ=Q.questions.find(q=>q.id==='spi-clock-throughput');
+ const fake=A.expandQuestions([foreignQ])[1];
+ A.recordAttempt(original,fake,fake.options.find(o=>o.correct),{at:'2026-11-09T10:00:00Z'});
+ const other=original.questions[foreignQ.id].history[0];
+ original.questions[id]={history:[{...other,variantId:'B',assessmentRole:'transfer',correct:true,firstAttemptForVariant:true}]};
+ assert.equal(H.gate(store({[KEY]:JSON.stringify(original)})).ok,false,'foreign SPI evidence cannot unlock ADC transfer');
+ const valid=E.emptyState(),q=questions.find(x=>x.familyId===id&&x.variantId==='A');
+ A.recordAttempt(valid,q,q.options.find(o=>o.correct),{at:'2026-11-09T10:00:00Z'});
+ const raw=JSON.stringify(valid);assert.equal(H.gate(store({[KEY]:raw})).ok,true,'original ADC baseline remains compatible');
+ valid.questions[id].history[0].assessmentRole='transfer';
+ assert.equal(H.gate(store({[KEY]:JSON.stringify(valid)})).ok,false,'A cannot masquerade as transfer');
+ const transferOnly=E.emptyState(),t=questions.find(x=>x.familyId===id&&x.variantId==='B');
+ A.recordAttempt(transferOnly,t,t.options.find(o=>o.correct),{at:'2026-11-09T10:00:00Z'});
+ assert.equal(H.gate(store({[KEY]:JSON.stringify(transferOnly)})).ok,false,'transfer cannot be first family attempt');
+});
+test('startup cannot adopt a new V5 raw baseline beside the previously loaded question state',()=>{
+ const state=E.emptyState(),before=JSON.stringify(state);
+ assert.equal(H.startupConsistent(before,state,before),true);
+ const changed={...state,events:[...state.events,{at:'2026-11-09T10:00:00Z',event:'other-tab'}]};
+ assert.equal(H.startupConsistent(before,state,JSON.stringify(changed)),false,'foreign valid V5 raw cannot be treated as this snapshot');
+ assert.equal(H.startupConsistent(null,state,JSON.stringify(state)),true,'initial first write of the exact loaded state is expected');
+ assert.equal(H.startupConsistent(null,state,JSON.stringify(changed)),false,'first write must not silently adopt another state');
+});
 test('first wrong answer never becomes passed baseline; three families advance with source transfer and due logic',()=>{
  const state=E.emptyState(),t0=Date.parse('2026-11-09T10:00:00.000Z');
  let v=H.projection(A,questions,state,t0);

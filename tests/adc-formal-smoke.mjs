@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync,mkdirSync} from 'node:fs';
 import {chromium,firefox,webkit} from 'playwright';
 const BASE=process.env.PLAYWRIGHT_BASE_URL||'http://127.0.0.1:4173';
-const URL=BASE+'/workbench/adc-assessment.html',KEY='circuit-learning-state-v5';
+const PAGE=BASE+'/workbench/adc-assessment.html',KEY='circuit-learning-state-v5';
 const FAMILIES=['adc-levels-vs-codes','adc-divider-power','adc-offset-purpose'];
 mkdirSync('tests/screenshots',{recursive:true});
 for(const [name,engine] of Object.entries(process.argv.includes('--cross-browser')?{firefox,webkit}:{chromium})){
@@ -30,7 +30,7 @@ for(const [name,engine] of Object.entries(process.argv.includes('--cross-browser
     return cur;
   }
   try{
-   await page.goto(URL);await ready();
+   await page.goto(PAGE);await ready();
    assert.deepEqual(await current(),{family:FAMILIES[0],role:'baseline',variant:'A'});
    await answer(true);
    let state=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),KEY);
@@ -69,7 +69,7 @@ for(const [name,engine] of Object.entries(process.argv.includes('--cross-browser
    await ctx.close();
    // Quota: no accepted feedback and preserve original raw, with exportable V5 draft.
    const quota=await browser.newContext({acceptDownloads:true}),qp=await quota.newPage();
-   await qp.goto(URL);await qp.waitForFunction(()=>document.querySelector('#ee-adc-formal-root')?.dataset.state==='ready');
+   await qp.goto(PAGE);await qp.waitForFunction(()=>document.querySelector('#ee-adc-formal-root')?.dataset.state==='ready');
    const original=await qp.evaluate(k=>localStorage.getItem(k),KEY);
    await qp.evaluate(k=>{const orig=Storage.prototype.setItem;Storage.prototype.setItem=function(key,v){if(key===k)throw new DOMException('full','QuotaExceededError');return orig.call(this,key,v);};},KEY);
    await qp.locator('input[name="ee-formal-choice"]').first().check();await qp.locator('#ee-formal-submit').click();
@@ -83,14 +83,14 @@ for(const [name,engine] of Object.entries(process.argv.includes('--cross-browser
    const future=await browser.newContext(),fp=await future.newPage();
    await fp.goto(BASE+'/workbench/adc-course.html');
    const raw=JSON.stringify({schema:'circuit-learning-state',version:999,questions:{},future:'keep'});
-   await fp.evaluate(([k,v])=>localStorage.setItem(k,v),[KEY,raw]);await fp.goto(URL);
+   await fp.evaluate(([k,v])=>localStorage.setItem(k,v),[KEY,raw]);await fp.goto(PAGE);
    await fp.waitForFunction(()=>document.querySelector('#ee-adc-formal-root')?.dataset.state==='protected');
    assert.equal(await fp.evaluate(k=>localStorage.getItem(k),KEY),raw);
    assert.equal(await fp.locator('#ee-formal-submit').isEnabled(),false);await future.close();
    // Held Web Lock: foreign tab wins; retained baseline backup remains reachable
    // from the original Evidence conflict notice's permitted click surface.
    const otherCtx=await browser.newContext({acceptDownloads:true}),a=await otherCtx.newPage(),b=await otherCtx.newPage();
-   await a.goto(URL);await a.waitForFunction(()=>document.querySelector('#ee-adc-formal-root')?.dataset.state==='ready');
+   await a.goto(PAGE);await a.waitForFunction(()=>document.querySelector('#ee-adc-formal-root')?.dataset.state==='ready');
    const before=await a.evaluate(k=>localStorage.getItem(k),KEY);
    await b.goto(BASE+'/workbench/adc-course.html');
    await b.evaluate(k=>{navigator.locks.request(k,{mode:'exclusive'},()=>new Promise(resolve=>{window.__releaseADC=resolve;}));},KEY);
@@ -105,10 +105,43 @@ for(const [name,engine] of Object.entries(process.argv.includes('--cross-browser
    const safe=JSON.parse(readFileSync(await (await exportReq).path(),'utf8'));
    assert.equal(safe.baselineRaw,before);assert.equal(safe.currentRaw,winner);
    await otherCtx.close();
+   // Deterministic startup interleaving. Delay the source flush response, edit
+   // valid V5 bytes during the await (same-tab injection deliberately avoids a
+   // storage event), then verify the loaded stale question cannot be displayed.
+   const startup=await browser.newContext(),sp=await startup.newPage();
+   await sp.goto(PAGE);await sp.waitForFunction(()=>document.querySelector('#ee-adc-formal-root')?.dataset.state==='ready');
+   await sp.close();
+   const held=await startup.newPage();
+   await held.addInitScript(()=>{
+     let evidence=null;
+     Object.defineProperty(window,'CircuitEvidence',{
+       configurable:true,get(){return evidence;},set(owner){
+         evidence=owner;
+         const sourceFlush=owner.flush.bind(owner);
+         let first=true;
+         owner.flush=async function(){
+           if(first){first=false;window.__adcStartupFlushHeld=true;
+             await new Promise(resolve=>{window.__releaseADCStartupFlush=resolve;});}
+           return sourceFlush();
+         };
+       }
+     });
+   });
+   await held.goto(PAGE);
+   await held.waitForFunction(()=>window.__adcStartupFlushHeld===true);
+   await held.evaluate(k=>{
+     const state=JSON.parse(localStorage.getItem(k));
+     state.events.push({at:new Date().toISOString(),type:'cross-tab-like-startup-change'});
+     localStorage.setItem(k,JSON.stringify(state));
+   },KEY);
+   await held.evaluate(()=>window.__releaseADCStartupFlush());
+   await held.waitForFunction(()=>document.querySelector('#ee-adc-formal-root')?.dataset.state==='protected');
+   assert.equal(await held.locator('#ee-formal-submit').isEnabled(),false);
+   await startup.close();
    // Source omission must fail closed, not show a valid grade or allow writing.
    const missing=await browser.newContext(),mp=await missing.newPage();
    await mp.route('**/workbench/assets/learning/learning-assessment.js',route=>route.abort());
-   await mp.goto(URL);await mp.waitForFunction(()=>document.querySelector('#ee-adc-formal-root')?.dataset.state==='protected');
+   await mp.goto(PAGE);await mp.waitForFunction(()=>document.querySelector('#ee-adc-formal-root')?.dataset.state==='protected');
    assert.equal(await mp.locator('#ee-formal-submit').isEnabled(),false);await missing.close();
    assert.deepEqual(errors,[]);assert.deepEqual(external,[]);
    console.log('PASS ADC formal '+name+': 3 original families, wrong baseline→transfer, persisted V5, quotas, conflict backup, future schema, mobile');
