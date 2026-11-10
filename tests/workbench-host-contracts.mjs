@@ -73,3 +73,19 @@ f=fixture();assert.equal(f.host.referenceHref('12_opamp_slew_rate/index.html'),'
 for(const source of ['12_opamp_slew_rate/lab_diagnose.html?formal=true','12_opamp_slew_rate/lab_step.html?from=evil','12_opamp_slew_rate/../evil','9.afe-tutorial/afe.html']){f=fixture();assert.equal(f.host.referenceHref(source),'coverage.html');}
 for(const target of ['opamp-step.html?from=evil','opamp-sine.html#unexpected']){f=fixture();assert.equal(await f.host.leave(target),false);}
 console.log('PASS OP exact routes, unported AFE/OP coverage, pending-save/conflict/quota/future-schema guards and no arbitrary destinations');
+
+// 6b-4: exact power-topology-control source quiz route, guarded navigation.
+f=fixture();assert.equal(f.host.referenceHref('quiz.html?module=power-topology-control'),'topology-assessment.html');
+for(const source of ['quiz.html?module=power-topology-control#passed','quiz.html?module=power-topology-control&score=100','quiz.html?module=power-topology-control-extra']){
+ f=fixture();assert.equal(f.host.referenceHref(source),'coverage.html');
+}
+for(const destination of ['topology-assessment.html?grade=pass','topology-assessment.html#passed']){
+ f=fixture();assert.equal(await f.host.leave(destination),false);assert.equal(f.nav.length,0);
+}
+for(const reason of ['pending','conflict','quota']){
+ f=fixture();f.host.markReady();f.ctx.CircuitEvidence.flush=async()=>({saved:false,reason});
+ assert.equal(await f.host.leave('topology-assessment.html'),false);assert.equal(f.nav.length,0);
+}
+f=fixture();f.host.markReady();assert.equal(await f.host.leave('topology-assessment.html'),true);
+assert.match(f.nav[0],/topology-assessment\.html$/);
+console.log('PASS 6b-4 topology quiz exact allowlist, hostile suffix denial, blocked stale Evidence navigation');
