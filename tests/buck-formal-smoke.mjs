@@ -177,12 +177,15 @@ for(const [name,engine] of Object.entries(process.argv.includes('--cross-browser
    const winner=JSON.stringify({schema:'circuit-learning-state',version:999,questions:{},winner:'other'});
    await b.evaluate(([k,v])=>localStorage.setItem(k,v),[KEY,winner]);
    await a.waitForFunction(()=>document.querySelector('#ee-buck-formal-root')?.dataset.state==='protected');
-   await b.evaluate(()=>window.__releaseBuck());
-   // A pre-load rejection has not queued a source write; no source conflict notice is expected.
-   assert.equal(await a.evaluate(()=>window.CircuitEvidence.storageStatus().saved),true);
-   const exportReq=a.waitForEvent('download');await a.locator('#ee-formal-backup').click();
+   // The competing V5 lock deliberately stays held during the backup click.
+   // Retained raw and draft must download promptly WITHOUT source E.load/flush.
+   const exportReq=a.waitForEvent('download',{timeout:4000});await a.locator('#ee-formal-backup').click();
    const safe=JSON.parse(readFileSync(await (await exportReq).path(),'utf8'));
    assert.equal(safe.baselineRaw,before);assert.equal(safe.currentRaw,winner);
+   assert.equal(await a.evaluate(k=>localStorage.getItem(k),KEY),winner);
+   // Only after the raw backup succeeds may the other tab release the lock.
+   await b.evaluate(()=>window.__releaseBuck());
+   assert.equal(await a.evaluate(()=>window.CircuitEvidence.storageStatus().saved),true);
    await otherCtx.close();
    // Actual source-writer conflict is distinct: queue a real Evidence.save()
    // while another tab holds the V5 key lock and then changes the stored raw.
@@ -211,6 +214,16 @@ for(const [name,engine] of Object.entries(process.argv.includes('--cross-browser
    const sourceWinner=JSON.stringify({schema:'circuit-learning-state',version:999,questions:{},winner:'source-conflict'});
    await sourceWriter.evaluate(([k,v])=>localStorage.setItem(k,v),[KEY,sourceWinner]);
    await sourcePage.waitForFunction(()=>document.querySelector('#ee-buck-formal-root')?.dataset.state==='protected');
+   // Real Buck formal attempt still awaits source commit.
+   // Both the external winner and our unsaved Buck attempt must be exportable
+   // while this pending writer remains blocked by the held V5 lock.
+   const pendingDownload=sourcePage.waitForEvent('download',{timeout:4000});
+   await sourcePage.locator('#ee-formal-backup').click();
+   const pendingExport=JSON.parse(readFileSync(await (await pendingDownload).path(),'utf8'));
+   assert.equal(pendingExport.baselineRaw,sourceBaseline);
+   assert.equal(pendingExport.currentRaw,sourceWinner);
+   assert.ok(pendingExport.pendingDraft?.questions?.[FAMILIES[0]]?.history?.length>=1,
+      'uncommitted Buck draft must download while the lock is still held');
    await sourcePage.evaluate(()=>window.__releaseSourceBuck());
    await sourcePage.waitForFunction(()=>window.CircuitEvidence.storageStatus().reason==='conflict');
    await sourcePage.waitForFunction(()=>document.querySelector('#ee-buck-safe-backup')!==null);

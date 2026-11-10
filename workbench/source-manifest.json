@@ -507,9 +507,9 @@
       "path": "ee-buck-assessment.js",
       "sourcePath": "quiz.html",
       "sourceBlob": "61ad104246926cea2ea5b94ce9ded605c34340da",
-      "sha256": "82b5f7c17182820f1a44cc026412a1fbe9a41b434d79fce6ef47e7300a27d27a",
+      "sha256": "f978de0d1015a9c2883ae0ec739ffa4fd3288cf6984ecad5df333417af80f26a",
       "adapted": true,
-      "adaptation": "EE-only Buck three-family formal assessment UI; original QuizBank, Assessment and Evidence source owners unchanged. Guards cross-tab V5 raw/lock, failed writes and pending drafts; no hardware proof."
+      "adaptation": "EE-only Buck three-family formal assessment UI; original QuizBank, Assessment and Evidence source owners unchanged. Guards cross-tab V5 raw/lock, failed writes and pending drafts; no hardware proof. If a concurrent Web Lock is held, the source export is skipped and retained raw+pending draft remains immediately downloadable."
     }
   ],
   "testFiles": [

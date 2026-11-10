@@ -138,7 +138,10 @@ function boot(win){
     // Never await E.flush() inside this lock: the original writer needs it.
     try{
       if(E&&canExportDraft&&typeof win.navigator?.locks?.request==='function'){
-        const raw=await win.navigator.locks.request(KEY,{mode:'exclusive'},()=>{
+        const raw=await win.navigator.locks.request(KEY,{mode:'exclusive',ifAvailable:true},lock=>{
+          // A held lock must not block recovery of retained raw data/draft.
+          // Only the source export needs the lock; raw-only fallback does not.
+          if(!lock)return null;
           const before=gate(storage,A,bank);
           if(!before.ok||before.raw!==baselineRaw)return null;
           const exported=E.exportBackup();
