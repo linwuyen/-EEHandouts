@@ -34,7 +34,7 @@ assert.ok(verify.includes('run: bash scripts/prepare-pdfjs.sh'),'CI must prepare
 assert.ok(publish.includes('run: bash scripts/prepare-pdfjs.sh'),'Pages must bundle verified PDF.js assets');
 
 assert.ok(pkg.scripts['test:browser'].includes('tests/middle-engineering.mjs'), 'Keep the newer middle-volume DCM engineering regression in the suite');
-assert.equal(pkg.scripts['test:cross-browser'],'node tests/cross-browser.mjs && node tests/review-fixes-smoke.mjs --cross-browser && node tests/review-round2-smoke.mjs --cross-browser && node tests/buck-workbench-smoke.mjs --cross-browser && node tests/topology-workbench-smoke.mjs --cross-browser && node tests/applications-workbench-smoke.mjs --cross-browser && node tests/adc-workbench-smoke.mjs --cross-browser && node tests/adc-lessons-smoke.mjs --cross-browser && node tests/opamp-workbench-smoke.mjs --cross-browser && node tests/opamp-course-smoke.mjs --cross-browser && node tests/opamp-diagnosis-smoke.mjs --cross-browser && node tests/opamp-dc-trainer-smoke.mjs --cross-browser && node tests/opamp-assessment-smoke.mjs --cross-browser && node tests/adc-formal-smoke.mjs --cross-browser && node tests/spi-formal-smoke.mjs --cross-browser && node tests/buck-formal-smoke.mjs --cross-browser','Firefox/WebKit original and review suites run in the separate CI job');
+assert.equal(pkg.scripts['test:cross-browser'],'node tests/cross-browser.mjs && node tests/review-fixes-smoke.mjs --cross-browser && node tests/review-round2-smoke.mjs --cross-browser && node tests/buck-workbench-smoke.mjs --cross-browser && node tests/topology-workbench-smoke.mjs --cross-browser && node tests/applications-workbench-smoke.mjs --cross-browser && node tests/adc-workbench-smoke.mjs --cross-browser && node tests/adc-lessons-smoke.mjs --cross-browser && node tests/opamp-workbench-smoke.mjs --cross-browser && node tests/opamp-course-smoke.mjs --cross-browser && node tests/opamp-diagnosis-smoke.mjs --cross-browser && node tests/opamp-dc-trainer-smoke.mjs --cross-browser && node tests/opamp-assessment-smoke.mjs --cross-browser && node tests/adc-formal-smoke.mjs --cross-browser && node tests/spi-formal-smoke.mjs --cross-browser && node tests/buck-formal-smoke.mjs --cross-browser && node tests/topology-formal-smoke.mjs --cross-browser','Firefox/WebKit original and review suites run in the separate CI job');
 for(const file of ['llc-accuracy.mjs','pfc-event-time.mjs','advanced-control-defaults.mjs'])
   assert.ok(pkg.scripts['test:ci'].includes('tests/'+file),'Round2 numerical/event/control regression required: '+file);
 assert.ok(pkg.scripts['test:browser'].includes('tests/review-round2-smoke.mjs'),'Round2 Chromium DOM regression required');
@@ -112,11 +112,14 @@ const publicationScript=readFileSync('scripts/check-published-head.sh','utf8');
 for(const asset of ['workbench/adc-course.html','workbench/ee-adc-course.css'])assert.ok(publicationScript.includes(asset),'ADC lesson published asset required: '+asset);
 assert.ok(pkg.scripts['test:ci'].includes('tests/adc-lessons-contracts.mjs'),'ADC source contract required');
 assert.ok(pkg.scripts['test:browser'].includes('tests/adc-lessons-smoke.mjs'),'ADC Chromium lesson regression required');
-for(const asset of ['workbench/buck-assessment.html','workbench/ee-buck-assessment.js','workbench/spi-assessment.html','workbench/ee-spi-assessment.js','workbench/adc-assessment.html','workbench/ee-adc-assessment.js','workbench/ee-opamp-assessment.css'])assert.ok(publicationScript.includes(asset),'ADC assessment asset required: '+asset);
+for(const asset of ['workbench/topology-assessment.html','workbench/ee-topology-assessment.js','workbench/buck-assessment.html','workbench/ee-buck-assessment.js','workbench/spi-assessment.html','workbench/ee-spi-assessment.js','workbench/adc-assessment.html','workbench/ee-adc-assessment.js','workbench/ee-opamp-assessment.css'])assert.ok(publicationScript.includes(asset),'ADC assessment asset required: '+asset);
 assert.ok(pkg.scripts['test:ci'].includes('tests/adc-formal-contracts.mjs'));
 assert.ok(pkg.scripts['test:browser'].includes('tests/adc-formal-smoke.mjs'));
 assert.ok(pkg.scripts['test:ci'].includes('tests/spi-formal-contracts.mjs'));
 assert.ok(pkg.scripts['test:ci'].includes('tests/buck-formal-contracts.mjs'));
+assert.ok(pkg.scripts['test:ci'].includes('tests/topology-formal-contracts.mjs'));
+assert.ok(pkg.scripts['test:browser'].includes('tests/topology-formal-smoke.mjs'));
+assert.ok(pkg.scripts['test:cross-browser'].includes('tests/topology-formal-smoke.mjs --cross-browser'));
 assert.ok(pkg.scripts['test:browser'].includes('tests/buck-formal-smoke.mjs'));
 assert.ok(pkg.scripts['test:browser'].includes('tests/spi-formal-smoke.mjs'));
 for(const asset of ['workbench/opamp-assessment.html','workbench/ee-opamp-assessment.js','workbench/ee-opamp-assessment.css','workbench/assets/learning/opamp-assessment.js'])assert.ok(publicationScript.includes(asset),'Missing formal assessment asset '+asset);
