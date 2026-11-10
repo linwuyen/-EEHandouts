@@ -1,7 +1,7 @@
 {
   "sourceRepository": "linwuyen/Circuit-Simulation",
   "sourceCommit": "11ef4e4801b5283f265dc349a4afec0027603228",
-  "scope": "Eight-step Buck, Buck/Boost CCM comparison, four topology applications and standalone ADC signal-chain calculator; not whole-project retirement; two stateless OP step/sine labs (no formal assessment); six static OP concept lessons (one documented bandwidth wording correction; no assessment); stateless three-case OP formative diagnosis (no certification); OP DC Level 0–5 trainer with guarded browser-local mastery, not official assessment; OP AMP Slew Rate first-attempt, transfer and 1/7/30/90-day review in existing V5 Evidence (not BOARD_PASS); C2000 ADC five-lesson read-only course referencing existing ADC calculator, with no old progress migration; ADC formal 3 question families (levels/codes, divider power, signed-current offset), source V5 first-attempt/transfer/retention; no alternative scoring store; SPI three-family first attempt/changed-condition transfer/1/7/30/90-day retention backed by existing V5 Evidence; not actual hardware validation or all remaining formal families",
+  "scope": "Eight-step Buck, Buck/Boost CCM comparison, four topology applications and standalone ADC signal-chain calculator; not whole-project retirement; two stateless OP step/sine labs (no formal assessment); six static OP concept lessons (one documented bandwidth wording correction; no assessment); stateless three-case OP formative diagnosis (no certification); OP DC Level 0–5 trainer with guarded browser-local mastery, not official assessment; OP AMP Slew Rate first-attempt, transfer and 1/7/30/90-day review in existing V5 Evidence (not BOARD_PASS); C2000 ADC five-lesson read-only course referencing existing ADC calculator, with no old progress migration; ADC formal 3 question families (levels/codes, divider power, signed-current offset), source V5 first-attempt/transfer/retention; no alternative scoring store; SPI three-family first attempt/changed-condition transfer/1/7/30/90-day retention backed by existing V5 Evidence; not actual hardware validation or all remaining formal families; Buck three-family formal first-attempt/transfer/1/7/30/90-day retention in existing V5 Evidence; no separate grade or BOARDS_PASS.",
   "files": [
     {
       "path": "assets/beginner-lessons.js",
@@ -494,6 +494,22 @@
       "sha256": "17c38b06a2c0b82b35e7de526e66bb23c0264465d1baffacd74567695a606d3a",
       "adapted": true,
       "adaptation": "EE-only SPI three-family V5 assessment UI; original quiz-bank, grading, retention and Evidence source libraries remain unchanged; no BOARD_PASS.; guarded E.load inside the same V5 Web Lock, flush outside lock, backup avoids source loading on foreign raw.; backups serialize source read under Web Lock and retain pending SPI draft during conflict."
+    },
+    {
+      "path": "buck-assessment.html",
+      "sourcePath": "quiz.html",
+      "sourceBlob": "61ad104246926cea2ea5b94ce9ded605c34340da",
+      "sha256": "1f673489eb1c38b77db8badaad8647217ef0f09dd34ee625d0cb7f73045b8dee",
+      "adapted": true,
+      "adaptation": "EE-only Buck three-family formal assessment UI; original QuizBank, Assessment and Evidence source owners unchanged. Guards cross-tab V5 raw/lock, failed writes and pending drafts; no hardware proof."
+    },
+    {
+      "path": "ee-buck-assessment.js",
+      "sourcePath": "quiz.html",
+      "sourceBlob": "61ad104246926cea2ea5b94ce9ded605c34340da",
+      "sha256": "f978de0d1015a9c2883ae0ec739ffa4fd3288cf6984ecad5df333417af80f26a",
+      "adapted": true,
+      "adaptation": "EE-only Buck three-family formal assessment UI; original QuizBank, Assessment and Evidence source owners unchanged. Guards cross-tab V5 raw/lock, failed writes and pending drafts; no hardware proof. If a concurrent Web Lock is held, the source export is skipped and retained raw+pending draft remains immediately downloadable."
     }
   ],
   "testFiles": [
