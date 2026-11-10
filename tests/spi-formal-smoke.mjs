@@ -116,8 +116,9 @@ for(const [name,engine] of Object.entries(process.argv.includes('--cross-browser
    await race.waitForTimeout(120);
    assert.equal(await race.evaluate(k=>localStorage.getItem(k),KEY),futureDuringLoad,'backup must not trigger auto-migration');
    await preflightRace.close();
-   // Held Web Lock: foreign tab wins; retained baseline backup remains reachable
-   // from the original Evidence conflict notice's permitted click surface.
+   // Held Web Lock: a foreign tab wins BEFORE the source V5 load/write.
+   // The new guard must stop safely without requiring an Evidence conflict notice.
+   // The ordinary backup button remains clickable and keeps both raw snapshots.
    // Missing storage event is not enough to allow a stale displayed baseline.
    // Make Evidence.load observe a competing valid V5 snapshot right after
    // this page has checked its old raw baseline, before it records the answer.
@@ -154,11 +155,41 @@ for(const [name,engine] of Object.entries(process.argv.includes('--cross-browser
    await b.evaluate(([k,v])=>localStorage.setItem(k,v),[KEY,winner]);
    await a.waitForFunction(()=>document.querySelector('#ee-spi-formal-root')?.dataset.state==='protected');
    await b.evaluate(()=>window.__releaseSPI());
-   await a.waitForFunction(()=>document.querySelector('#ee-spi-safe-backup')!==null);
-   const exportReq=a.waitForEvent('download');await a.locator('#ee-spi-safe-backup').click();
+   // A pre-load rejection has not queued a source write; no source conflict notice is expected.
+   assert.equal(await a.evaluate(()=>window.CircuitEvidence.storageStatus().saved),true);
+   const exportReq=a.waitForEvent('download');await a.locator('#ee-formal-backup').click();
    const safe=JSON.parse(readFileSync(await (await exportReq).path(),'utf8'));
    assert.equal(safe.baselineRaw,before);assert.equal(safe.currentRaw,winner);
    await otherCtx.close();
+   // Actual source-writer conflict is distinct: queue a real Evidence.save()
+   // while another tab holds the V5 key lock and then changes the stored raw.
+   // Only THIS scenario may require the permitted conflict-notice backup.
+   const sourceConflict=await browser.newContext({acceptDownloads:true});
+   const sourcePage=await sourceConflict.newPage(),sourceWriter=await sourceConflict.newPage();
+   await sourcePage.goto(PAGE);
+   await sourcePage.waitForFunction(()=>document.querySelector('#ee-spi-formal-root')?.dataset.state==='ready');
+   const sourceBaseline=await sourcePage.evaluate(k=>localStorage.getItem(k),KEY);
+   await sourceWriter.goto(BASE+'/workbench/opamp-course.html');
+   await sourceWriter.evaluate(k=>{navigator.locks.request(k,{mode:'exclusive'},()=>new Promise(resolve=>{window.__releaseSourceSPI=resolve;}));},KEY);
+   await sourceWriter.waitForFunction(()=>typeof window.__releaseSourceSPI==='function');
+   await sourcePage.evaluate(()=>{
+     const E=window.CircuitEvidence,state=E.load();
+     state.events.push({id:'spi-smoke-pending',type:'source-writer-pending',at:new Date().toISOString()});
+     E.save(state);
+   });
+   await sourcePage.waitForFunction(()=>window.CircuitEvidence.storageStatus().saved===false);
+   const sourceWinner=JSON.stringify({schema:'circuit-learning-state',version:999,questions:{},winner:'source-conflict'});
+   await sourceWriter.evaluate(([k,v])=>localStorage.setItem(k,v),[KEY,sourceWinner]);
+   await sourceWriter.evaluate(()=>window.__releaseSourceSPI());
+   await sourcePage.waitForFunction(()=>window.CircuitEvidence.storageStatus().reason==='conflict');
+   await sourcePage.waitForFunction(()=>document.querySelector('#ee-spi-safe-backup')!==null);
+   const sourceDownload=sourcePage.waitForEvent('download');
+   await sourcePage.locator('#ee-spi-safe-backup').click();
+   const sourceExport=JSON.parse(readFileSync(await (await sourceDownload).path(),'utf8'));
+   assert.equal(sourceExport.baselineRaw,sourceBaseline);
+   assert.equal(sourceExport.currentRaw,sourceWinner);
+   assert.equal(await sourcePage.evaluate(k=>localStorage.getItem(k),KEY),sourceWinner);
+   await sourceConflict.close();
    // Deterministic startup interleaving. Delay the source flush response, edit
    // valid V5 bytes during the await (same-tab injection deliberately avoids a
    // storage event), then verify the loaded stale question cannot be displayed.
