@@ -15,6 +15,31 @@ for(const [name,engine] of Object.entries(process.argv.includes('--cross-browser
   ctx.on('request',r=>{if(new URL(r.url()).origin!==new URL(BASE).origin)external.push(r.url());});
   const ready=()=>page.waitForFunction(()=>document.querySelector('#ee-spi-formal-root')?.dataset.state==='ready');
   const current=async()=>({family:await page.locator('#ee-formal-question').getAttribute('data-family'),role:await page.locator('#ee-formal-question').getAttribute('data-role'),variant:await page.locator('#ee-formal-question').getAttribute('data-variant')});
+  // Next now validates V5 under an async Web Lock. A click only triggers that
+  // operation; assert the actual destination state, not the pre-await DOM.
+  async function advance(family=null,role=null){
+    await page.locator('#ee-formal-next').click();
+    await page.waitForFunction(([expectedFamily,expectedRole])=>{
+      const root=document.querySelector('#ee-spi-formal-root');
+      const panel=document.querySelector('#ee-formal-question');
+      const feedback=document.querySelector('#ee-formal-feedback');
+      const next=document.querySelector('#ee-formal-next');
+      if(root?.dataset.state==='protected')return true;
+      if(root?.dataset.state!=='ready'||!panel||!feedback?.hidden||!next?.hidden)return false;
+      return expectedFamily===null?panel.hidden:
+        !panel.hidden&&panel.dataset.family===expectedFamily&&panel.dataset.role===expectedRole;
+    },[family,role],{timeout:15000});
+    assert.equal(await page.locator('#ee-spi-formal-root').getAttribute('data-state'),'ready',
+      'Next must not fail closed during normal saved V5 navigation');
+    if(family!==null){
+      const updated=await current();
+      assert.equal(updated.family,family);
+      assert.equal(updated.role,role);
+    }else{
+      assert.equal(await page.locator('#ee-formal-question').isVisible(),false,
+        'no question must appear before retention becomes due');
+    }
+  }
   async function answer(incorrect=false){
     const cur=await current();
     const option=await page.evaluate(({family,variant,incorrect})=>{
@@ -39,16 +64,14 @@ for(const [name,engine] of Object.entries(process.argv.includes('--cross-browser
    assert.equal(state.questions[FAMILIES[0]].history[0].confidence,null,'omitted confidence is not zero');
    await page.reload();await ready();
    assert.deepEqual(await current(),{family:FAMILIES[0],role:'transfer',variant:'B'});
-   await answer();await page.locator('#ee-formal-next').click();
-   assert.equal((await current()).family,FAMILIES[1]);
-   for(const family of FAMILIES.slice(1)){
+   await answer();await advance(FAMILIES[1],'baseline');
+   for(const [index,family] of FAMILIES.slice(1).entries()){
      assert.deepEqual(await current(),{family,role:'baseline',variant:'A'});
-     await answer();await page.locator('#ee-formal-next').click();
-     assert.equal((await current()).family,family);
-     assert.equal((await current()).role,'transfer');
-     await answer();await page.locator('#ee-formal-next').click();
+     await answer();await advance(family,'transfer');
+     await answer();
+     if(index<FAMILIES.length-2)await advance(FAMILIES[index+2],'baseline');
+     else await advance();
    }
-   assert.equal(await page.locator('#ee-formal-question').isVisible(),false,'not due must not repeat first attempts');
    state=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),KEY);
    for(const id of FAMILIES){
      assert.equal(state.questions[id].history.length,2,id+' history');
