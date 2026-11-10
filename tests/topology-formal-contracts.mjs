@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
+import {readFileSync} from 'node:fs';
 const require=createRequire(import.meta.url);
 const Q=require('../workbench/assets/learning/quiz-bank.js');
 const A=require('../workbench/assets/learning/learning-assessment.js');
@@ -10,6 +11,12 @@ const KEY=H.KEY;
 const gated=storage=>H.gate(storage,A,Q);
 const store=(data={})=>({getItem:k=>Object.hasOwn(data,k)?data[k]:null});
 const questions=H.familyModel(A,Q);
+test('topology HTML root must match controller boot selector',()=>{
+ const html=readFileSync('workbench/topology-assessment.html','utf8');
+ assert.match(html,/id="ee-topology-formal-root"/);
+ assert.match(html,/src="ee-topology-assessment\.js"/);
+ assert.doesNotMatch(html,/ee-buck-formal-root/);
+});
 test('four original source Topology question families, no grade copy',()=>{
  assert.deepEqual(Array.from(H.FAMILIES),['topology-pfc-scaling','topology-psfb-scaling','topology-llc-scaling','topology-inverter-scaling']);
  assert.equal(questions.length,16);
