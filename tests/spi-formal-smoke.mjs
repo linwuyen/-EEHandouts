@@ -170,17 +170,25 @@ for(const [name,engine] of Object.entries(process.argv.includes('--cross-browser
    await sourcePage.waitForFunction(()=>document.querySelector('#ee-spi-formal-root')?.dataset.state==='ready');
    const sourceBaseline=await sourcePage.evaluate(k=>localStorage.getItem(k),KEY);
    await sourceWriter.goto(BASE+'/workbench/opamp-course.html');
-   await sourceWriter.evaluate(k=>{navigator.locks.request(k,{mode:'exclusive'},()=>new Promise(resolve=>{window.__releaseSourceSPI=resolve;}));},KEY);
-   await sourceWriter.waitForFunction(()=>typeof window.__releaseSourceSPI==='function');
-   await sourcePage.evaluate(()=>{
-     const E=window.CircuitEvidence,state=E.load();
-     state.events.push({id:'spi-smoke-pending',type:'source-writer-pending',at:new Date().toISOString()});
-     E.save(state);
-   });
+   // Queue one key lock at the moment the REAL SPI grader produces an answer,
+   // ahead of Evidence.save()'s deferred writer. Do not create a fake unrelated
+   // source event: the exported pending draft must contain the SPI answer.
+   await sourcePage.evaluate(k=>{
+     const A=window.CircuitAssessment,original=A.recordAttempt;
+     A.recordAttempt=function(...args){
+       const entry=original.apply(this,args);
+       navigator.locks.request(k,{mode:'exclusive'},()=>new Promise(resolve=>{window.__releaseSourceSPI=resolve;}));
+       return entry;
+     };
+   },KEY);
+   await sourcePage.locator('input[name="ee-formal-choice"]').first().check();
+   await sourcePage.locator('#ee-formal-submit').click();
+   await sourcePage.waitForFunction(()=>typeof window.__releaseSourceSPI==='function');
    await sourcePage.waitForFunction(()=>window.CircuitEvidence.storageStatus().saved===false);
    const sourceWinner=JSON.stringify({schema:'circuit-learning-state',version:999,questions:{},winner:'source-conflict'});
    await sourceWriter.evaluate(([k,v])=>localStorage.setItem(k,v),[KEY,sourceWinner]);
-   await sourceWriter.evaluate(()=>window.__releaseSourceSPI());
+   await sourcePage.waitForFunction(()=>document.querySelector('#ee-spi-formal-root')?.dataset.state==='protected');
+   await sourcePage.evaluate(()=>window.__releaseSourceSPI());
    await sourcePage.waitForFunction(()=>window.CircuitEvidence.storageStatus().reason==='conflict');
    await sourcePage.waitForFunction(()=>document.querySelector('#ee-spi-safe-backup')!==null);
    const sourceDownload=sourcePage.waitForEvent('download');
@@ -188,6 +196,8 @@ for(const [name,engine] of Object.entries(process.argv.includes('--cross-browser
    const sourceExport=JSON.parse(readFileSync(await (await sourceDownload).path(),'utf8'));
    assert.equal(sourceExport.baselineRaw,sourceBaseline);
    assert.equal(sourceExport.currentRaw,sourceWinner);
+   assert.ok(sourceExport.pendingDraft?.questions?.[FAMILIES[0]]?.history?.length>=1,
+      'actual SPI submitted but uncommitted answer must remain exportable');
    assert.equal(await sourcePage.evaluate(k=>localStorage.getItem(k),KEY),sourceWinner);
    await sourceConflict.close();
    // Deterministic startup interleaving. Delay the source flush response, edit
