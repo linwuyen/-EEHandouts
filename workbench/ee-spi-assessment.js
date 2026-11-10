@@ -123,7 +123,7 @@ function boot(win){
   const doc=win.document,root=doc.getElementById('ee-spi-formal-root');if(!root)return;
   const $=id=>doc.getElementById(id),panel=$('ee-formal-question'),status=$('ee-formal-status'),prompt=$('ee-formal-prompt'),choices=$('ee-formal-choices'),submit=$('ee-formal-submit'),next=$('ee-formal-next'),feedback=$('ee-formal-feedback'),summary=$('ee-formal-summary'),backup=$('ee-formal-backup'),confidence=$('ee-formal-confidence');
   const A=win.CircuitAssessment,E=win.CircuitEvidence,bank=win.CircuitQuizBank;
-  let storage=null,initialRaw=null,baselineRaw=null,variants=[],current=null,busy=false,blocked=false,startedAt=0,canExportDraft=false;
+  let storage=null,initialRaw=null,baselineRaw=null,variants=[],current=null,busy=false,blocked=false,startedAt=0,canExportDraft=false,pendingDraft=null;
   try{storage=win.localStorage;}catch(_){}
   function readRaw(){try{return storage?.getItem(KEY)??null;}catch(_){return null;}}
   function download(payload){
@@ -131,16 +131,26 @@ function boot(win){
     const link=doc.createElement('a');link.download='eehandouts-spi-formal-v5-backup.json';link.href=url;link.click();
     win.setTimeout(()=>win.URL.revokeObjectURL(url),1000);
   }
-  function exportBackup(){
+  async function exportBackup(){
     let evidence=null;
-    // Exporting a draft calls Evidence.load(); never invoke it against a
-    // foreign/unsupported raw record, or its migration could overwrite it.
+    // Evidence.exportBackup itself calls E.load. Guard the validation and
+    // synchronous source export under the same V5 Web Lock as source writes.
+    // Never await E.flush() inside this lock: the original writer needs it.
     try{
-      const check=gate(storage,A,bank);
-      if(E&&canExportDraft&&check.ok&&check.raw===baselineRaw)
-        evidence=JSON.parse(E.exportBackup());
+      if(E&&canExportDraft&&typeof win.navigator?.locks?.request==='function'){
+        const raw=await win.navigator.locks.request(KEY,{mode:'exclusive'},()=>{
+          const before=gate(storage,A,bank);
+          if(!before.ok||before.raw!==baselineRaw)return null;
+          const exported=E.exportBackup();
+          const after=gate(storage,A,bank);
+          return after.ok&&after.raw===baselineRaw?exported:null;
+        });
+        if(raw!==null)evidence=JSON.parse(raw);
+      }
     }catch(_){}
-    download({format:'eehandouts-spi-formal-backup-v1',key:KEY,families:FAMILIES,initialRaw,baselineRaw,currentRaw:readRaw(),evidence,reason:blocked?status.textContent:null});
+    // This read-only snapshot keeps our unsaved answer recoverable if the
+    // competing tab replaces V5 with a schema the source must not load.
+    download({format:'eehandouts-spi-formal-backup-v1',key:KEY,families:FAMILIES,initialRaw,baselineRaw,currentRaw:readRaw(),evidence,pendingDraft,reason:blocked?status.textContent:null});
   }
   backup.addEventListener('click',exportBackup);
   // Source Evidence stops outside click events in conflict mode. This is its permitted surface.
@@ -215,11 +225,12 @@ function boot(win){
         throw Error('V5 source snapshot changed before answering');
       // Do not turn an omitted confidence into 0%: the original owner maps null to 0.
       const entry=A.recordAttempt(state,q,opt,{at:new Date().toISOString(),elapsedMs:Math.max(0,Date.now()-startedAt),confidence:confidence.value===''?undefined:Number(confidence.value)});
+      pendingDraft=JSON.parse(JSON.stringify(state));
       E.save(state);const ack=await E.flush();if(!ack.saved)throw Error(ack.reason||'write failed');
       const written=gate(storage,A,bank),history=written.ok?JSON.parse(written.raw).questions?.[q.familyId]?.history:[];
       if(!written.ok||!history?.some(x=>x.id===entry.id))throw Error('readback mismatch');
       if(blocked)throw Error('stale conflict');
-      baselineRaw=written.raw;status.textContent='SPI 本題首次結果已安全保存於正式 V5（非硬體認證）。';
+      baselineRaw=written.raw;pendingDraft=null;status.textContent='SPI 本題首次結果已安全保存於正式 V5（非硬體認證）。';
       feedback.textContent=(entry.correct?'本題正確。':'本題錯誤。')+' '+(opt.feedback||'')+' 首答歷史不會因重做而覆寫。';
       feedback.hidden=false;next.hidden=false;next.disabled=false;choices.inert=true;panel.inert=false;
     }catch(e){lock(e.message||'save failed');}finally{busy=false;}
