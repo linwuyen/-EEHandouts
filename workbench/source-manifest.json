@@ -510,6 +510,22 @@
       "sha256": "f978de0d1015a9c2883ae0ec739ffa4fd3288cf6984ecad5df333417af80f26a",
       "adapted": true,
       "adaptation": "EE-only Buck three-family formal assessment UI; original QuizBank, Assessment and Evidence source owners unchanged. Guards cross-tab V5 raw/lock, failed writes and pending drafts; no hardware proof. If a concurrent Web Lock is held, the source export is skipped and retained raw+pending draft remains immediately downloadable."
+    },
+    {
+      "path": "topology-assessment.html",
+      "sourcePath": "quiz.html",
+      "sourceBlob": "61ad104246926cea2ea5b94ce9ded605c34340da",
+      "sha256": "8c1dbc7c79d25ee3f0e68bc7f387d05d450a947f6c7524189723f121d6049f66",
+      "adapted": true,
+      "adaptation": "EE-only PFC/PSFB/LLC/inverter four-family formal assessment view; uses original QuizBank, Assessment and V5 Evidence owners. Raw records and pending drafts remain exportable under held Web Locks; no hardware claims."
+    },
+    {
+      "path": "ee-topology-assessment.js",
+      "sourcePath": "quiz.html",
+      "sourceBlob": "61ad104246926cea2ea5b94ce9ded605c34340da",
+      "sha256": "92c3d48f5bf6817fa7363eacee89dc61f600c792fda0cf7786398b0ae03dfce6",
+      "adapted": true,
+      "adaptation": "EE-only UI adapter for the original four source topology families; source grading, transfer and 1/7/30/90 retention preserved; no independent store or safety certification."
     }
   ],
   "testFiles": [

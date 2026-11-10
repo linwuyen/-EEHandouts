@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 import {readFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
 const require=createRequire(import.meta.url);
 const Q=require('../workbench/assets/learning/quiz-bank.js');
 const A=require('../workbench/assets/learning/learning-assessment.js');
@@ -11,6 +12,25 @@ const KEY=H.KEY;
 const gated=storage=>H.gate(storage,A,Q);
 const store=(data={})=>({getItem:k=>Object.hasOwn(data,k)?data[k]:null});
 const questions=H.familyModel(A,Q);
+test('source manifest pins the 6b-4 HTML and JS, failing closed on missing or stale provenance',()=>{
+ const manifest=JSON.parse(readFileSync('workbench/source-manifest.json','utf8'));
+ const expected={
+  'topology-assessment.html':'8c1dbc7c79d25ee3f0e68bc7f387d05d450a947f6c7524189723f121d6049f66',
+  'ee-topology-assessment.js':'92c3d48f5bf6817fa7363eacee89dc61f600c792fda0cf7786398b0ae03dfce6'
+ };
+ for(const [path,sha256] of Object.entries(expected)){
+  const matching=manifest.files.filter(row=>row.path===path);
+  assert.equal(matching.length,1,'must have a unique provenance row: '+path);
+  const row=matching[0];
+  assert.equal(row.sourcePath,'quiz.html');
+  assert.equal(row.sourceBlob,'61ad104246926cea2ea5b94ce9ded605c34340da');
+  assert.equal(row.adapted,true);
+  assert.equal(row.sha256,sha256,'missing pinned adapted sha256: '+path);
+  const actual=createHash('sha256').update(readFileSync('workbench/'+path)).digest('hex');
+  assert.equal(actual,sha256,'migrated file drift: '+path);
+ }
+});
+
 test('topology HTML root must match controller boot selector',()=>{
  const html=readFileSync('workbench/topology-assessment.html','utf8');
  assert.match(html,/id="ee-topology-formal-root"/);
