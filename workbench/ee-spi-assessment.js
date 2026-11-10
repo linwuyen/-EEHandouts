@@ -78,6 +78,24 @@ function snapshotMatches(raw,state){
 function startupConsistent(beforeRaw,loadedState,afterRaw){
   return afterRaw===(beforeRaw===null?JSON.stringify(loadedState):beforeRaw);
 }
+// Evidence.load() may auto-migrate unsupported V5 and queue an overwrite.
+// Serialize the raw preflight AND synchronous source load under the SAME
+// storage-key Web Lock as Evidence.commitPending. Do NOT await E.flush() here:
+// its queued commit needs this lock after our callback returns.
+async function checkedLoad(win,storage,assessment,bank,owner,expectedRaw){
+  if(typeof win.navigator?.locks?.request!=='function')throw Error('V5 Web Lock unavailable');
+  return win.navigator.locks.request(KEY,{mode:'exclusive'},()=>{
+    const before=gate(storage,assessment,bank);
+    if(!before.ok||before.raw!==expectedRaw)
+      throw Error('V5 changed before source load: '+(before.reason||'conflict'));
+    const state=owner.load();
+    const after=gate(storage,assessment,bank);
+    if(!after.ok||after.raw!==expectedRaw||
+       (expectedRaw!==null&&!snapshotMatches(expectedRaw,state)))
+      throw Error('V5 changed while source loading: '+(after.reason||'conflict'));
+    return state;
+  });
+}
 function familyModel(assessment,bank){
   if(typeof assessment?.expandQuestions!=='function'||!Array.isArray(bank?.questions))throw Error('assessment source missing');
   const items=[];
@@ -114,7 +132,14 @@ function boot(win){
     win.setTimeout(()=>win.URL.revokeObjectURL(url),1000);
   }
   function exportBackup(){
-    let evidence=null;try{if(E&&canExportDraft)evidence=JSON.parse(E.exportBackup());}catch(_){}
+    let evidence=null;
+    // Exporting a draft calls Evidence.load(); never invoke it against a
+    // foreign/unsupported raw record, or its migration could overwrite it.
+    try{
+      const check=gate(storage,A,bank);
+      if(E&&canExportDraft&&check.ok&&check.raw===baselineRaw)
+        evidence=JSON.parse(E.exportBackup());
+    }catch(_){}
     download({format:'eehandouts-spi-formal-backup-v1',key:KEY,families:FAMILIES,initialRaw,baselineRaw,currentRaw:readRaw(),evidence,reason:blocked?status.textContent:null});
   }
   backup.addEventListener('click',exportBackup);
@@ -162,7 +187,8 @@ function boot(win){
   async function start(){
     try{
       const expectedBefore=preflight.raw;
-      const state=E.load(),ack=await E.flush();if(!ack.saved)throw Error(ack.reason||'initial V5 pending');
+      const state=await checkedLoad(win,storage,A,bank,E,expectedBefore);
+      const ack=await E.flush();if(!ack.saved)throw Error(ack.reason||'initial V5 pending');
       const fresh=gate(storage,A,bank);if(blocked||!fresh.ok)throw Error(fresh.reason||'V5 conflict');
       // A fresh empty V5 is initialized by the source Evidence owner; existing
       // records must not change during awaited flush or we'd render a stale quiz.
@@ -181,8 +207,8 @@ function boot(win){
       const previous=await E.flush();if(!previous.saved)throw Error(previous.reason||'previous save pending');
       const again=gate(storage,A,bank);
       if(blocked||!again.ok||again.raw!==baselineRaw)throw Error('V5 changed during previous flush');
-      const state=E.load();
-      // E.load() itself may observe a different cross-tab V5 snapshot. The
+      const state=await checkedLoad(win,storage,A,bank,E,baselineRaw);
+      // The source's Web Lock protects its loaded state, not the displayed q; the
       // source owner's Web Lock protects its *loaded* state, not this displayed q.
       const loaded=gate(storage,A,bank);
       if(blocked||!loaded.ok||loaded.raw!==baselineRaw||!snapshotMatches(baselineRaw,state))
@@ -198,11 +224,20 @@ function boot(win){
       feedback.hidden=false;next.hidden=false;next.disabled=false;choices.inert=true;panel.inert=false;
     }catch(e){lock(e.message||'save failed');}finally{busy=false;}
   });
-  next.addEventListener('click',()=>{
+  next.addEventListener('click',async()=>{
     if(blocked||busy)return;
-    try{if(!E.storageStatus().saved)throw Error('unsaved V5');const fresh=gate(storage,A,bank);if(!fresh.ok||fresh.raw!==baselineRaw)throw Error('V5 changed before next');show(E.load());}catch(e){lock(e.message);}
+    busy=true;next.disabled=true;
+    try{
+      if(!E.storageStatus().saved)throw Error('unsaved V5');
+      const fresh=gate(storage,A,bank);
+      if(!fresh.ok||fresh.raw!==baselineRaw)throw Error('V5 changed before next');
+      const state=await checkedLoad(win,storage,A,bank,E,baselineRaw);
+      const after=gate(storage,A,bank);
+      if(blocked||!after.ok||after.raw!==baselineRaw)throw Error('V5 changed during next');
+      show(state);
+    }catch(e){lock(e.message||'next failed');}finally{busy=false;}
   });
   start();
 }
-return {KEY,FAMILIES,gate,snapshotMatches,startupConsistent,familyModel,projection,boot};
+return {KEY,FAMILIES,gate,snapshotMatches,startupConsistent,checkedLoad,familyModel,projection,boot};
 });

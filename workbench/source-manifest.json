@@ -491,9 +491,9 @@
       "path": "ee-spi-assessment.js",
       "sourcePath": "quiz.html",
       "sourceBlob": "61ad104246926cea2ea5b94ce9ded605c34340da",
-      "sha256": "ad749f35a4e9a7c9375d98b0d06bc0bdf18b505470bfb5ec64091306b215b083",
+      "sha256": "9fd4227d35b1ee324d322a10f3876482f7552595e9610e251b14028610af1a31",
       "adapted": true,
-      "adaptation": "EE-only SPI three-family V5 assessment UI; original quiz-bank, grading, retention and Evidence source libraries remain unchanged; no BOARD_PASS."
+      "adaptation": "EE-only SPI three-family V5 assessment UI; original quiz-bank, grading, retention and Evidence source libraries remain unchanged; no BOARD_PASS.; guarded E.load inside the same V5 Web Lock, flush outside lock, backup avoids source loading on foreign raw."
     }
   ],
   "testFiles": [

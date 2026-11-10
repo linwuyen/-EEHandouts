@@ -78,6 +78,25 @@ test('original option outcome / choice ID and future-dated retention cannot impe
  A.recordAttempt(state,retention,retention.options.find(o=>o.correct),{at:due});
  assert.equal(gated(store({[KEY]:JSON.stringify(state)})).ok,false,'future review must not be counted as due or retained');
 });
+test('storage-key Web Lock gates source loading before any auto-migration can overwrite a new schema',async()=>{
+ const baseline=JSON.stringify(E.emptyState()),future=JSON.stringify({schema:'circuit-learning-state',version:999,questions:{},keep:'future-raw'});
+ const data={[KEY]:baseline};let loaded=0,locks=0;
+ const source={load(){loaded++;return E.emptyState();},flush(){throw Error('must never flush inside held lock');}};
+ const win={navigator:{locks:{request:async(key,options,callback)=>{
+  assert.equal(key,KEY);assert.equal(options.mode,'exclusive');locks++;
+  data[KEY]=future;return callback();
+ }}}};
+ await assert.rejects(H.checkedLoad(win,store(data),A,Q,source,baseline),/V5 changed/);
+ assert.equal(loaded,0,'source load must not normalize or queue a write after competitor sets future V5');
+ assert.equal(data[KEY],future,'other tab raw is byte-identical after rejection');assert.equal(locks,1);
+ const stable={[KEY]:baseline};
+ const safe={load(){loaded++;return JSON.parse(stable[KEY]);},flush(){throw Error('flush cannot run under lock');}};
+ const passWin={navigator:{locks:{request:async(key,opts,callback)=>{
+  assert.equal(key,KEY);return callback();
+ }}}};
+ assert.deepEqual(await H.checkedLoad(passWin,store(stable),A,Q,safe,baseline),JSON.parse(baseline));
+ assert.equal(loaded,1,'valid source load executes exactly once');
+});
 test('loaded source snapshot must match the preflight raw exactly',()=>{
  const state=E.emptyState(),raw=JSON.stringify(state);
  assert.equal(H.snapshotMatches(raw,state),true);

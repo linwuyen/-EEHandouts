@@ -87,6 +87,35 @@ for(const [name,engine] of Object.entries(process.argv.includes('--cross-browser
    await fp.waitForFunction(()=>document.querySelector('#ee-spi-formal-root')?.dataset.state==='protected');
    assert.equal(await fp.evaluate(k=>localStorage.getItem(k),KEY),raw);
    assert.equal(await fp.locator('#ee-formal-submit').isEnabled(),false);await future.close();
+   // Explicit P2 negative control: replace an empty/valid V5 with a future
+   // schema in the narrow interval between the entry's raw preflight and the
+   // original Evidence.load() call. Source load must NOT be invoked on it,
+   // since source migration would queue an empty V5 overwrite.
+   const preflightRace=await browser.newContext({acceptDownloads:true}),race=await preflightRace.newPage();
+   const futureDuringLoad=JSON.stringify({schema:'circuit-learning-state',version:999,questions:{},competitor:'retain exact bytes'});
+   await race.addInitScript(({key,foreign})=>{
+     const originalGet=Storage.prototype.getItem,originalSet=Storage.prototype.setItem;
+     let keyReads=0;
+     Storage.prototype.getItem=function(name){
+       const value=originalGet.call(this,name);
+       if(name===key&&location.pathname.endsWith('/spi-assessment.html')){
+         keyReads++;
+         if(keyReads===2){originalSet.call(this,name,foreign);window.__foreignInjectedBeforeLoad=true;}
+       }
+       return value;
+     };
+   },{key:KEY,foreign:futureDuringLoad});
+   await race.goto(PAGE);
+   await race.waitForFunction(()=>document.querySelector('#ee-spi-formal-root')?.dataset.state==='protected');
+   assert.equal(await race.evaluate(()=>window.__foreignInjectedBeforeLoad),true,'negative test must actually intercept preflight');
+   await race.waitForTimeout(200);
+   assert.equal(await race.evaluate(k=>localStorage.getItem(k),KEY),futureDuringLoad,'Evidence migration cannot overwrite foreign schema before protection');
+   const raceExport=race.waitForEvent('download');await race.locator('#ee-formal-backup').click();
+   const rawExport=JSON.parse(readFileSync(await (await raceExport).path(),'utf8'));
+   assert.equal(rawExport.currentRaw,futureDuringLoad,'retained raw must remain exportable without invoking unsafe source load');
+   await race.waitForTimeout(120);
+   assert.equal(await race.evaluate(k=>localStorage.getItem(k),KEY),futureDuringLoad,'backup must not trigger auto-migration');
+   await preflightRace.close();
    // Held Web Lock: foreign tab wins; retained baseline backup remains reachable
    // from the original Evidence conflict notice's permitted click surface.
    // Missing storage event is not enough to allow a stale displayed baseline.
