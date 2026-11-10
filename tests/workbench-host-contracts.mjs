@@ -49,6 +49,12 @@ f=fixture();f.host.markReady();f.host.setNavigationGuard(()=>false);assert.equal
 for(const target of ['adc.html?from=https://attacker.invalid','adc.html#untrusted']){f=fixture();assert.equal(await f.host.leave(target),false);}
 f=fixture();assert.equal(f.host.referenceHref('quiz.html?module=adc'),'adc-assessment.html');
 f=fixture();assert.equal(f.host.referenceHref('quiz.html?module=spi'),'spi-assessment.html');
+f=fixture();assert.equal(f.host.referenceHref('quiz.html?module=buck'),'buck-assessment.html');
+for(const src of ['quiz.html?module=buck#passed','quiz.html?module=buck&score=100','quiz.html?module=bucks']){f=fixture();assert.equal(f.host.referenceHref(src),'coverage.html');}
+for(const dest of ['buck-assessment.html?grade=pass','buck-assessment.html#passed']){f=fixture();assert.equal(await f.host.leave(dest),false);}
+for(const reason of ['pending','conflict','quota']){f=fixture();f.host.markReady();f.ctx.CircuitEvidence.flush=async()=>({saved:false,reason});assert.equal(await f.host.leave('buck-assessment.html'),false);assert.equal(f.nav.length,0);}
+f=fixture();f.host.markReady();assert.equal(await f.host.leave('buck-assessment.html'),true);assert.match(f.nav[0],/buck-assessment\.html$/);
+
 for(const src of ['quiz.html?module=spi#passed','quiz.html?module=spi&score=100','quiz.html?module=spix']){f=fixture();assert.equal(f.host.referenceHref(src),'coverage.html');}
 for(const dest of ['spi-assessment.html?grade=pass','spi-assessment.html#passed']){f=fixture();assert.equal(await f.host.leave(dest),false);}
 for(const reason of ['pending','conflict','quota']){f=fixture();f.host.markReady();f.ctx.CircuitEvidence.flush=async()=>({saved:false,reason});assert.equal(await f.host.leave('spi-assessment.html'),false);assert.equal(f.nav.length,0);}
