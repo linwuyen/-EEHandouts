@@ -24,13 +24,13 @@ const catalog = Object.freeze({
 });
 const FAMILIES = Object.freeze(Object.keys(catalog));
 const prerequisiteLinks = {
-  'adc.divider.power': ['ADC 分壓與功率', 'adc-assessment.html'],
+  'adc.divider.power': ['ADC 分壓與功率', 'adc-assessment.html?family=adc-divider-power'],
   'afe.phase.power': ['AFE 位移功率因數', 'v8-assessment.html?module=afe'],
-  'buck.model.validity': ['Buck 理想模型適用條件', 'buck-assessment.html'],
-  'adc.quantization.levels': ['ADC 量化階數', 'adc-assessment.html'],
-  'adc.current.offset': ['ADC 電流量測偏移', 'adc-assessment.html'],
-  'spi.throughput.clock': ['SPI 時脈與傳輸時間', 'spi-assessment.html'],
-  'spi.mode.cpol-cpha': ['SPI 時脈極性與相位', 'spi-assessment.html'],
+  'buck.model.validity': ['Buck 理想模型適用條件', 'buck-assessment.html?family=buck-model-validity'],
+  'adc.quantization.levels': ['ADC 量化階數', 'adc-assessment.html?family=adc-levels-vs-codes'],
+  'adc.current.offset': ['ADC 電流量測偏移', 'adc-assessment.html?family=adc-offset-purpose'],
+  'spi.throughput.clock': ['SPI 時脈與傳輸時間', 'spi-assessment.html?family=spi-clock-throughput'],
+  'spi.mode.cpol-cpha': ['SPI 時脈極性與相位', 'spi-assessment.html?family=spi-cpol-cpha'],
 };
 // Source options can round to the same number. Show the calculation alongside the
 // value so the learner can distinguish methods while the source grades the same ID.
@@ -42,6 +42,20 @@ const calculationMethods = {
 function optionText(question, option) {
   const method = question.assessmentRole !== 'baseline' && calculationMethods[question.familyId]?.[option.id];
   return method ? `${option.text}（${method}）` : option.text;
+}
+function displayOptions(question) {
+  const options = question.options;
+  if (question.assessmentRole === 'baseline') {
+    // Original baselines put the answer first. The source seed gives each family a stable order.
+    const offset = question.seed % options.length;
+    return options.slice(offset).concat(options.slice(0, offset));
+  }
+  if (question.familyId === 'foc-park-frame') {
+    // At 45° swapping d and q gives the same numeric answer. Offer it once, under the credited ID.
+    const correct = options.find(option => option.correct);
+    return options.filter(option => option.correct || option.text !== correct.text);
+  }
+  return options;
 }
 function familiesForLocation(href) {
   const suffix = new URL(href).href.match(/[?#].*$/)?.[0] || '';
@@ -158,12 +172,23 @@ function boot(win){
   const $=id=>doc.getElementById(id),panel=$('ee-formal-question'),status=$('ee-formal-status'),prompt=$('ee-formal-prompt'),choices=$('ee-formal-choices'),submit=$('ee-formal-submit'),next=$('ee-formal-next'),feedback=$('ee-formal-feedback'),summary=$('ee-formal-summary'),backup=$('ee-formal-backup'),confidence=$('ee-formal-confidence');
   const A=win.CircuitAssessment,E=win.CircuitEvidence,bank=win.CircuitQuizBank,V8=win.CircuitAssessmentV8;
   let storage=null,initialRaw=null,baselineRaw=null,variants=[],current=null,busy=false,blocked=false,startedAt=0,canExportDraft=false,pendingDraft=null;
+  let waitingState=null,reviewTimer=null;
   try{storage=win.localStorage;}catch(_){}
   function readRaw(){try{return storage?.getItem(KEY)??null;}catch(_){return null;}}
   function download(payload){
     const url=win.URL.createObjectURL(new win.Blob([JSON.stringify(payload,null,2)],{type:'application/json'}));
     const link=doc.createElement('a');link.download='eehandouts-v8-formal-formal-v5-backup.json';link.href=url;link.click();
     win.setTimeout(()=>win.URL.revokeObjectURL(url),1000);
+  }
+  function readUnsubmittedAnswer(){
+    if(!current||!feedback.hidden)return null;
+    const choice=choices.querySelector('input:checked');
+    if(!choice&&confidence.value==='')return null;
+    return {
+      status:'unsubmitted',familyId:current.familyId,questionId:current.id,
+      variantId:current.variantId,assessmentRole:current.assessmentRole,seed:current.seed,
+      choiceId:choice?.value??null,confidence:confidence.value===''?null:Number(confidence.value)
+    };
   }
   async function exportBackup(){
     let evidence=null;
@@ -187,7 +212,7 @@ function boot(win){
     }catch(_){}
     // This read-only snapshot keeps our unsaved answer recoverable if the
     // competing tab replaces V5 with a schema the source must not load.
-    download({format:'eehandouts-v8-formal-formal-backup-v1',key:KEY,families:FAMILIES,initialRaw,baselineRaw,currentRaw:readRaw(),evidence,pendingDraft,reason:blocked?status.textContent:null});
+    download({format:'eehandouts-v8-formal-formal-backup-v1',key:KEY,families:FAMILIES,initialRaw,baselineRaw,currentRaw:readRaw(),evidence,pendingDraft,unsubmittedAnswer:readUnsubmittedAnswer(),reason:blocked?status.textContent:null});
   }
   backup.addEventListener('click',exportBackup);
   // Source Evidence stops outside click events in conflict mode. This is its permitted surface.
@@ -199,6 +224,7 @@ function boot(win){
   const observer=new win.MutationObserver(installSafeBackup);observer.observe(doc.body,{childList:true,subtree:true});installSafeBackup();
   function lock(reason){
     if(blocked)return;blocked=true;root.dataset.state='protected';panel.inert=true;submit.disabled=true;next.disabled=true;
+    win.clearTimeout(reviewTimer);waitingState=null;
     status.textContent='紀錄未安全保存，V8 控制與安全 正式題已停止：'+reason+'。請下載保留的原始紀錄與草稿；未認定通過。';
     installSafeBackup();
   }
@@ -215,8 +241,24 @@ function boot(win){
     const fresh=gate(storage,A,bank,V8);if(!fresh.ok||fresh.raw!==baselineRaw)lock('another tab changed V5 history');
   });
   win.addEventListener('beforeunload',event=>{if(!busy)return;event.preventDefault();event.returnValue='';});
+  function refreshWaiting(){
+    if(blocked||busy||!waitingState)return;
+    if(readRaw()!==baselineRaw){lock('V5 changed while waiting for review');return;}
+    show(waitingState);
+  }
+  win.addEventListener('focus',refreshWaiting);
+  win.addEventListener('pageshow',refreshWaiting);
+  doc.addEventListener('visibilitychange',()=>{if(!doc.hidden)refreshWaiting();});
+  const reviewDate=new Intl.DateTimeFormat('zh-TW',{dateStyle:'short',timeStyle:'medium',hour12:false});
+  function updateSummary(rows){
+    summary.textContent=rows.map(({id,metrics})=>{
+      const due=metrics.nextReviewAt?'（下次 '+reviewDate.format(new Date(metrics.nextReviewAt))+'）':'';
+      return catalog[id].label+': '+metrics.attempts+' 筆／遷移 '+(metrics.transfer?'PASS':'未過')+'／複習 '+metrics.retentionStage+'/4'+due;
+    }).join('；');
+  }
   function show(state){
     if(blocked)return;
+    win.clearTimeout(reviewTimer);waitingState=null;
     const view=projection(A,variants,state,Date.now(),visibleFamilies);
     const active=view.next || (visibleFamilies.length===1 ? variants.find(q=>q.familyId===visibleFamilies[0]) : null);
     const prerequisites=$('ee-formal-prerequisites');
@@ -229,20 +271,27 @@ function boot(win){
         prerequisites.append(prerequisites.childElementCount?'、':'建議先複習：',link);
       }
     }
-    summary.textContent=view.rows.map(row=>catalog[row.id].label+': '+row.metrics.attempts+' 筆／遷移 '+(row.metrics.transfer?'PASS':'未過')+'／複習 '+row.metrics.retentionStage+'/4'+(row.metrics.nextReviewAt?'（下次 '+new Date(row.metrics.nextReviewAt).toLocaleDateString('zh-TW')+'）':'')).join('；');
+    updateSummary(view.rows);
     current=view.next;feedback.hidden=true;next.hidden=true;
     if(!current){
+      const dueTimes=view.rows.filter(row=>row.metrics.nextReviewAt).map(row=>Date.parse(row.metrics.nextReviewAt));
+      if(dueTimes.length){
+        waitingState=state;
+        // The browser timer limit is shorter than the 30- and 90-day intervals.
+        const delay=Math.min(2147483647,Math.max(0,Math.min(...dueTimes)-Date.now()));
+        reviewTimer=win.setTimeout(refreshWaiting,delay);
+      }
       panel.hidden=true;status.textContent=view.rows.every(row=>row.metrics.fullyRetained)?'所選題族已完成四階段到期複習。':'目前沒有到期題目；待指定的複習日期再回來。';root.dataset.state='ready';return;
     }
     panel.hidden=false;panel.inert=false;choices.inert=false;choices.replaceChildren();
     panel.dataset.role=current.assessmentRole;panel.dataset.variant=current.variantId;panel.dataset.family=current.familyId;
     prompt.textContent=catalog[current.familyId].label+'｜'+current.prompt;
-    for(const opt of current.options){
+    for(const opt of displayOptions(current)){
       const label=doc.createElement('label'),input=doc.createElement('input'),span=doc.createElement('span');
       input.type='radio';input.name='ee-formal-choice';input.value=opt.id;span.textContent=optionText(current,opt);
       label.append(input,span);choices.append(label);
     }
-    confidence.value='';submit.disabled=false;startedAt=Date.now();root.dataset.state='ready';
+    confidence.value='';confidence.disabled=false;submit.disabled=false;startedAt=Date.now();root.dataset.state='ready';
     status.textContent=current.assessmentRole==='baseline'?'首次作答將永久記錄。':current.assessmentRole==='transfer'?'遷移題：條件變更後重新作答。':'已到期：此題使用原始複習排程。';
   }
   async function start(){
@@ -278,12 +327,18 @@ function boot(win){
       const entry=A.recordAttempt(state,q,opt,{at:new Date().toISOString(),elapsedMs:Math.max(0,Date.now()-startedAt),confidence:confidence.value===''?undefined:Number(confidence.value)});
       pendingDraft=JSON.parse(JSON.stringify(state));
       E.save(state);const ack=await E.flush();if(!ack.saved)throw Error(ack.reason||'write failed');
-      const written=gate(storage,A,bank,V8),history=written.ok?JSON.parse(written.raw).questions?.[q.familyId]?.history:[];
+      const written=gate(storage,A,bank,V8);
+      const persisted=written.ok&&written.raw?JSON.parse(written.raw):null;
+      const history=persisted?.questions?.[q.familyId]?.history;
       if(!written.ok||!history?.some(x=>x.id===entry.id))throw Error('readback mismatch');
       if(blocked)throw Error('stale conflict');
       baselineRaw=written.raw;pendingDraft=null;status.textContent='V8 控制與安全 本題首次結果已安全保存於正式 V5（非硬體認證）。';
-      feedback.textContent=(entry.correct?'本題正確。':'本題錯誤。')+' '+(opt.feedback||'')+' 首答歷史不會因重做而覆寫。';
-      feedback.hidden=false;next.hidden=false;next.disabled=false;choices.inert=true;panel.inert=false;
+      updateSummary(projection(A,variants,persisted,Date.now(),visibleFamilies).rows);
+      const misconception=!entry.correct&&opt.misconception?'作答盲點：'+opt.misconception+'。 ':'';
+      const correctOption=q.options.find(option=>option.correct);
+      const explanation=entry.correct?'本題正確。 ':'本題錯誤。 '+misconception+'正解為「'+optionText(q,correctOption)+'」。 ';
+      feedback.textContent=explanation+(correctOption.feedback||'')+' 首答歷史不會因重做而覆寫。';
+      feedback.hidden=false;next.hidden=false;next.disabled=false;choices.inert=true;confidence.disabled=true;panel.inert=false;
     }catch(e){lock(e.message||'save failed');}finally{busy=false;}
   });
   next.addEventListener('click',async()=>{
@@ -301,5 +356,5 @@ function boot(win){
   });
   start();
 }
-return {KEY,FAMILIES,optionText,gate,snapshotMatches,startupConsistent,checkedLoad,familyModel,projection,boot};
+return {KEY,FAMILIES,optionText,displayOptions,gate,snapshotMatches,startupConsistent,checkedLoad,familyModel,projection,boot};
 });

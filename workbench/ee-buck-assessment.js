@@ -109,8 +109,8 @@ function familyModel(assessment,bank){
   }
   return items;
 }
-function projection(assessment,variants,state,nowMs){
-  const rows=FAMILIES.map(id=>{
+function projection(assessment,variants,state,nowMs,families=FAMILIES){
+  const rows=families.map(id=>{
     const answer=state?.questions?.[id]||null;
     const items=variants.filter(q=>q.familyId===id);
     return {id,metrics:assessment.metrics(answer,nowMs),next:assessment.nextQuestion(items,answer,nowMs),history:answer?.history||[]};
@@ -168,7 +168,11 @@ function boot(win){
     status.textContent='紀錄未安全保存，Buck 正式題已停止：'+reason+'。請下載保留的原始紀錄與草稿；未認定通過。';
     installSafeBackup();
   }
-  initialRaw=readRaw();const preflight=gate(storage,A,bank);baselineRaw=preflight.raw;
+  const suffix=new URL(win.location.href).href.match(/[?#].*$/)?.[0]||'';
+  const visibleFamilies=suffix?FAMILIES.filter(id=>suffix==='?family='+id):FAMILIES;
+  initialRaw=readRaw();
+  if(!visibleFamilies.length){lock('無法辨識題族連結，請由遷入範圍頁重新進入');return;}
+  const preflight=gate(storage,A,bank);baselineRaw=preflight.raw;
   if(!preflight.ok){lock(preflight.reason);return;}
   if(!A||!E||!bank){lock('source assessment or Evidence missing');return;}
   if(typeof win.navigator?.locks?.request!=='function'){lock('Web Locks unavailable');return;}
@@ -180,11 +184,11 @@ function boot(win){
   win.addEventListener('beforeunload',event=>{if(!busy)return;event.preventDefault();event.returnValue='';});
   function show(state){
     if(blocked)return;
-    const view=projection(A,variants,state,Date.now());
+    const view=projection(A,variants,state,Date.now(),visibleFamilies);
     summary.textContent=view.rows.map(row=>LABELS[row.id]+': '+row.metrics.attempts+' 筆／遷移 '+(row.metrics.transfer?'PASS':'未過')+'／複習 '+row.metrics.retentionStage+'/4'+(row.metrics.nextReviewAt?'（下次 '+new Date(row.metrics.nextReviewAt).toLocaleDateString('zh-TW')+'）':'')).join('；');
     current=view.next;feedback.hidden=true;next.hidden=true;
     if(!current){
-      panel.hidden=true;status.textContent=view.rows.every(row=>row.metrics.fullyRetained)?'三個 Buck 題族均已完成四階段到期複習。':'目前沒有到期題目；待指定的複習日期再回來。';root.dataset.state='ready';return;
+      panel.hidden=true;status.textContent=view.rows.every(row=>row.metrics.fullyRetained)?'所選題族已完成四階段到期複習。':'目前沒有到期題目；待指定的複習日期再回來。';root.dataset.state='ready';return;
     }
     panel.hidden=false;panel.inert=false;choices.inert=false;choices.replaceChildren();
     panel.dataset.role=current.assessmentRole;panel.dataset.variant=current.variantId;panel.dataset.family=current.familyId;

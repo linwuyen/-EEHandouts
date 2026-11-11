@@ -280,3 +280,57 @@ test('numeric choices with equal rounded values identify the calculation before 
     assert.equal(JSON.stringify(q.options), source, 'presentation must preserve source grades and IDs');
   }
 });
+
+test('baseline choices use all answer positions across the nine families and stay stable on reload', () => {
+  const positions = new Set();
+  for (const id of IDS) {
+    const question = find(id, 'A');
+    const source = JSON.stringify(question.options);
+    const visible = H.displayOptions(question);
+    positions.add(visible.findIndex(option => option.correct));
+    assert.deepEqual(new Set(visible), new Set(question.options), 'all original option objects remain selectable');
+    const reloaded = H.displayOptions(find(id, 'A'));
+    assert.deepEqual(Array.from(reloaded, o => o.id), Array.from(visible, o => o.id));
+    assert.equal(JSON.stringify(question.options), source, 'source option order and grades must remain intact');
+  }
+  assert.deepEqual(Array.from(positions).sort(), [0, 1, 2, 3]);
+});
+
+test('FOC renders each numeric answer once and preserves the source option that earns credit', () => {
+  const base = find('foc-park-frame', 'A');
+  for (const [role, depth, variant] of [['transfer', 40, 'T38'], ['retention', 120, 'R1-117']]) {
+    const question = V8.generateVariant(base, variant, role, depth);
+    const correct = question.options.find(o => o.correct);
+    const swapped = question.options.find(o => o.id === 'swap');
+    assert.equal(question.parameters.deg, 45);
+    assert.equal(correct.text, swapped.text, 'the two projections coincide at 45°');
+    const visible = H.displayOptions(question);
+    const labels = Array.from(visible, o => H.optionText(question, o));
+    assert.equal(new Set(labels).size, labels.length);
+    assert.deepEqual(Array.from(visible).filter(o => o.text === correct.text), [correct]);
+    assert.equal(visible.length, question.options.length - 1, 'only the duplicate distractor is omitted');
+    assert.ok(question.options.includes(swapped), 'pinned source option must remain available for historical grading');
+  }
+  const otherAngle = find('foc-park-frame', 'B');
+  assert.deepEqual(Array.from(H.displayOptions(otherAngle)), Array.from(otherAngle.options));
+});
+
+test('a historical FOC swap answer at 45° still validates with its original wrong grade', () => {
+  const familyId = 'foc-park-frame';
+  const items = questions.filter(q => q.familyId === familyId);
+  const state = E.emptyState();
+  for (let n = 0; n < 40; n++) {
+    const at = now - (40 - n) * 1000;
+    const q = A.nextQuestion(items, state.questions[familyId], at);
+    const choice = q.options.find(o => q.variantId === 'T38' ? o.id === 'swap' : !o.correct);
+    A.recordAttempt(state, q, choice, {at: stamp(at)});
+    if (q.variantId === 'T38') break;
+  }
+  const old = state.questions[familyId].history.at(-1);
+  assert.equal(old.variantId, 'T38');
+  assert.equal(old.choiceId, 'swap');
+  assert.equal(old.correct, false);
+  const saved = JSON.stringify(state);
+  assert.equal(check(state).ok, true);
+  assert.equal(JSON.stringify(state), saved);
+});

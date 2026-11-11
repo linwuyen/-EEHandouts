@@ -130,10 +130,9 @@ for(const module of ['power-sync','protection','power-capstone']){
 console.log('PASS 6b-5 actual formal V5 reference text and button labels');
 
 // 6b-6: V8 exact source route allowlist and honest V5 disclosure, no arbitrary suffixes.
-const focusedModules = ['bms','ad5543','c2000-dds','afe','acmc-pro'];
-const legacyModules = ['inverter','foc','pi','loop10us'];
-for(const module of [...legacyModules, ...focusedModules]){
- const destination = focusedModules.includes(module) ? 'v8-assessment.html?module=' + module : 'v8-assessment.html';
+const focusedModules = ['inverter','foc','pi','loop10us','bms','ad5543','c2000-dds','afe','acmc-pro'];
+for(const module of focusedModules){
+ const destination = 'v8-assessment.html?module=' + module;
  f=fixture();assert.equal(f.host.referenceHref('quiz.html?module='+module),destination);
  f.host.markReady();assert.equal(await f.host.leave(destination),true);assert.equal(new URL(f.nav[0]).search,new URL(destination,'https://example.test/').search);
  for(const suffix of ['#passed','&score=100']){f=fixture();assert.equal(f.host.referenceHref('quiz.html?module='+module+suffix),'coverage.html');}
@@ -146,7 +145,7 @@ for(const reason of ['pending','conflict','quota']){
  assert.equal(await f.host.leave('v8-assessment.html'),false);assert.equal(f.nav.length,0);
 }
 f=fixture();f.host.markReady();assert.equal(await f.host.leave('v8-assessment.html'),true);assert.match(f.nav[0],/v8-assessment\.html$/);
-for(const module of [...legacyModules, ...focusedModules]){
+for(const module of focusedModules){
  const f=fixture(),nodes={
   'workspace-reference':{hidden:true,scrollIntoView(){}},
   'reference-frame':{hidden:false,removeAttribute(){}},
@@ -172,3 +171,42 @@ for (const module of focusedModules) {
  }
 }
 console.log('PASS V8 exact routes, hostile suffix rejection and formal V5 disclosures');
+
+// Every migrated family advertised by the seven destination adapters must be reachable when due.
+{
+ const source=vm.createContext({});
+ for(const name of ['learning-assessment','quiz-bank','opamp-assessment','power-firmware-assessment','assessment-v8']){
+  vm.runInContext(readFileSync('workbench/assets/learning/'+name+'.js','utf8'),source);
+ }
+ const A=source.CircuitAssessment,Q=source.CircuitQuizBank;
+ let count=0;
+ for(const page of ['opamp','adc','buck','spi','topology','power-firmware','v8']){
+  const adapter={module:{exports:{}}};
+  vm.runInNewContext(readFileSync('workbench/ee-'+page+'-assessment.js','utf8'),adapter);
+  const exposed=adapter.module.exports;
+  for(const family of exposed.FAMILIES||[exposed.FAMILY]){
+   const question=Q.questions.find(q=>q.id===family);
+   const state={questions:{}};
+   const group=A.expandQuestions([question]),at=Date.now()-3*A.DAY_MS;
+   for(const [i,q] of group.slice(0,2).entries()){
+    A.recordAttempt(state,q,q.options.find(o=>o.correct),{at:new Date(at+i).toISOString()});
+   }
+   const target=page==='opamp'?'opamp-assessment.html':page==='v8'?'v8-assessment.html?module='+question.moduleId:page+'-assessment.html?family='+family;
+   const f=fixture(),button={dataset:{}};
+   f.ctx.CircuitAssessment=A;
+   f.host.recommendation({id:'quiz'},button,state.questions);
+   assert.equal(button.dataset.route,target,family);
+   let saves=0;
+   f.ctx.CircuitEvidence.flush=async()=>{saves++;return {saved:false,reason:'pending'};};
+   await button.onclick();
+   assert.equal(saves,1);assert.equal(f.nav.length,0);
+   f.ctx.CircuitEvidence.flush=async()=>({saved:true});
+   await button.onclick();
+   assert.equal(f.nav.length,1);assert.equal(f.nav[0],new URL(target,f.ctx.location.href).href);
+   assert.equal(await f.host.leave(target+'&score=100'),false);
+   count++;
+  }
+ }
+ assert.equal(count,26);
+}
+console.log('PASS all 26 source families resume to their own allowlisted, save-guarded destination');

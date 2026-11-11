@@ -174,7 +174,7 @@
     {
       "path": "assets/learning/workspace-experiment-ui.js",
       "sourceBlob": "b331bca15886c26bb6399ebd253d64ab3bf3f50b",
-      "sha256": "1ee2406d3a8664f6e3e6d46f0dfe9b90baa503ee3d1dbd8a68c8e6a8cd1cc721",
+      "sha256": "fc5bf9d70c1251ad6985b3f08d61b724bfd2f56d76c27eca196bac9d6f60a4f7",
       "adapted": true
     },
     {
@@ -270,7 +270,7 @@
     {
       "path": "assets/learning/workspace-topology-ui.js",
       "sourceBlob": "c2095128f2e540c61084c056e5edd74b58c344d8",
-      "sha256": "092187356cbcbd153b231908f07f4737d7a50ae50bcd21ce39c972e4e3fcd170",
+      "sha256": "74bba72f7711867ffb4593f89c6141ced6624edef7a8f039e96bf4673dc8dc81",
       "adapted": true
     },
     {
@@ -491,7 +491,7 @@
       "path": "ee-spi-assessment.js",
       "sourcePath": "quiz.html",
       "sourceBlob": "61ad104246926cea2ea5b94ce9ded605c34340da",
-      "sha256": "17c38b06a2c0b82b35e7de526e66bb23c0264465d1baffacd74567695a606d3a",
+      "sha256": "d529ffa5ed05591f953bca765879711c1e6263936f9399086fbbf6e739988a1c",
       "adapted": true,
       "adaptation": "EE-only SPI three-family V5 assessment UI; original quiz-bank, grading, retention and Evidence source libraries remain unchanged; no BOARD_PASS.; guarded E.load inside the same V5 Web Lock, flush outside lock, backup avoids source loading on foreign raw.; backups serialize source read under Web Lock and retain pending SPI draft during conflict."
     },
@@ -507,7 +507,7 @@
       "path": "ee-buck-assessment.js",
       "sourcePath": "quiz.html",
       "sourceBlob": "61ad104246926cea2ea5b94ce9ded605c34340da",
-      "sha256": "f978de0d1015a9c2883ae0ec739ffa4fd3288cf6984ecad5df333417af80f26a",
+      "sha256": "bc211bebc4b56967ef3532f5728abbcb0f06edfea248e04ac619ace440cc8344",
       "adapted": true,
       "adaptation": "EE-only Buck three-family formal assessment UI; original QuizBank, Assessment and Evidence source owners unchanged. Guards cross-tab V5 raw/lock, failed writes and pending drafts; no hardware proof. If a concurrent Web Lock is held, the source export is skipped and retained raw+pending draft remains immediately downloadable."
     },
@@ -523,7 +523,7 @@
       "path": "ee-topology-assessment.js",
       "sourcePath": "quiz.html",
       "sourceBlob": "61ad104246926cea2ea5b94ce9ded605c34340da",
-      "sha256": "92c3d48f5bf6817fa7363eacee89dc61f600c792fda0cf7786398b0ae03dfce6",
+      "sha256": "a2ab144737b09c8d973aa60114a9812567cc15fe0e94ba631ba87378f3a470d4",
       "adapted": true,
       "adaptation": "EE-only UI adapter for the original four source topology families; source grading, transfer and 1/7/30/90 retention preserved; no independent store or safety certification."
     },
@@ -546,7 +546,7 @@
       "path": "ee-power-firmware-assessment.js",
       "sourcePath": "quiz.html",
       "sourceBlob": "61ad104246926cea2ea5b94ce9ded605c34340da",
-      "sha256": "d2e048d0717a949ba9f2b0cac6f053ce4f7d771903ba37f5184a404bad83d6a4",
+      "sha256": "c6a506dfb275858448d347053991a3a737e92ebd2352f0c97a242bb95bd40967",
       "adapted": true,
       "adaptation": "EE-only Power Firmware seeded variant presentation and guarded V5 flow; Web Lock/raw backup and pending draft retained; no separate grade store."
     },
@@ -569,7 +569,7 @@
       "path": "ee-v8-assessment.js",
       "sourcePath": "quiz.html",
       "sourceBlob": "61ad104246926cea2ea5b94ce9ded605c34340da",
-      "sha256": "712b1131542d323fcb62ed234ae07a9da631881cc193c3a55c11252eb66e9de3",
+      "sha256": "beaeb1eaf2d496199a5f8ef2ba9e3e03287151988cdbc6a6442e4251970b2a2b",
       "adapted": true,
       "adaptation": "EE presentation for all nine original V8 base families, including AFE then ACMC. Focused routes use the original assessment scheduler, grader and V5 Evidence writer."
     }

@@ -92,11 +92,11 @@ for(const [name,engine] of Object.entries(process.argv.includes('--cross-browser
    await ctx.close();
    // Focused links must select and persist their own family even when a different review is due.
    const focusedModules = [
-     ['bms', 'bms-failsafe-convergence', ['adc-assessment.html']],
-     ['ad5543', 'ad5543-code-mapping', ['spi-assessment.html']],
-     ['c2000-dds', 'dds-real-power', ['adc-assessment.html']],
-     ['afe', 'afe-phase-power', ['adc-assessment.html']],
-     ['acmc-pro', 'acmc-protection-boundary', ['v8-assessment.html?module=afe','buck-assessment.html']],
+     ['bms', 'bms-failsafe-convergence', ['adc-assessment.html?family=adc-offset-purpose']],
+     ['ad5543', 'ad5543-code-mapping', ['spi-assessment.html?family=spi-cpol-cpha']],
+     ['c2000-dds', 'dds-real-power', ['adc-assessment.html?family=adc-levels-vs-codes']],
+     ['afe', 'afe-phase-power', ['adc-assessment.html?family=adc-divider-power']],
+     ['acmc-pro', 'acmc-protection-boundary', ['v8-assessment.html?module=afe', 'buck-assessment.html?family=buck-model-validity']],
    ];
    for (const [moduleId, familyId, expectedLessons] of focusedModules) {
      const focused = await browser.newContext(), lesson = await focused.newPage();
