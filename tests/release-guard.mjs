@@ -34,13 +34,14 @@ assert.ok(verify.includes('run: bash scripts/prepare-pdfjs.sh'),'CI must prepare
 assert.ok(publish.includes('run: bash scripts/prepare-pdfjs.sh'),'Pages must bundle verified PDF.js assets');
 
 assert.ok(pkg.scripts['test:browser'].includes('tests/middle-engineering.mjs'), 'Keep the newer middle-volume DCM engineering regression in the suite');
-assert.equal(pkg.scripts['test:cross-browser'],'node tests/cross-browser.mjs && node tests/review-fixes-smoke.mjs --cross-browser && node tests/review-round2-smoke.mjs --cross-browser && node tests/buck-workbench-smoke.mjs --cross-browser && node tests/topology-workbench-smoke.mjs --cross-browser && node tests/applications-workbench-smoke.mjs --cross-browser && node tests/adc-workbench-smoke.mjs --cross-browser && node tests/adc-lessons-smoke.mjs --cross-browser && node tests/opamp-workbench-smoke.mjs --cross-browser && node tests/opamp-course-smoke.mjs --cross-browser && node tests/opamp-diagnosis-smoke.mjs --cross-browser && node tests/opamp-dc-trainer-smoke.mjs --cross-browser && node tests/opamp-assessment-smoke.mjs --cross-browser && node tests/adc-formal-smoke.mjs --cross-browser && node tests/spi-formal-smoke.mjs --cross-browser && node tests/buck-formal-smoke.mjs --cross-browser && node tests/topology-formal-smoke.mjs --cross-browser && node tests/power-firmware-formal-smoke.mjs --cross-browser && node tests/v8-formal-smoke.mjs --cross-browser','Firefox/WebKit original and review suites run in the separate CI job');
+assert.equal(pkg.scripts['test:cross-browser'],'node tests/cross-browser.mjs && node tests/review-fixes-smoke.mjs --cross-browser && node tests/review-round2-smoke.mjs --cross-browser && node tests/buck-workbench-smoke.mjs --cross-browser && node tests/topology-workbench-smoke.mjs --cross-browser && node tests/applications-workbench-smoke.mjs --cross-browser && node tests/adc-workbench-smoke.mjs --cross-browser && node tests/adc-lessons-smoke.mjs --cross-browser && node tests/opamp-workbench-smoke.mjs --cross-browser && node tests/opamp-course-smoke.mjs --cross-browser && node tests/opamp-diagnosis-smoke.mjs --cross-browser && node tests/opamp-dc-trainer-smoke.mjs --cross-browser && node tests/opamp-assessment-smoke.mjs --cross-browser && node tests/adc-formal-smoke.mjs --cross-browser && node tests/spi-formal-smoke.mjs --cross-browser && node tests/buck-formal-smoke.mjs --cross-browser && node tests/topology-formal-smoke.mjs --cross-browser && node tests/power-firmware-formal-smoke.mjs --cross-browser && node tests/v8-formal-smoke.mjs --cross-browser','Historical cross-browser scripts remain available locally');
 for(const file of ['llc-accuracy.mjs','pfc-event-time.mjs','advanced-control-defaults.mjs'])
   assert.ok(pkg.scripts['test:ci'].includes('tests/'+file),'Round2 numerical/event/control regression required: '+file);
 assert.ok(pkg.scripts['test:browser'].includes('tests/review-round2-smoke.mjs'),'Round2 Chromium DOM regression required');
-assert.ok(verify.includes('  cross-browser:'),'Firefox/WebKit job must exist');
-assert.ok(verify.includes('npx playwright install --with-deps firefox webkit'),'Firefox/WebKit binaries must be installed');
-assert.ok(verify.includes('npm run test:cross-browser'),'Cross-browser smoke must actually execute');
+assert.ok(verify.includes('npx playwright install --with-deps chromium'));
+assert.ok(verify.includes('run: npm test'), 'Run all Node contracts and Chromium regressions');
+assert.doesNotMatch(verify, /playwright install[^\n]*(?:firefox|webkit)|run: npm run test:cross-browser/,
+  'Chromium is the release browser');
 
 const count=(hay,needle)=>hay.split(needle).length-1;
 assert.equal(count(smoke,"await run('磁路與 ADC 超出物理模型時拒絕數值'"),1,'Duplicated regression block');
@@ -121,7 +122,7 @@ assert.ok(pkg.scripts['test:ci'].includes('tests/topology-formal-contracts.mjs')
 assert.ok(pkg.scripts['test:ci'].includes('tests/power-firmware-formal-contracts.mjs'));
 assert.ok(pkg.scripts['test:ci'].includes('tests/v8-formal-contracts.mjs'),'V8 original-source regression is required');
 assert.ok(pkg.scripts['test:browser'].includes('tests/v8-formal-smoke.mjs'),'V8 Chromium regression is required');
-assert.ok(pkg.scripts['test:cross-browser'].includes('tests/v8-formal-smoke.mjs --cross-browser'),'V8 Firefox/WebKit is required');
+assert.ok(pkg.scripts['test:cross-browser'].includes('tests/v8-formal-smoke.mjs --cross-browser'),'Historical V8 cross-browser script remains callable');
 assert.ok(pkg.scripts['test:browser'].includes('tests/power-firmware-formal-smoke.mjs'));
 assert.ok(pkg.scripts['test:cross-browser'].includes('tests/power-firmware-formal-smoke.mjs --cross-browser'));
 assert.ok(pkg.scripts['test:browser'].includes('tests/topology-formal-smoke.mjs'));

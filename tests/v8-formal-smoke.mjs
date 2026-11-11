@@ -1,10 +1,10 @@
-/* Actual browser V5 acceptance: original source 4 V8 families, no secondary score owner. */
+/* Actual browser V5 acceptance: original source 7 V8 families, no secondary score owner. */
 import assert from 'node:assert/strict';
 import {readFileSync,mkdirSync} from 'node:fs';
 import {chromium,firefox,webkit} from 'playwright';
 const BASE=process.env.PLAYWRIGHT_BASE_URL||'http://127.0.0.1:4173';
 const PAGE=BASE+'/workbench/v8-assessment.html',KEY='circuit-learning-state-v5';
-const FAMILIES=['inv-shoot-through-safety','foc-park-frame','pi-integrator-crossover','loop10us-deadline-budget'];
+const FAMILIES=['inv-shoot-through-safety','foc-park-frame','pi-integrator-crossover','loop10us-deadline-budget','bms-failsafe-convergence','ad5543-code-mapping','dds-real-power'];
 mkdirSync('tests/screenshots',{recursive:true});
 for(const [name,engine] of Object.entries(process.argv.includes('--cross-browser')?{firefox,webkit}:{chromium})){
  const browser=await engine.launch({headless:true});
@@ -90,6 +90,68 @@ for(const [name,engine] of Object.entries(process.argv.includes('--cross-browser
    const backup=JSON.parse(readFileSync(await (await backupRequest).path(),'utf8'));
    assert.ok(backup.currentRaw?.includes('inv-shoot-through-safety'));
    await ctx.close();
+   // Focused links must select and persist their own family even when a different review is due.
+   const focusedModules = [
+     ['bms', 'bms-failsafe-convergence', ['adc-assessment.html']],
+     ['ad5543', 'ad5543-code-mapping', ['spi-assessment.html']],
+     ['c2000-dds', 'dds-real-power', ['adc-assessment.html']],
+   ];
+   for (const [moduleId, familyId, expectedLessons] of focusedModules) {
+     const focused = await browser.newContext(), lesson = await focused.newPage();
+     try {
+       await lesson.goto(PAGE);
+       await lesson.waitForSelector('#ee-v8-formal-root[data-state=ready]');
+       const otherId = FAMILIES[0];
+       const unrelated = await lesson.evaluate(async ([id, key]) => {
+         const assessment = window.CircuitAssessment, evidence = window.CircuitEvidence;
+         const group = assessment.expandQuestions([window.CircuitQuizBank.questions.find(q => q.id === id)]);
+         const state = evidence.load(), time = Date.now() - 2 * assessment.DAY_MS;
+         for (const [index, q] of group.slice(0, 2).entries()) {
+           assessment.recordAttempt(state, q, q.options.find(o => o.correct), {at:new Date(time + index).toISOString()});
+         }
+         evidence.save(state);
+         if (!(await evidence.flush()).saved) throw Error('failed to seed existing due review');
+         return JSON.parse(localStorage.getItem(key)).questions[id];
+       }, [otherId, KEY]);
+       await lesson.goto(PAGE + '?module=' + moduleId);
+       await lesson.waitForSelector('#ee-v8-formal-root[data-state=ready]');
+       const question = lesson.locator('#ee-formal-question');
+       assert.equal(await question.getAttribute('data-family'), familyId);
+       assert.equal(await question.getAttribute('data-variant'), 'A');
+       const hrefs = await lesson.locator('#ee-formal-prerequisites a').evaluateAll(
+         nodes => nodes.map(a => a.getAttribute('href'))
+       );
+       for (const href of expectedLessons) assert.ok(hrefs.includes(href), moduleId + ' prerequisite ' + href);
+       const correctId = await lesson.evaluate(id => window.CircuitQuizBank.questions
+         .find(q => q.id === id).options.find(o => o.correct).id, familyId);
+       await lesson.locator('input[name="ee-formal-choice"][value="' + correctId + '"]').check();
+       await lesson.locator('#ee-formal-submit').click();
+       await lesson.waitForSelector('#ee-formal-feedback:visible');
+       await lesson.reload();
+       await lesson.waitForSelector('#ee-v8-formal-root[data-state=ready]');
+       assert.equal(await question.getAttribute('data-family'), familyId);
+       assert.equal(await question.getAttribute('data-variant'), 'B');
+       if (moduleId === 'ad5543') {
+         const choices = await lesson.locator('#ee-formal-choices label').allTextContents();
+         assert.equal(choices.length, 4);
+         assert.equal(new Set(choices).size, 4, 'the two 65535-valued distractors show distinct calculations');
+       }
+       const stored = await lesson.evaluate(key => JSON.parse(localStorage.getItem(key)), KEY);
+       assert.deepEqual(stored.questions[otherId], unrelated);
+       assert.equal(stored.questions[familyId].history.length, 1);
+       assert.equal(stored.questions[familyId].history[0].choiceId, correctId);
+       assert.equal(stored.questions[familyId].history[0].correct, true);
+     } finally { await focused.close(); }
+   }
+   const invalid = await browser.newContext(), invalidPage = await invalid.newPage();
+   try {
+     for (const selector of ['?module=unknown', '?module=bms&score=100', '?module=bms#passed', '?module=bms&module=ad5543']) {
+       await invalidPage.goto(PAGE + selector);
+       await invalidPage.waitForSelector('#ee-v8-formal-root[data-state=protected]');
+       assert.equal(await invalidPage.locator('#ee-formal-submit').isEnabled(), false);
+       assert.equal(await invalidPage.evaluate(key => localStorage.getItem(key), KEY), null, selector);
+     }
+   } finally { await invalid.close(); }
    // Quota: no accepted feedback and preserve original raw, with exportable V5 draft.
    const quota=await browser.newContext({acceptDownloads:true}),qp=await quota.newPage();
    await qp.goto(PAGE);await qp.waitForFunction(()=>document.querySelector('#ee-v8-formal-root')?.dataset.state==='ready');
@@ -275,7 +337,7 @@ for(const [name,engine] of Object.entries(process.argv.includes('--cross-browser
    await mp.goto(PAGE);await mp.waitForFunction(()=>document.querySelector('#ee-v8-formal-root')?.dataset.state==='protected');
    assert.equal(await mp.locator('#ee-formal-submit').isEnabled(),false);await missing.close();
    assert.deepEqual(errors,[]);assert.deepEqual(external,[]);
-   console.log('PASS V8 formal '+name+': 4 original families, wrong baseline→transfer, persisted V5, quotas, conflict backup, future schema, mobile');
+   console.log('PASS V8 formal '+name+': 7 original families, wrong baseline→transfer, persisted V5, quotas, conflict backup, future schema, mobile');
   }finally{try{await ctx.close();}catch(_){}}
  }finally{await browser.close();}
 }

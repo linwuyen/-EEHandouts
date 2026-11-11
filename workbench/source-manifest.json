@@ -1,7 +1,7 @@
 {
   "sourceRepository": "linwuyen/Circuit-Simulation",
   "sourceCommit": "11ef4e4801b5283f265dc349a4afec0027603228",
-  "scope": "Eight-step Buck, Buck/Boost CCM comparison, four topology applications and standalone ADC signal-chain calculator; not whole-project retirement; two stateless OP step/sine labs (no formal assessment); six static OP concept lessons (one documented bandwidth wording correction; no assessment); stateless three-case OP formative diagnosis (no certification); OP DC Level 0–5 trainer with guarded browser-local mastery, not official assessment; OP AMP Slew Rate first-attempt, transfer and 1/7/30/90-day review in existing V5 Evidence (not BOARD_PASS); C2000 ADC five-lesson read-only course referencing existing ADC calculator, with no old progress migration; ADC formal 3 question families (levels/codes, divider power, signed-current offset), source V5 first-attempt/transfer/retention; no alternative scoring store; SPI three-family first attempt/changed-condition transfer/1/7/30/90-day retention backed by existing V5 Evidence; not actual hardware validation or all remaining formal families; Buck three-family formal first-attempt/transfer/1/7/30/90-day retention in existing V5 Evidence; no separate grade or BOARDS_PASS. Four original power-topology formal families (PFC/PSFB/LLC/inverter) first attempt, B/C transfer and D/1/7/30/90 retention now use the existing sole V5 Evidence owner; no new physics, grade store or BOARD_PASS; the remaining source modules and rights Issue #20 are still open. Assessment V8 6b-6 first four original safety/control families (inverter, FOC, PI, 10us loop) with source-owned first-answer/transfer/retention on V5; V8 remaining five, open-response/diagnostics and hardware/rights/retirement claims remain open.",
+  "scope": "Eight-step Buck, Buck/Boost CCM comparison, four topology applications and standalone ADC signal-chain calculator; not whole-project retirement; two stateless OP step/sine labs (no formal assessment); six static OP concept lessons (one documented bandwidth wording correction; no assessment); stateless three-case OP formative diagnosis (no certification); OP DC Level 0–5 trainer with guarded browser-local mastery, not official assessment; OP AMP Slew Rate first-attempt, transfer and 1/7/30/90-day review in existing V5 Evidence (not BOARD_PASS); C2000 ADC five-lesson read-only course referencing existing ADC calculator, with no old progress migration; ADC formal 3 question families (levels/codes, divider power, signed-current offset), source V5 first-attempt/transfer/retention; no alternative scoring store; SPI three-family first attempt/changed-condition transfer/1/7/30/90-day retention backed by existing V5 Evidence; not actual hardware validation or all remaining formal families; Buck three-family formal first-attempt/transfer/1/7/30/90-day retention in existing V5 Evidence; no separate grade or BOARDS_PASS. Four original power-topology formal families (PFC/PSFB/LLC/inverter) first attempt, B/C transfer and D/1/7/30/90 retention now use the existing sole V5 Evidence owner; no new physics, grade store or BOARD_PASS; the remaining source modules and rights Issue #20 are still open. Assessment V8 exposes seven original V8 base families, including BMS, AD5543 and DDS. AFE and ACMC remain pending. Numeric open responses, diagnostic games, hardware validation, publication rights and retirement remain separate.",
   "files": [
     {
       "path": "assets/beginner-lessons.js",
@@ -561,17 +561,17 @@
       "path": "v8-assessment.html",
       "sourcePath": "quiz.html",
       "sourceBlob": "61ad104246926cea2ea5b94ce9ded605c34340da",
-      "sha256": "38becf9288dbdbb093930e345c916c91a6ab5b86943b328eed69181176a14802",
+      "sha256": "3405add0b876e8bdd81c295e320028da9648f9a6cda6e9555b6769789ce0e60b",
       "adapted": true,
-      "adaptation": "EE-only 6b-6 four V8 question families (inverter/FOC/PI/10us); original source V8 grader and sole V5 Evidence remain owners; no BOARD_PASS."
+      "adaptation": "EE presentation for seven original V8 base families, including BMS, AD5543 and DDS. Focused routes use the original assessment scheduler, grader and V5 Evidence writer."
     },
     {
       "path": "ee-v8-assessment.js",
       "sourcePath": "quiz.html",
       "sourceBlob": "61ad104246926cea2ea5b94ce9ded605c34340da",
-      "sha256": "3f5356aed37dcc8f7c110c5894f09f9025b041ef2bdde8958da35526e45bf797",
+      "sha256": "350ac0d0dc033a172488e547ac32a80199d0aee2cfc7eba4041713cde01d1b28",
       "adapted": true,
-      "adaptation": "EE-only V8 four-family controller, source-generated variant/replay and guarded Web Lock, pending draft/raw backup; no separate score store."
+      "adaptation": "EE presentation for seven original V8 base families, including BMS, AD5543 and DDS. Focused routes use the original assessment scheduler, grader and V5 Evidence writer."
     }
   ],
   "testFiles": [

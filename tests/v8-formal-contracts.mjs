@@ -12,8 +12,8 @@ const context={CircuitQuizBank:Q,CircuitAssessment:A};
 runInNewContext(readFileSync('workbench/assets/learning/assessment-v8.js','utf8'),context,{filename:'assessment-v8.js'});
 const V8=context.CircuitAssessmentV8;
 const H=require('../workbench/ee-v8-assessment.js');
-const IDS=['inv-shoot-through-safety','foc-park-frame','pi-integrator-crossover','loop10us-deadline-budget'];
-const MODULES=['inverter','foc','pi','loop10us'];
+const IDS=['inv-shoot-through-safety','foc-park-frame','pi-integrator-crossover','loop10us-deadline-budget','bms-failsafe-convergence','ad5543-code-mapping','dds-real-power'];
+const MODULES=['inverter','foc','pi','loop10us','bms','ad5543','c2000-dds'];
 const KEY=H.KEY,now=Date.now();
 const store=(values={})=>({getItem:key=>Object.hasOwn(values,key)?values[key]:null});
 const stateAt=s=>({[KEY]:JSON.stringify(s)});
@@ -22,10 +22,10 @@ const questions=H.familyModel(A,Q);
 const find=(id,variant)=>questions.find(q=>q.familyId===id&&q.variantId===variant);
 const stamp=n=>new Date(n).toISOString();
 const mark=(state,q,correct,t)=>A.recordAttempt(state,q,q.options.find(o=>o.correct===correct),{at:stamp(t)});
-test('pinned source V8 installed; only four original question families exposed',()=>{
+test('pinned source V8 installed; 7 original question families exposed',()=>{
  assert.equal(V8.VERSION,'8.1.0');assert.equal(A.__v8Installed,true);
- assert.equal(V8.baseQuestions.length,9,'other five original V8 families retained only inside isolated source runtime');
- assert.deepEqual(Array.from(H.FAMILIES),IDS);assert.equal(questions.length,16);
+ assert.equal(V8.baseQuestions.length,9,'complete original question bank intact');
+ assert.deepEqual(Array.from(H.FAMILIES),IDS);assert.equal(questions.length,IDS.length*4);
  for(const [i,id] of IDS.entries()){
   const family=questions.filter(q=>q.familyId===id);
   assert.equal(family.length,4);assert.ok(family.every(q=>q.moduleId===MODULES[i]));
@@ -48,7 +48,12 @@ test('all three new manifest rows require original source blob and exact SHA-256
   assert.equal(rows[0].sourcePath,sourcePath);
   assert.equal(rows[0].sourceBlob,blob);
   assert.equal(rows[0].adapted,adapted);
-  const digest=createHash('sha256').update(readFileSync('workbench/'+path)).digest('hex');
+  const bytes=readFileSync('workbench/'+path);
+  if(!adapted){
+    const gitBlob=createHash('sha1').update('blob '+bytes.length+'\0').update(bytes).digest('hex');
+    assert.equal(gitBlob,blob,'immutable bytes must match the pinned Circuit source');
+  }
+  const digest=createHash('sha256').update(bytes).digest('hex');
   assert.equal(rows[0].sha256,digest,'actual file SHA-256: '+path);
  }
  const html=readFileSync('workbench/v8-assessment.html','utf8');
@@ -75,7 +80,7 @@ test('malformed, legacy, foreign and future V5 must fail closed without overwrit
  assert.equal(H.gate({getItem(){throw Error('blocked');}},A,Q,V8).ok,false);
 });
 test('first wrong remains immutable; correct transfer and source D retention dates',()=>{
- const state=E.emptyState(),t=Date.parse('2026-11-09T09:00:00Z');
+ const state=E.emptyState(),t=now-2*A.DAY_MS;
  let view=H.projection(A,questions,state,t);
  assert.equal(view.next.familyId,IDS[0]);assert.equal(view.next.variantId,'A');
  const first=mark(state,view.next,false,t);assert.equal(first.correct,false);
@@ -90,11 +95,11 @@ test('first wrong remains immutable; correct transfer and source D retention dat
   assert.equal(view.next.variantId,'B');mark(state,view.next,true,t+3000+i*2200);
  }
  assert.equal(check(state).ok,true);
- assert.equal(H.projection(A,questions,state,t+20000).next,null);
- view=H.projection(A,questions,state,t+20000+A.DAY_MS+1);
+ assert.equal(H.projection(A,questions,state,t+30000).next,null);
+ view=H.projection(A,questions,state,t+30000+A.DAY_MS+1);
  assert.equal(view.next.familyId,IDS[0]);assert.equal(view.next.variantId,'D');
  assert.equal(view.next.assessmentRole,'retention');
- const due=t+20000+A.DAY_MS+1;
+ const due=t+30000+A.DAY_MS+1;
  mark(state,view.next,true,due);
  assert.equal(state.questions[IDS[0]].history[0].correct,false);
  assert.equal(H.projection(A,questions,state,due+1).rows[0].metrics.retentionStage,1);
@@ -151,4 +156,105 @@ test('first-principles V8 transfer references: interlock, Park, Ki crossover, 10
  assert.equal(loop.options.filter(o=>o.correct).length,1);
  assert.match(loop.options.find(o=>o.correct).text,/margin|deadline/);
 });
-console.log('PASS 6b-6 V8 4x4 formal families; source V5 replay, due, foreign schemas, Web Lock and physics');
+
+const newFamilies = [
+  ['bms-failsafe-convergence', 'bms', ['adc.current.offset']],
+  ['ad5543-code-mapping', 'ad5543', ['spi.mode.cpol-cpha']],
+  ['dds-real-power', 'c2000-dds', ['adc.quantization.levels']],
+];
+
+test('source prerequisite graph uses transfer evidence and preserves incomplete dependencies', () => {
+  const catalog = A.expandQuestions(Q.questions);
+  for (const [id, moduleId, expected] of newFamilies) {
+    const competency = find(id, 'A').competency;
+    assert.deepEqual(Array.from(A.prerequisitesFor(competency)), expected);
+    assert.deepEqual(Array.from(A.requirementsForModule(moduleId)), expected);
+    for (let missing = 0; missing <= expected.length; missing++) {
+      const state = E.emptyState();
+      for (const [index, prerequisite] of expected.entries()) {
+        const group = catalog.filter(q => q.competency === prerequisite);
+        assert.ok(group.length >= 2, 'missing prerequisite source question: ' + prerequisite);
+        mark(state, group.find(q => q.variantId === 'A'), true, now - 3000);
+        mark(state, group.find(q => q.variantId === 'B'), index !== missing, now - 2000);
+      }
+      const unlocked = missing === expected.length;
+      assert.equal(A.competencyUnlocked(competency, state, catalog, now), unlocked, id);
+      assert.equal(A.moduleUnlocked(moduleId, state, catalog, now), unlocked, moduleId);
+      assert.equal(state.questions[id], undefined, 'prerequisites must not grade their dependent');
+    }
+  }
+});
+
+test('new family histories replay generated transfers and each actual 1/7/30/90 day review', () => {
+  for (const [id] of newFamilies) {
+    const state = E.emptyState(), group = questions.filter(q => q.familyId === id);
+    let time = now - 131 * A.DAY_MS;
+    const next = at => A.nextQuestion(group, state.questions[id], at);
+    for (const variant of ['A', 'B', 'C', 'T3']) {
+      const question = next(++time);
+      assert.equal(question.variantId, variant, id);
+      mark(state, question, variant === 'T3', time);
+    }
+    for (const [days, variant] of [[1, 'D'], [7, 'R2-2'], [30, 'R3-3'], [90, 'R4-4']]) {
+      time += days * A.DAY_MS;
+      assert.equal(next(time - 1), null, id + ' early ' + variant);
+      const due = next(time);
+      assert.equal(due.variantId, variant);
+      mark(state, due, true, time);
+    }
+    assert.equal(next(now), null);
+    assert.equal(A.metrics(state.questions[id], now).fullyRetained, true);
+    assert.equal(check(state).ok, true, id);
+    const early = structuredClone(state);
+    const firstReview = early.questions[id].history.find(h => h.variantId === 'D');
+    firstReview.at = stamp(Date.parse(firstReview.at) - 1);
+    assert.equal(check(early).ok, false, id + ' fabricated early retention');
+    const forged = structuredClone(state);
+    forged.questions[id].history[3].correct = false;
+    assert.equal(check(forged).ok, false, id + ' fabricated generated transfer score');
+  }
+});
+
+test('BMS fault isolation, 16-bit DAC scaling and signed DDS watts match source assumptions', () => {
+  for (const depth of [1, 2, 3, 6]) {
+    const generated = id => V8.generateVariant(find(id, 'A'), 'T' + depth, 'transfer', depth);
+    const bms = generated('bms-failsafe-convergence');
+    const isolation = bms.options.find(o => o.correct).text;
+    assert.ok(bms.prompt.includes(bms.parameters.fault));
+    assert.ok(bms.prompt.includes(String(bms.parameters.debounce) + ' ms'));
+    assert.match(isolation, /FAULT_LOCK/);
+    assert.match(isolation, /contactor OPEN/);
+    assert.match(isolation, /diagnostic evidence/);
+
+    const dac = generated('ad5543-code-mapping');
+    const {target, vref} = dac.parameters;
+    const code = Math.max(0, Math.min(65535, Math.round(target / vref * 65536)));
+    assert.equal(Number(dac.options.find(o => o.correct).text), code);
+    assert.notEqual(code, Math.round(target / vref * 4096));
+
+    const dds = generated('dds-real-power');
+    const {vr, ir, deg} = dds.parameters;
+    const watts = vr * ir * Math.cos(deg * Math.PI / 180);
+    assert.equal(dds.options.find(o => o.correct).text, Number(watts.toFixed(2)) + ' W');
+    if (depth === 6) assert.ok(watts < 0, 'exercise regenerative phase quadrant');
+  }
+});
+
+test('numeric choices with equal rounded values identify the calculation before grading', () => {
+  for (const [family, depth, first, second] of [
+    ['ad5543-code-mapping', 1, 'inverse', 'max'],
+    ['dds-real-power', 125, 'correct', 'sin'],
+  ]) {
+    const q = V8.generateVariant(find(family, 'A'), 'T' + depth, 'transfer', depth);
+    const pair = [first, second].map(id => q.options.find(option => option.id === id));
+    assert.equal(pair[0].text, pair[1].text, family + ' exercises actual duplicate text');
+    const source = JSON.stringify(q.options);
+    const rendered = q.options.map(option => H.optionText(q, option));
+    assert.equal(new Set(rendered).size, rendered.length, family);
+    for (const [i, option] of q.options.entries()) {
+      assert.ok(rendered[i].includes(option.text), option.id);
+      assert.doesNotMatch(rendered[i], /正解|正確答案|錯誤答案|correct answer/i);
+    }
+    assert.equal(JSON.stringify(q.options), source, 'presentation must preserve source grades and IDs');
+  }
+});

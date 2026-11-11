@@ -130,8 +130,12 @@ for(const module of ['power-sync','protection','power-capstone']){
 console.log('PASS 6b-5 actual formal V5 reference text and button labels');
 
 // 6b-6: V8 exact source route allowlist and honest V5 disclosure, no arbitrary suffixes.
-for(const module of ['inverter','foc','pi','loop10us']){
- f=fixture();assert.equal(f.host.referenceHref('quiz.html?module='+module),'v8-assessment.html');
+const focusedModules = ['bms','ad5543','c2000-dds'];
+const legacyModules = ['inverter','foc','pi','loop10us'];
+for(const module of [...legacyModules, ...focusedModules]){
+ const destination = focusedModules.includes(module) ? 'v8-assessment.html?module=' + module : 'v8-assessment.html';
+ f=fixture();assert.equal(f.host.referenceHref('quiz.html?module='+module),destination);
+ f.host.markReady();assert.equal(await f.host.leave(destination),true);assert.equal(new URL(f.nav[0]).search,new URL(destination,'https://example.test/').search);
  for(const suffix of ['#passed','&score=100']){f=fixture();assert.equal(f.host.referenceHref('quiz.html?module='+module+suffix),'coverage.html');}
 }
 for(const path of ['v8-assessment.html#passed','v8-assessment.html?grade=pass']){
@@ -142,7 +146,7 @@ for(const reason of ['pending','conflict','quota']){
  assert.equal(await f.host.leave('v8-assessment.html'),false);assert.equal(f.nav.length,0);
 }
 f=fixture();f.host.markReady();assert.equal(await f.host.leave('v8-assessment.html'),true);assert.match(f.nav[0],/v8-assessment\.html$/);
-for(const module of ['inverter','foc','pi','loop10us']){
+for(const module of [...legacyModules, ...focusedModules]){
  const f=fixture(),nodes={
   'workspace-reference':{hidden:true,scrollIntoView(){}},
   'reference-frame':{hidden:false,removeAttribute(){}},
@@ -153,7 +157,23 @@ for(const module of ['inverter','foc','pi','loop10us']){
  f.ctx.document.createElement=tag=>({tag,textContent:'',type:null});
  f.host.reference('quiz.html?module='+module,'Formal '+module);
  const [text,button]=nodes['reference-links'].children;
- assert.match(text.textContent,/四題族.*V5 Evidence/);assert.doesNotMatch(text.textContent,/六課觀念/);
- assert.equal(button.textContent,'保存後開啟 V8 四題族正式題目');
+ assert.match(text.textContent,/V5 Evidence/);assert.doesNotMatch(text.textContent,/六課觀念/);
+ assert.match(button.textContent,/保存.*V8.*正式/);
 }
-console.log('PASS 6b-6 V8 exact routes, hostile suffix rejection and formal V5 disclosures');
+
+for (const module of focusedModules) {
+ const target = 'v8-assessment.html?module=' + module;
+ for (const suffix of ['#passed', '&score=100', '&module=' + module]) {
+  f=fixture();assert.equal(await f.host.leave(target + suffix),false);assert.equal(f.nav.length,0);
+ }
+ for (const reason of ['pending', 'conflict', 'quota']) {
+  f=fixture();f.host.markReady();f.ctx.CircuitEvidence.flush=async()=>({saved:false,reason});
+  assert.equal(await f.host.leave(target),false);assert.equal(f.nav.length,0);
+ }
+}
+console.log('PASS V8 exact routes, hostile suffix rejection and formal V5 disclosures');
+
+for (const deferred of ['afe', 'acmc-pro']) {
+ f=fixture();assert.equal(f.host.referenceHref('quiz.html?module=' + deferred),'coverage.html');
+ assert.equal(await f.host.leave('v8-assessment.html?module=' + deferred),false);
+}

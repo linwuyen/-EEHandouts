@@ -1,4 +1,4 @@
-/* EE-only presentation for four original Circuit Assessment V8 families.
+/* EE-only presentation for the released Circuit Assessment V8 families.
  * CircuitAssessment grades and schedules; CircuitEvidence exclusively writes V5.
  * This controller neither creates an independent assessment nor a new store. */
 (function(root,factory){
@@ -11,9 +11,38 @@
 })(typeof window!=='undefined'?window:null,function(){
 'use strict';
 const KEY='circuit-learning-state-v5';
-const FAMILIES=Object.freeze(['inv-shoot-through-safety','foc-park-frame','pi-integrator-crossover','loop10us-deadline-budget']);
-const LABELS=Object.freeze({'inv-shoot-through-safety':'逆變器直通安全','foc-park-frame':'FOC Park 座標','pi-integrator-crossover':'PI 積分交越','loop10us-deadline-budget':'10 µs Deadline'});
-const MODULES=Object.freeze({'inv-shoot-through-safety':'inverter','foc-park-frame':'foc','pi-integrator-crossover':'pi','loop10us-deadline-budget':'loop10us'});
+const catalog = Object.freeze({
+  'inv-shoot-through-safety': {module: 'inverter', label: '逆變器直通安全'},
+  'foc-park-frame': {module: 'foc', label: 'FOC Park 座標'},
+  'pi-integrator-crossover': {module: 'pi', label: 'PI 積分交越'},
+  'loop10us-deadline-budget': {module: 'loop10us', label: '10 µs Deadline'},
+  'bms-failsafe-convergence': {module: 'bms', label: 'BMS 故障隔離'},
+  'ad5543-code-mapping': {module: 'ad5543', label: 'AD5543 目標電壓與數位碼'},
+  'dds-real-power': {module: 'c2000-dds', label: 'DDS 相位與實功率'},
+});
+const FAMILIES = Object.freeze(Object.keys(catalog));
+const prerequisiteLinks = {
+  'buck.model.validity': ['Buck 理想模型適用條件', 'buck-assessment.html'],
+  'adc.quantization.levels': ['ADC 量化階數', 'adc-assessment.html'],
+  'adc.current.offset': ['ADC 電流量測偏移', 'adc-assessment.html'],
+  'spi.throughput.clock': ['SPI 時脈與傳輸時間', 'spi-assessment.html'],
+  'spi.mode.cpol-cpha': ['SPI 時脈極性與相位', 'spi-assessment.html'],
+};
+// Source options can round to the same number. Show the calculation alongside the
+// value so the learner can distinguish methods while the source grades the same ID.
+const calculationMethods = {
+  'ad5543-code-mapping': {correct: 'Vtarget/Vref × 65536', '12bit': 'Vtarget/Vref × 4096', inverse: 'Vref/Vtarget × 65536，再限幅', max: '固定滿刻度'},
+  'dds-real-power': {correct: 'Vrms × Irms × cos φ', va: 'Vrms × Irms', sin: 'Vrms × Irms × sin φ'},
+};
+function optionText(question, option) {
+  const method = question.assessmentRole !== 'baseline' && calculationMethods[question.familyId]?.[option.id];
+  return method ? `${option.text}（${method}）` : option.text;
+}
+function familiesForLocation(href) {
+  const suffix = new URL(href).href.match(/[?#].*$/)?.[0] || '';
+  if (!suffix) return FAMILIES;
+  return FAMILIES.filter(id => suffix === '?module=' + catalog[id].module);
+}
 const LEGACY=['circuit-learning-state-v4','circuit-learning-state-v3','circuit-learning-state-v2'];
 function plain(x){return x!==null&&typeof x==='object'&&!Array.isArray(x);}
 function gate(storage,assessment,bank,source){
@@ -101,7 +130,7 @@ function familyModel(assessment,bank){
   const items=[];
   for(const id of FAMILIES){
     const source=bank.questions.find(q=>q.id===id);
-    if(!source||source.moduleId!==MODULES[id])throw Error('missing V8 控制與安全 family '+id);
+    if(!source||source.moduleId!==catalog[id].module)throw Error('missing V8 控制與安全 family '+id);
     const variants=assessment.expandQuestions([source]);
     if(!variants.some(q=>q.assessmentRole==='baseline')||!variants.some(q=>q.assessmentRole==='transfer')||!variants.some(q=>q.assessmentRole==='retention'))throw Error('missing original variants '+id);
     for(const q of variants){if(q.familyId!==id||q.options?.filter(o=>o.correct).length!==1)throw Error('invalid original question '+id);}
@@ -109,8 +138,8 @@ function familyModel(assessment,bank){
   }
   return items;
 }
-function projection(assessment,variants,state,nowMs){
-  const rows=FAMILIES.map(id=>{
+function projection(assessment,variants,state,nowMs,families=FAMILIES){
+  const rows=families.map(id=>{
     const answer=state?.questions?.[id]||null;
     const items=variants.filter(q=>q.familyId===id);
     return {id,metrics:assessment.metrics(answer,nowMs),next:assessment.nextQuestion(items,answer,nowMs),history:answer?.history||[]};
@@ -168,7 +197,10 @@ function boot(win){
     status.textContent='紀錄未安全保存，V8 控制與安全 正式題已停止：'+reason+'。請下載保留的原始紀錄與草稿；未認定通過。';
     installSafeBackup();
   }
-  initialRaw=readRaw();const preflight=gate(storage,A,bank,V8);baselineRaw=preflight.raw;
+  const visibleFamilies=familiesForLocation(win.location.href);
+  initialRaw=readRaw();
+  if(!visibleFamilies.length){lock('無法辨識題組連結，請由遷入範圍頁重新進入');return;}
+  const preflight=gate(storage,A,bank,V8);baselineRaw=preflight.raw;
   if(!preflight.ok){lock(preflight.reason);return;}
   if(!A||!E||!bank||!V8){lock('source assessment or Evidence missing');return;}
   if(typeof win.navigator?.locks?.request!=='function'){lock('Web Locks unavailable');return;}
@@ -180,18 +212,29 @@ function boot(win){
   win.addEventListener('beforeunload',event=>{if(!busy)return;event.preventDefault();event.returnValue='';});
   function show(state){
     if(blocked)return;
-    const view=projection(A,variants,state,Date.now());
-    summary.textContent=view.rows.map(row=>LABELS[row.id]+': '+row.metrics.attempts+' 筆／遷移 '+(row.metrics.transfer?'PASS':'未過')+'／複習 '+row.metrics.retentionStage+'/4'+(row.metrics.nextReviewAt?'（下次 '+new Date(row.metrics.nextReviewAt).toLocaleDateString('zh-TW')+'）':'')).join('；');
+    const view=projection(A,variants,state,Date.now(),visibleFamilies);
+    const active=view.next || (visibleFamilies.length===1 ? variants.find(q=>q.familyId===visibleFamilies[0]) : null);
+    const prerequisites=$('ee-formal-prerequisites');
+    prerequisites.replaceChildren();
+    if(active){
+      for(const competency of A.prerequisitesFor(active.competency)){
+        const destination=prerequisiteLinks[competency];
+        if(!destination)continue;
+        const link=doc.createElement('a');link.href=destination[1];link.textContent=destination[0];
+        prerequisites.append(prerequisites.childElementCount?'、':'建議先複習：',link);
+      }
+    }
+    summary.textContent=view.rows.map(row=>catalog[row.id].label+': '+row.metrics.attempts+' 筆／遷移 '+(row.metrics.transfer?'PASS':'未過')+'／複習 '+row.metrics.retentionStage+'/4'+(row.metrics.nextReviewAt?'（下次 '+new Date(row.metrics.nextReviewAt).toLocaleDateString('zh-TW')+'）':'')).join('；');
     current=view.next;feedback.hidden=true;next.hidden=true;
     if(!current){
-      panel.hidden=true;status.textContent=view.rows.every(row=>row.metrics.fullyRetained)?'四個V8 控制與安全題族均已完成四階段到期複習。':'目前沒有到期題目；待指定的複習日期再回來。';root.dataset.state='ready';return;
+      panel.hidden=true;status.textContent=view.rows.every(row=>row.metrics.fullyRetained)?'所選題族已完成四階段到期複習。':'目前沒有到期題目；待指定的複習日期再回來。';root.dataset.state='ready';return;
     }
     panel.hidden=false;panel.inert=false;choices.inert=false;choices.replaceChildren();
     panel.dataset.role=current.assessmentRole;panel.dataset.variant=current.variantId;panel.dataset.family=current.familyId;
-    prompt.textContent=LABELS[current.familyId]+'｜'+current.prompt;
+    prompt.textContent=catalog[current.familyId].label+'｜'+current.prompt;
     for(const opt of current.options){
       const label=doc.createElement('label'),input=doc.createElement('input'),span=doc.createElement('span');
-      input.type='radio';input.name='ee-formal-choice';input.value=opt.id;span.textContent=opt.text;
+      input.type='radio';input.name='ee-formal-choice';input.value=opt.id;span.textContent=optionText(current,opt);
       label.append(input,span);choices.append(label);
     }
     confidence.value='';submit.disabled=false;startedAt=Date.now();root.dataset.state='ready';
@@ -253,5 +296,5 @@ function boot(win){
   });
   start();
 }
-return {KEY,FAMILIES,gate,snapshotMatches,startupConsistent,checkedLoad,familyModel,projection,boot};
+return {KEY,FAMILIES,optionText,gate,snapshotMatches,startupConsistent,checkedLoad,familyModel,projection,boot};
 });
