@@ -373,6 +373,45 @@ await run('52-page PDF identity, render, navigation and separate local cache',as
   assert.equal(await page.locator('.source-pdf-placeholder').count(),1);
 });
 
+for(const width of [1440,390]){
+  await run('R2 home to original slides and PDF reading order at '+width+'px',async()=>{
+    const reader=await browser.newPage({viewport:{width,height:844}});
+    try{
+      await reader.goto(BASE+'/middle.html#home');
+      const primary=reader.locator('.hero-cta');
+      assert.match(await primary.innerText(),/依原講義頁碼閱讀/);
+      await primary.click();
+      await reader.waitForURL(/middle\.html#slides\/all$/);
+      await reader.locator('.slide-card').first().waitFor();
+      assert.equal(await reader.locator('.slide-card').count(),169);
+      await reader.locator('#slide-p48 .slide-title-link').click();
+
+      const deep=reader.locator('[data-guide-page="48"]');
+      const pdf=reader.locator('#source-pdf-holder');
+      async function checkReadingOrder(intro,detail){
+        await pdf.locator('.source-pdf-panel').waitFor();
+        const [first,figure,next]=await Promise.all([intro.boundingBox(),pdf.boundingBox(),detail.boundingBox()]);
+        assert.ok(first && figure && next,'The introduction, PDF panel and explanation must be visible');
+        assert.ok(first.y+first.height<=figure.y+1 && figure.y+figure.height<=next.y+1,
+          'The PDF panel belongs between the introduction and the explanation');
+      }
+      await checkReadingOrder(deep.locator('.guide-intro'),deep.locator('.guide-section').first());
+
+      await reader.locator('.back-link').click();
+      await reader.locator('#slide-p76 .slide-title-link').click();
+      const paragraphs=reader.locator('[data-guide-page="76"] > p');
+      await checkReadingOrder(paragraphs.nth(0),paragraphs.nth(1));
+
+      await reader.goto(BASE+'/middle.html?edition=52#home');
+      assert.match(await primary.innerText(),/接著學習/);
+      await primary.click();
+      await reader.waitForURL(/middle\.html\?edition=52#lesson\//);
+    }finally{
+      await reader.close();
+    }
+  });
+}
+
 await run('R2 reading, edition switch and matching PDF pages',async()=>{
   await visit('middle.html#slides/all','.slide-card');
   assert.equal(await page.locator('.slide-card').count(),169);

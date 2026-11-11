@@ -111,13 +111,15 @@
   }
   function home(){
     var next=flat.find(function(x){return !completed.has(x.lesson.id)})||flat[0];
+    var primaryLink=D.edition==='R2'?'#slides/all':lessonPath(next.chapter,next.lesson);
+    var primaryLabel=D.edition==='R2'?'依原講義頁碼閱讀':'接著學習';
     var cards=D.chapters.map(function(c){
       var n=chapterDone(c),p=pct(n,c.lessons.length);
       return '<a class="subject-card" href="'+chapterPath(c)+'" style="--c:'+c.accent+'"><div class="card-top"><span class="subject-icon">'+icons[c.icon]+'</span><span class="card-index">CH '+c.number+'</span></div><h3>'+e(c.title)+'</h3><p>'+e(c.subtitle)+'</p><div class="card-bottom"><span>P.'+c.range[0]+'–'+c.range[1]+'　·　'+c.lessons.length+' 節　·　完成 '+n+'</span><span class="card-arrow">↗</span></div><div class="mini-track"><span style="width:'+p+'%"></span></div></a>';
     }).join('');
-    return '<section class="hero"><div class="hero-decoration"></div><div class="hero-copy"><div class="hero-kicker">POWER ELECTRONICS · LEARNING HUB</div><h1>把電力電子，<br>學成真正能用的知識。</h1><p>'+e(D.heroDescription||'從物理、磁性元件、功率開關，到 PFC、整流與 MCU 量測。想看哪一章就看哪一章。')+'</p><a class="hero-cta" href="'+lessonPath(next.chapter,next.lesson)+'">接著學習 →</a><div class="hero-stats"><div class="hero-stat"><strong>07</strong><span>大主題</span></div><div class="hero-stat"><strong>'+flat.length+'</strong><span>觀念小節</span></div><div class="hero-stat"><strong>'+pageCount+'</strong><span>講義頁碼</span></div><div class="hero-stat"><strong>'+pct(completed.size,flat.length)+'%</strong><span>完成進度</span></div></div></div></section>'+
-      '<div class="section-title"><h2>選一個你想學的主題</h2><a class="text-link" href="#slides/all">或瀏覽原講義 '+pageCount+' 頁 →</a></div><div class="subject-grid">'+cards+'</div>'+
-      readingLinks()+'<div class="secondary-panels"><div class="panel continue-panel"><span class="continue-orb">↗</span><div><h3>接著學：'+e(next.chapter.short)+'</h3><p>'+e(next.lesson.title)+'</p><a class="text-link" href="'+lessonPath(next.chapter,next.lesson)+'">開啟這一節 →</a></div></div><div class="panel tip-panel"><h3>閱讀方式</h3><p>先看物理現象，再看公式與工程條件。每章有實驗與小測驗，學習記錄保存在這台裝置的瀏覽器。</p></div></div>';
+    return '<section class="hero"><div class="hero-decoration"></div><div class="hero-copy"><div class="hero-kicker">POWER ELECTRONICS · LEARNING HUB</div><h1>把電力電子，<br>學成真正能用的知識。</h1><p>'+e(D.heroDescription||'從物理、磁性元件、功率開關，到 PFC、整流與 MCU 量測。想看哪一章就看哪一章。')+'</p><a class="hero-cta" href="'+primaryLink+'">'+primaryLabel+' →</a><div class="hero-stats"><div class="hero-stat"><strong>07</strong><span>大主題</span></div><div class="hero-stat"><strong>'+flat.length+'</strong><span>觀念小節</span></div><div class="hero-stat"><strong>'+pageCount+'</strong><span>講義頁碼</span></div><div class="hero-stat"><strong>'+pct(completed.size,flat.length)+'%</strong><span>完成進度</span></div></div></div></section>'+
+      readingLinks()+'<div class="section-title"><h2>選一個你想學的主題</h2><a class="text-link" href="#slides/all">或瀏覽原講義 '+pageCount+' 頁 →</a></div><div class="subject-grid">'+cards+'</div>'+
+      '<div class="secondary-panels"><div class="panel continue-panel"><span class="continue-orb">↗</span><div><h3>接著學：'+e(next.chapter.short)+'</h3><p>'+e(next.lesson.title)+'</p><a class="text-link" href="'+lessonPath(next.chapter,next.lesson)+'">開啟這一節 →</a></div></div><div class="panel tip-panel"><h3>閱讀方式</h3><p>先看物理現象，再看公式與工程條件。每章有實驗與小測驗，學習記錄保存在這台裝置的瀏覽器。</p></div></div>';
   }
   function chapter(c){
     var n=chapterDone(c);
@@ -179,9 +181,10 @@
   function pageGuideData(p){return D.volume==='middle'?(window.EE_PAGE_GUIDES&&window.EE_PAGE_GUIDES[p]||null):(window.EE_UPPER_PAGE_GUIDES&&window.EE_UPPER_PAGE_GUIDES[p]||null);}
   function pageGuide(p){
     var note=D.readings&&D.readings[p];
+    var pdf='<div id="source-pdf-holder"></div>';
     if(note)return '<section class="reading-block page-guide" data-guide-page="'+p+'"><h2>讀圖與推導</h2>'+
-      note.paragraphs.map(function(paragraph){return '<p>'+e(paragraph)+'</p>'}).join('')+'</section>';
-    var g=pageGuideData(p);if(!g)return '';
+      note.paragraphs.map(function(paragraph,i){return '<p>'+e(paragraph)+'</p>'+(i===0?pdf:'');}).join('')+'</section>';
+    var g=pageGuideData(p);if(!g)return pdf;
     var linked=flat.find(function(x){return x.lesson.id===g.lesson;});
     var phases=g.phases?'<div class="guide-phase-bar" aria-hidden="true">'+g.phases.map(function(x,i){
       return '<span class="guide-phase-'+i+'" style="width:'+Math.min(100,Math.max(0,Number(x.pct)))+'%"></span>';
@@ -189,7 +192,7 @@
     return '<section class="page-guide" data-guide-page="'+p+'" aria-labelledby="guide-title-'+p+'">'+
       '<header class="guide-intro"><small>'+(D.volume==='middle'?'中冊':'上冊')+'第 '+p+' 頁 · STEP BY STEP</small><h2 id="guide-title-'+p+'">'+e(g.title)+'</h2>'+
       '<p><strong>先想：</strong>'+e(g.question)+'</p><p class="guide-takeaway"><strong>一句話記住：</strong>'+e(g.takeaway)+'</p>'+
-      '<p class="guide-source">以下是本站另外撰寫的導讀；原講義電路圖與公式請用下方本機 PDF 核對。</p></header>'+
+      '<p class="guide-source">以下為本站導讀，可對照自己的講義 PDF 閱讀。</p></header>'+pdf+
       '<section class="guide-section"><h3>① 用白話想像物理現象</h3>'+g.intuition.map(function(x){return '<p>'+e(x)+'</p>';}).join('')+'</section>'+
       '<section class="guide-section"><h3>② 追蹤訊號與能量流</h3><ol class="guide-steps">'+g.steps.map(function(x){
         return '<li><strong>'+e(x.title)+'</strong><p>'+e(x.detail)+'</p></li>';
@@ -243,7 +246,7 @@
       '<h1>第 '+p+' 頁｜'+e(D.slideTitles[p])+'</h1>'+
       '<p class="lesson-lead">'+(c?'對應主題：'+e(c.title):readingSection(p)?e(readingSection(p)[2]):'封面、課程資訊或結語')+'</p>'+
       '<div class="chapter-actions">'+links+'</div></header>'+
-      pageGuide(p)+'<div id="source-pdf-holder"></div>'+
+      pageGuide(p)+
       (D.readings&&D.readings[p]?'':'<section class="reading-block"><h2>'+e(D.pageTextTitle||'原講義抽取文字')+'</h2>'+
       '<p class="muted">'+e(D.pageTextNote||'文字由原始 PPTX 擷取，可能缺漏圖片形式的公式與電路圖；原講義 PDF 才是圖形內容的依據。')+'</p>'+
       transcript+'</section>')+
