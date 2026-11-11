@@ -127,12 +127,12 @@
     return '<section class="source-pdf-panel">'+
       '<div class="source-pdf-top"><div><h3>原始投影片 PDF 對照</h3><p>可載入'+e(editionHint)+'。PDF 只留在這台裝置。</p></div>'+
       '<label class="btn btn-primary source-pdf-picker" for="source-pdf-file">'+(yes?'更換 PDF':'載入原始講義 PDF')+'</label><input id="source-pdf-file" type="file" class="sr-only" accept="application/pdf,.pdf"></div>'+
-      '<div id="source-pdf-feedback" class="source-pdf-feedback" role="status" aria-live="polite">'+
-      (yes?(pg?'已載入 '+documentProxy.numPages+' 頁講義：'+e(selectedName):'這一頁只收錄在中冊 R2。可繼續讀上方導讀，或更換 169 頁 PDF 查看原圖。'):'尚未驗證原始 PDF，請先載入講義檔案。')+'</div>'+
+      '<div id="source-pdf-feedback" class="source-pdf-feedback'+(yes?'':' source-pdf-placeholder')+'" role="status" aria-live="polite">'+
+      (yes?(pg?'已載入 '+documentProxy.numPages+' 頁講義：'+e(selectedName):'這一頁只收錄在中冊 R2。載入 169 頁版 PDF 即可對照本頁原圖。'):'手邊是 PPTX 時，請先匯出為 PDF。')+'</div>'+
       (yes?
         (pg?'<div class="source-pdf-canvas-wrap"><canvas id="source-pdf-canvas" role="img" aria-label="原始講義第 '+pg+' 頁 PDF 圖文"></canvas></div>':'')+
         '<div class="source-pdf-actions"><button class="btn btn-muted" type="button" id="source-pdf-remove">清除這台裝置的 PDF</button></div>':
-        '<div class="source-pdf-placeholder"><div class="source-pdf-symbol">▧</div><strong>載入'+e(editionHint)+'以對照原圖</strong><p>本檢視器會檢查頁數與課程文字特徵，確認後才能顯示 PDF 原圖。</p></div>')+
+        '')+
       '</section>';
   }
   function feedback(message,isError){

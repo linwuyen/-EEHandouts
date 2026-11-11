@@ -62,9 +62,17 @@ const output=input*ratio/(2*(1-currentFedDuty));
 near(output,100,1e-12,'P47 output gain');
 near(input*overlap+(input-output/ratio)*transfer,0,1e-12,'P47 input inductor volt-second');
 assert.ok(currentFedDuty>.5&&overlap>0,'P47 only valid in overlap operating mode');
-// P48: magnetizing vs leakage energy must not be conflated.
-near(100*4e-6/(200e-6),2,1e-12,'P48 magnetizing change');
-near(.5*2e-6*(2**2),4e-6,1e-15,'P48 leakage energy');
+// P48: a negative reset voltage returns positive B to its starting value.
+const initialB=.05,turns48=20,coreArea48=100e-6;
+const peakB=initialB+100*4e-6/(turns48*coreArea48);
+const resetB=peakB-100*4e-6/(turns48*coreArea48);
+const printedFlux=guides[48].worked.steps.slice(0,2).map(step=>
+  Array.from(step.replaceAll('−','-').matchAll(/([+-]?\d+(?:\.\d+)?)\s*T\b/g),m=>Number(m[1])));
+const [onFlux,offFlux]=printedFlux;
+near(onFlux.at(-2),initialB,1e-12,'P48 initial B');
+near(onFlux.at(-1),peakB,1e-12,'P48 B after positive volt-seconds');
+near(offFlux.at(-2),peakB,1e-12,'P48 B before reset');
+near(offFlux.at(-1),resetB,1e-12,'P48 B after negative volt-seconds');
 // P49: flux swing vs DC flux bias.
 near(100*4e-6/(20*100e-6),.2,1e-12,'P49 DeltaB');
 near(100*4e-6-100*4e-6,0,1e-12,'P49 balanced volt-seconds');

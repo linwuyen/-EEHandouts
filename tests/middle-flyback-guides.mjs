@@ -116,6 +116,13 @@ near(diodeFraction40/fs40,9.661835748792272e-6,1e-12,'P40 diode microseconds');
 near(zeroFraction40/fs40,5.338164251207728e-6,1e-12,'P40 idle microseconds');
 assert.ok(zeroFraction40>0,'P40 must verify DCM before using full peak energy');
 near(dc40+diodeFraction40,0.7330917874396135,1e-12,'P40 DCM period closure');
+// The turns calculation uses diode conduction time; at the boundary it fills OFF.
+const turnsForResetFraction=fraction=>(20+.7)*fraction/(vin40*dc40);
+const [dcmCalculation,boundaryCalculation]=guides[40].tryIt.split('。');
+const dcmRatio=dcmCalculation.match(/=\s*(\d+(?:\.\d+)?)\s*[，。]/);
+const boundaryRatio=boundaryCalculation?.match(/約\s*(\d+(?:\.\d+)?)/);
+near(Number(dcmRatio?.[1]),turnsForResetFraction(diodeFraction40),.0005,'P40 displayed Ns/Np in DCM');
+near(Number(boundaryRatio?.[1]),turnsForResetFraction(1-dc40),.0005,'P40 displayed Ns/Np at BCM');
 const idealSecondaryCurrent40=.5*2*current40*diodeFraction40;
 near(idealSecondaryCurrent40,.966183574879227,1e-12,'P40 ideal secondary current area');
 near(20*idealSecondaryCurrent40,19.32367149758454,1e-10,'P40 diode voltage drop reduces ideal load power');
