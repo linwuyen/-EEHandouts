@@ -141,7 +141,7 @@ for(const reason of ['pending','conflict','quota']){
  f=fixture();f.host.markReady();f.ctx.CircuitEvidence.flush=async()=>({saved:false,reason});
  assert.equal(await f.host.leave('v8-assessment.html'),false);assert.equal(f.nav.length,0);
 }
-f=fixture();f.host.markReady();assert.equal(await f.host.leave('v8-assessment.html'),true);assert.match(f.nav[0],/v8-assessment\\.html$/);
+f=fixture();f.host.markReady();assert.equal(await f.host.leave('v8-assessment.html'),true);assert.match(f.nav[0],/v8-assessment\.html$/);
 for(const module of ['inverter','foc','pi','loop10us']){
  const f=fixture(),nodes={
   'workspace-reference':{hidden:true,scrollIntoView(){}},
