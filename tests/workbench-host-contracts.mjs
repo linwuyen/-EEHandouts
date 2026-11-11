@@ -89,3 +89,42 @@ for(const reason of ['pending','conflict','quota']){
 f=fixture();f.host.markReady();assert.equal(await f.host.leave('topology-assessment.html'),true);
 assert.match(f.nav[0],/topology-assessment\.html$/);
 console.log('PASS 6b-4 topology quiz exact allowlist, hostile suffix denial, blocked stale Evidence navigation');
+
+// 6b-5: source power-firmware formal routes are exact, and source V5 must flush before leaving.
+for(const module of ['power-sync','protection','power-capstone']){
+ f=fixture();assert.equal(f.host.referenceHref('quiz.html?module='+module),'power-firmware-assessment.html');
+ for(const suffix of ['#passed','&score=100']){
+  f=fixture();assert.equal(f.host.referenceHref('quiz.html?module='+module+suffix),'coverage.html');
+ }
+}
+for(const path of ['power-firmware-assessment.html#passed','power-firmware-assessment.html?grade=pass']){
+ f=fixture();assert.equal(await f.host.leave(path),false);assert.equal(f.nav.length,0);
+}
+for(const reason of ['pending','conflict','quota']){
+ f=fixture();f.host.markReady();f.ctx.CircuitEvidence.flush=async()=>({saved:false,reason});
+ assert.equal(await f.host.leave('power-firmware-assessment.html'),false);assert.equal(f.nav.length,0);
+}
+f=fixture();f.host.markReady();assert.equal(await f.host.leave('power-firmware-assessment.html'),true);
+assert.match(f.nav[0],/power-firmware-assessment\.html$/);
+console.log('PASS 6b-5 firmware exact allowlist and guarded V5 navigation');
+
+// Source route disclosure must describe a FORMAL V5 write, not an OP concept lesson.
+for(const module of ['power-sync','protection','power-capstone']){
+ const s=fixture();
+ const nodes={
+  'workspace-reference':{hidden:true,scrollIntoView(){}},
+  'reference-frame':{hidden:false,removeAttribute(){}},
+  'reference-title':{textContent:''},
+  'reference-links':{children:[],replaceChildren(){this.children=[];},append(x){this.children.push(x);}}
+ };
+ s.ctx.document.getElementById=id=>nodes[id]||null;
+ s.ctx.document.createElement=tag=>({tag,textContent:'',type:null});
+ s.host.reference('quiz.html?module='+module,'Formal '+module);
+ assert.equal(nodes['workspace-reference'].hidden,false);
+ assert.equal(nodes['reference-links'].children.length,2);
+ const [text,button]=nodes['reference-links'].children;
+ assert.match(text.textContent,/三題族.*V5 Evidence/,'explicit formal V5 disclosure');
+ assert.doesNotMatch(text.textContent,/六課觀念/,'must not suggest no official grade');
+ assert.equal(button.textContent,'保存後開啟電源韌體正式題目');
+}
+console.log('PASS 6b-5 actual formal V5 reference text and button labels');

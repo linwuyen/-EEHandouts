@@ -526,6 +526,29 @@
       "sha256": "92c3d48f5bf6817fa7363eacee89dc61f600c792fda0cf7786398b0ae03dfce6",
       "adapted": true,
       "adaptation": "EE-only UI adapter for the original four source topology families; source grading, transfer and 1/7/30/90 retention preserved; no independent store or safety certification."
+    },
+    {
+      "path": "assets/learning/power-firmware-assessment.js",
+      "sourcePath": "assets/learning/power-firmware-assessment.js",
+      "sourceBlob": "5579ff0338656507dab45ac7bd7a4dc3d6388048",
+      "sha256": "d0ca057b6c29787eef0c1b285ac8ede2afac582c968198f2da9affd84c35d63d",
+      "adapted": false
+    },
+    {
+      "path": "power-firmware-assessment.html",
+      "sourcePath": "quiz.html",
+      "sourceBlob": "61ad104246926cea2ea5b94ce9ded605c34340da",
+      "sha256": "51cbe70e99525012bd53294f6b03d0a62ee24c3dd8f4995fb7a84a1027657a50",
+      "adapted": true,
+      "adaptation": "EE-only Power Firmware 3-family assessment UI; source grader and V5 Evidence owner unchanged; not BOARD_PASS."
+    },
+    {
+      "path": "ee-power-firmware-assessment.js",
+      "sourcePath": "quiz.html",
+      "sourceBlob": "61ad104246926cea2ea5b94ce9ded605c34340da",
+      "sha256": "d2e048d0717a949ba9f2b0cac6f053ce4f7d771903ba37f5184a404bad83d6a4",
+      "adapted": true,
+      "adaptation": "EE-only Power Firmware seeded variant presentation and guarded V5 flow; Web Lock/raw backup and pending draft retained; no separate grade store."
     }
   ],
   "testFiles": [
