@@ -19,9 +19,13 @@ const catalog = Object.freeze({
   'bms-failsafe-convergence': {module: 'bms', label: 'BMS 故障隔離'},
   'ad5543-code-mapping': {module: 'ad5543', label: 'AD5543 目標電壓與數位碼'},
   'dds-real-power': {module: 'c2000-dds', label: 'DDS 相位與實功率'},
+  'afe-phase-power': {module: 'afe', label: 'AFE 位移功率因數'},
+  'acmc-protection-boundary': {module: 'acmc-pro', label: 'ACMC 保護模型邊界'},
 });
 const FAMILIES = Object.freeze(Object.keys(catalog));
 const prerequisiteLinks = {
+  'adc.divider.power': ['ADC 分壓與功率', 'adc-assessment.html'],
+  'afe.phase.power': ['AFE 位移功率因數', 'v8-assessment.html?module=afe'],
   'buck.model.validity': ['Buck 理想模型適用條件', 'buck-assessment.html'],
   'adc.quantization.levels': ['ADC 量化階數', 'adc-assessment.html'],
   'adc.current.offset': ['ADC 電流量測偏移', 'adc-assessment.html'],
@@ -31,6 +35,7 @@ const prerequisiteLinks = {
 // Source options can round to the same number. Show the calculation alongside the
 // value so the learner can distinguish methods while the source grades the same ID.
 const calculationMethods = {
+  'afe-phase-power': {correct: 'cos φ', sin: 'sin φ', degree: '相位角的度數', one: '固定為 1'},
   'ad5543-code-mapping': {correct: 'Vtarget/Vref × 65536', '12bit': 'Vtarget/Vref × 4096', inverse: 'Vref/Vtarget × 65536，再限幅', max: '固定滿刻度'},
   'dds-real-power': {correct: 'Vrms × Irms × cos φ', va: 'Vrms × Irms', sin: 'Vrms × Irms × sin φ'},
 };
