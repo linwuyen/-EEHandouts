@@ -2,9 +2,10 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {runInNewContext} from 'node:vm';
-const root={},course={};
+const root={},course={},interactive={};
 runInNewContext(readFileSync('upper-page-guides.js','utf8'),{window:root});
 runInNewContext(readFileSync('data.js','utf8'),{window:course});
+runInNewContext(readFileSync('interactive-lessons.js','utf8'),{window:interactive});
 const g=root.EE_UPPER_PAGE_GUIDES,lessons=course.EE_DATA.chapters.flatMap(c=>c.lessons);
 const map={83:'neutral',84:'neutral',85:'neutral',86:'sixpulse',87:'sixpulse',88:'sixpulse'};
 const titles=new Set();
@@ -33,6 +34,20 @@ const near=(got,expected,tol,label)=>assert.ok(Number.isFinite(got)&&Math.abs(go
 // P83: balanced wye voltage, balanced fundamental cancellation, triplen summation.
 near(Math.sqrt(3)*120,207.84609690826525,1e-10,'P83 wye line-to-line RMS');
 near(3*2,6,1e-12,'P83 equal in-phase 3rd harmonic neutral RMS');
+// The source arrow returns from the loads: preserve the sign as well as the RMS.
+const neutralModel=interactive.EE_INTERACTIVE.models.neutral;
+const neutral=neutralModel.compute({i1:5,h3:15});
+const phaseTraces=Object.fromEntries(neutral.series.map(s=>[s.label,s.points]));
+near(phaseTraces.IN[25],-3.181980515339464,1e-10,'P83 source-return neutral at 25%');
+for(const label of ['IA','IB','IC','IN'])
+ assert.ok(phaseTraces[label],'P83 all three phase currents and neutral are plotted: '+label);
+for(let j=0;j<=100;j++){
+ near(phaseTraces.IN[j],phaseTraces.IA[j]+phaseTraces.IB[j]+phaseTraces.IC[j],1e-10,
+  'P83 source-return KCL at sample '+j);
+}
+near(Math.sqrt(phaseTraces.IN.slice(0,-1).reduce((sum,i)=>sum+i*i,0)/100),2.25,1e-10,
+ 'P84 5 Arms with 15% third harmonic yields 2.25 Arms neutral');
+near(neutral.metrics[0].value,2.25,1e-12,'P84 neutral RMS metric matches whole-period waveform');
 // P84: complex phase vector sum of h-th harmonic; h=3,9 adds, h=1,5,7 cancels.
 function harmonicPhaseSum(h){
  let real=0,imag=0;

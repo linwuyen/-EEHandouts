@@ -82,13 +82,30 @@ function voltsAndDelta(states,L,fs){
   if(vl<0)negative+=vl*dt/L;}
  return {voltSeconds,positive,negative};
 }
-const buck=voltsAndDelta([{a:24,b:12,share:.5},{a:0,b:12,share:.5}],100e-6,100e3);
-const boost=voltsAndDelta([{a:12,b:0,share:.5},{a:12,b:24,share:.5}],100e-6,100e3);
-for(const [name,s] of [['buck',buck],['boost',boost]]){
- near(s.voltSeconds,0,1e-15,'P27 '+name+' volt-second closure');
- near(s.positive,.6,1e-12,'P27 '+name+' current rise');
- near(s.negative,-.6,1e-12,'P27 '+name+' current fall');
+// Read the worked states, then independently infer node voltages from the conducting pair.
+const authoredStates=g[27].worked.steps.flatMap(s=>{
+ const m=s.replaceAll('−','-').match(/(Q[12]p?)[、/](Q[12]p?) 導通.*?vSW,L=([+-]?[\d.]+)\s*V.*?vSW,R=([+-]?[\d.]+)\s*V.*?vL=([+-]?[\d.]+)\s*V.*?diL\/dt=([+-]?[\d.]+)\s*A\/µs.*?t=([\d.]+)\s*µs/);
+ return m?[{on:[m[1],m[2]],a:Number(m[3]),b:Number(m[4]),vl:Number(m[5]),slope:Number(m[6]),us:Number(m[7])}]:[];
+});
+assert.equal(authoredStates.length,3,'P27 main example must resolve all three dual-carrier states');
+const seenPairs=new Set();
+for(const state of authoredStates){
+ assert.equal(state.on.filter(q=>q.startsWith('Q1')).length,1,'P27 one conducting switch in left arm');
+ assert.equal(state.on.filter(q=>q.startsWith('Q2')).length,1,'P27 one conducting switch in right arm');
+ const a=state.on.includes('Q1')?24:0,b=state.on.includes('Q2p')?24:0;
+ near(state.a,a,1e-12,'P27 left midpoint follows conducting switch');
+ near(state.b,b,1e-12,'P27 right midpoint follows conducting switch');
+ near(state.vl,a-b,1e-12,'P27 authored vL is left minus right');
+ near(state.slope,(a-b)/100e-6*1e-6,1e-12,'P27 authored current slope follows L di/dt');
+ seenPairs.add(state.on.join('/'));
 }
+assert.deepEqual([...seenPairs].sort(),['Q1/Q2','Q1/Q2p','Q1p/Q2p'].sort(),
+ 'P27 includes positive, transfer and negative voltage states');
+near(authoredStates.reduce((sum,s)=>sum+s.us,0),10,1e-12,'P27 intervals fill one 100 kHz period');
+const dualCarrier=voltsAndDelta(authoredStates.map(s=>({...s,share:s.us/10})),100e-6,100e3);
+near(dualCarrier.voltSeconds,0,1e-15,'P27 three-state volt-second closure');
+near(dualCarrier.positive,.24,1e-12,'P27 red pulse current rise');
+near(dualCarrier.negative,-.24,1e-12,'P27 green pulse current fall');
 // P28 both passive-power signs and input-source balancing.
 const batV=24,busV=48;
 for(const ibat of [5,-5]){

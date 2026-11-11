@@ -542,8 +542,8 @@ window.EE_MATH = {
   ],
   "neutral": [
     {
-      "label": "中性線瞬時電流",
-      "tex": "i_N(t)=-\\left[i_A(t)+i_B(t)+i_C(t)\\right]"
+      "label": "中性線瞬時電流（以流回電源為正）",
+      "tex": "i_N(t)=i_A(t)+i_B(t)+i_C(t)"
     }
   ],
   "sixpulse": [
@@ -567,11 +567,11 @@ window.EE_MATH = {
   "bus": [
     {
       "label": "電流峰值因數",
-      "tex": "\\mathrm{CF}=\\frac{I_{\\mathrm{peak}}}{I_{\\mathrm{rms}}}"
+      "tex": "\\mathrm{CF}=\\frac{I_{\\mathrm{線,peak}}}{I_{\\mathrm{線,rms}}}"
     },
     {
-      "label": "真功率因數",
-      "tex": "\\mathrm{PF}=\\frac{P}{V_{\\mathrm{rms}}I_{\\mathrm{rms}}}"
+      "label": "平衡三相真功率因數（P₃φ：三相總有功功率；V相,rms：相電壓 RMS；I線,rms：線電流 RMS）",
+      "tex": "\\mathrm{PF}=\\frac{P_{3\\phi}}{3\\,V_{\\mathrm{相,rms}}\\,I_{\\mathrm{線,rms}}}"
     }
   ],
   "op": [

@@ -10,6 +10,39 @@ await fs.mkdir('tests/screenshots',{recursive:true});
 const browser=await chromium.launch({headless:true});
 const issues=[];
 let inspected=0,typed=0,plain=0;
+async function openBusFromGuide(page,number){
+  await page.goto(BASE+'/index.html#home');
+  await page.locator('.section-title a[href="#slides/all"]').click();
+  await page.locator('.slide-title-link[href="#slide/'+number+'"]').click();
+  await page.locator('[data-guide-page="'+number+'"] .guide-link[href$="/bus"]').click();
+  await page.locator('.equation-list[data-lesson-math="bus"]').waitFor();
+}
+const compactMath=text=>text.normalize('NFKC').replace(/[\s\u200b]/g,'');
+const busEntries=await browser.newContext({viewport:{width:1440,height:900}});
+const busPage=await busEntries.newPage();
+busPage.on('pageerror',err=>issues.push('bus guide entry: '+err.message));
+for(const number of [93,94,95,96]){
+  await openBusFromGuide(busPage,number);
+  await busPage.locator('.equation-list.math-ready').waitFor();
+  const pf=busPage.locator('.equation-row').filter({has:busPage.locator('.equation-label', {hasText:/功率因數/})});
+  const fraction=pf.locator('.katex-html .mfrac');
+  assert.equal(await fraction.count(),1,'P'+number+' bus PF is a visible typeset fraction');
+  assert.ok(await fraction.isVisible(),'P'+number+' bus PF fraction must be visible');
+  // Read the visible numerator/denominator above/below the fraction rule,
+  // rather than the hidden TeX annotation or the authored formula map.
+  const parts=await fraction.evaluate(node=>Array.from(node.querySelector('.vlist').children)
+    .filter(n=>n.textContent.trim()).map(n=>({text:n.textContent,y:n.getBoundingClientRect().top}))
+    .sort((a,b)=>a.y-b.y).map(n=>n.text));
+  assert.equal(parts.length,2,'P'+number+' PF has a numerator and denominator');
+  assert.match(compactMath(parts[0]),/^P3[φϕ]$/,'P'+number+' numerator is three-phase total active power P3φ');
+  assert.match(compactMath(parts[1]),/^3[×⋅·*]?V相,?rms[×⋅·*]?I線,?rms$/,
+    'P'+number+' denominator is 3 × phase-voltage RMS × line-current RMS');
+  assert.match(await busPage.locator('#main-content').innerText(),/三相總有功功率/,
+    'P'+number+' bus lesson must explain what P3φ measures');
+  if(number===93)await busPage.locator('.formula-panel').screenshot({path:'tests/screenshots/r2-threephase-pf.png'});
+}
+await busEntries.close();
+
 async function checkVolume(file,expectedCount){
   const ctx=await browser.newContext({viewport:{width:1440,height:900}});
   const page=await ctx.newPage();
@@ -89,6 +122,18 @@ await offline.locator('.equation-original').waitFor();
 assert.equal(await offline.locator('.equation-original').isVisible(),true,'Text fallback when CDN script is unavailable');
 assert.equal(await offline.locator('.equation-list.math-ready').count(),0,'KaTeX should not claim ready when blocked');
 assert.ok((await offline.locator('.equation-original').innerText()).includes('Buck'),'Fallback lost original formula');
+for(const number of [93,94,95,96]){
+  await openBusFromGuide(offline,number);
+  const fallback=offline.locator('.equation-original');
+  assert.ok(await fallback.isVisible(),'P'+number+' bus plain formula remains visible with KaTeX blocked');
+  assert.equal(await offline.locator('.equation-list.math-ready').count(),0);
+  const text=compactMath(await fallback.innerText());
+  assert.match(text,/PF=P3[φϕ]\//,'P'+number+' fallback names total three-phase power in the PF numerator');
+  assert.match(text,/\(3[×⋅·*]?V相,?rms[×⋅·*]?I線,?rms\)/,
+    'P'+number+' fallback includes the factor 3 and unambiguous phase-voltage/line-current RMS');
+  assert.match(await offline.locator('#main-content').innerText(),/三相總有功功率/,
+    'P'+number+' total three-phase active power definition survives blocked KaTeX');
+}
 await missing.close();
 
 // Failure mode previously missed: KaTeX JS loads successfully, but CSS fails.

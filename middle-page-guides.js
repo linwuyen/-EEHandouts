@@ -974,7 +974,7 @@
       "q": "為什麼 Boost 的 MOSFET RDS(on) 前面乘 D，而二極體 RD 前面乘 D′？",
       "a": "因為 MOSFET 主要在 ON 導通，二極體主要在 OFF 導通；兩者在電感伏秒平均中各自只貢獻對應導通區間。"
     },
-    "tryIt": "到 Boost 寄生損耗既有課節，先畫 ON／OFF 電流路徑，再逐一提高 RON 或二極體 Vf，檢查增益變化。"
+    "tryIt": "直接用本頁 ON／OFF 等效電路與導通損公式練習：先圈出 RON 只在 ON、VD 只在 OFF，再將本例代入平均伏秒式核對 Vo≈90.33 V。"
   },
   "16": {
     "lesson": "mid-boost-parasitic",
@@ -1235,13 +1235,14 @@
       }
     ],
     "worked": {
-      "given": "Vin=48 V、D=50%、R=20 Ω、RL=0.2 Ω、RON=0.1 Ω、RD=0.05 Ω、VD=0.7 V，忽略開關損。",
+      "given": "固定 Vin=48 V、D=50%、R=20 Ω、RL=0.2 Ω、RD=0.05 Ω、VD=0.7 V，忽略開關損；只將 RON 從 0.1 Ω 改成 0.2 Ω。",
       "steps": [
-        "rEff=0.2+0.5×0.1+0.5×0.05=0.275 Ω；Vo=23.825/(0.25+0.275/20)≈90.33 V。",
-        "Io=Vo/20≈4.52 A，IL=Io/0.5≈9.03 A；按各時段導通電阻估 Pcond,res≈IL²×0.275≈22.44 W。",
-        "二極體固定壓降損約 VD×Io≈3.16 W；輸入 Vin IL≈433.6 W、負載 Vo Io≈408.0 W，差額約 25.6 W。"
+        "RON=0.1 Ω：rEff=0.2+0.5×0.1+0.5×0.05=0.275 Ω；代入本頁平均輸出式，Vo≈90.33 V。",
+        "只改 RON=0.2 Ω：rEff=0.2+0.5×0.2+0.5×0.05=0.325 Ω；其餘量不變，Vo≈89.48 V，比原來降低約 0.85 V。",
+        "更新後 Io=Vo/20≈4.47 A、IL=Io/0.5≈8.95 A；電阻導通損 IL²×0.325≈26.02 W，二極體固定壓降損 VD×Io≈3.13 W。",
+        "更新後輸入 Vin IL≈429.52 W、負載 Vo Io≈400.37 W，差額約 29.15 W，與上述兩類導通損之和相符。"
       ],
-      "result": "平均功率差額可對應成已納入的寄生導通損。這個帳算平，不代表真實 switching loss、溫升或過衝已驗證。"
+      "result": "固定其餘參數，只增加 RON，Vo 便從 90.33 V 降到 89.48 V；IL 也要重新計算，再核對導通損的功率帳，不能沿用舊電流。"
     },
     "assumptions": [
       "CCM、固定 D、電阻負載、小漣波、常數 RL／RON／RD／VD；利用 IL 平均值近似導通 RMS。",
@@ -1252,7 +1253,7 @@
       "q": "Boost 二極體固定 Vf 損耗為什麼近似 VD×Io，而不是 VD×IL？",
       "a": "因為二極體只在 OFF 的 D′ 比例導通，平均二極體電流就是 Io=D′IL，所以固定壓降的平均耗損為 VD Io。"
     },
-    "tryIt": "在寄生平均模型課節提高 RON 或 VD，重新核對輸入與負載功率，最後再對比電流漣波帶來的 RMS 差異。"
+    "tryIt": "留在本頁，用導通損公式重算 RON=0.1 Ω 與 0.2 Ω 兩列，保持 Vin、D、R、RL、RD、VD 不變，核對 Vo=90.33→89.48 V。連結課節的控制項是切換能量、頻率與 Gate 電荷；本例的 RON 比較直接代公式完成。"
   },
   "20": {
     "lesson": "mid-boost-parasitic",
@@ -1340,8 +1341,8 @@
         "detail": "輸出只在 OFF 接收電流，Io,crit=(1−D)IL,crit=Vin D(1−D)/(2Lfs)。"
       },
       {
-        "title": "3. 若固定 Vo，就把 Vin 換成 Vo(1−D)",
-        "detail": "理想邊界仍有 Vo=Vin/(1−D)，因此 IL,crit=Vo D(1−D)/(2Lfs)，Io,crit=Vo D(1−D)²/(2Lfs)。"
+        "title": "3. 原圖固定 Vo，把 Vin 換成 Vo(1−D)",
+        "detail": "原圖比較固定 Vo 的邊界，所以改 D 時 Vin 必須一起變為 Vo(1−D)；因此 IL,crit=Vo D(1−D)/(2Lfs)，Io,crit=Vo D(1−D)²/(2Lfs)。"
       },
       {
         "title": "4. 比較曲線的峰值",
@@ -1350,10 +1351,10 @@
     ],
     "equations": [
       {
-        "label": "BCM 臨界電感電流（固定 Vin）",
-        "tex": "I_{L,crit}=\\frac{V_{in}D}{2Lf_s}",
-        "plain": "IL,crit=Vin D/(2 L fs)",
-        "why": "谷值為零，電感平均就是正三角形峰值的一半。"
+        "label": "原圖固定 Vo 的臨界電感電流",
+        "tex": "I_{L,crit}=\\frac{V_oD(1-D)}{2Lf_s}",
+        "plain": "IL,crit=Vo D(1−D)/(2 L fs)",
+        "why": "谷值為零時，電感平均為峰值的一半；再用 Vin=Vo(1−D) 換成原圖的固定輸出條件。"
       },
       {
         "label": "輸出電流的臨界關係",
@@ -1369,13 +1370,14 @@
       }
     ],
     "worked": {
-      "given": "固定 Vo=100 V、D=50%、L=100 µH、fs=100 kHz，假設理想 Boost BCM。",
+      "given": "依原圖固定 Vo=100 V、L=100 µH、fs=100 kHz，比較 D=0.35 與 D=0.50 的理想 Boost BCM 邊界。",
       "steps": [
-        "理想邊界對應 Vin=Vo(1−D)=50 V。",
-        "電感漣波 ΔIL=50×0.5/(100 µH×100 kHz)=2.5 App；IL,crit=1.25 A。",
-        "Io,crit=(1−D)×1.25=0.625 A；Rcrit=100/0.625=160 Ω，電阻再增大則負載更輕，進入 DCM。"
+        "D=0.35：Vin=65 V，ΔIL=65×0.35/(100 µH×100 kHz)=2.275 App；IL,crit=1.1375 A，Io,crit≈0.739 A。",
+        "D=0.50：Vin=50 V，ΔIL=50×0.50/(100 µH×100 kHz)=2.5 App；IL,crit=1.25 A，Io,crit=0.625 A。",
+        "沿原圖從 D=0.35 移到 0.50，IL,crit 上升，但 Io,crit 從約 0.739 A 降至 0.625 A；兩點的 Vin 不同，Vo 始終為 100 V。",
+        "在原圖各標一個高點：IL,crit 在 D=1/2 最大，Io,crit 在 D=1/3 最大。D=0.50 時 Rcrit=100/0.625=160 Ω。"
       ],
-      "result": "臨界輸入電感電流 1.25 A 與臨界輸出電流 0.625 A 不相等；使用固定 Vo 畫不同臨界曲線時，必須分清橫軸假設。"
+      "result": "固定 Vo 的兩條曲線有不同峰值：IL,crit 在 D=1/2、Io,crit 在 D=1/3。由 D=0.35 到 0.50，輸出臨界電流下降，不能用固定 Vin 的 Duty 掃描解讀。"
     },
     "assumptions": [
       "理想非同步 Boost，固定頻率、線性 L、固定 Vo 的邊界掃描；不包含 Burst、PFM、同步反向電流或大漣波寄生。",
@@ -1386,7 +1388,7 @@
       "q": "固定 Vo、L、fs 的理想 Boost，IL,crit 的 Duty 峰值在 50%；Io,crit 也在 50% 嗎？",
       "a": "不是。Io,crit 比 IL,crit 多乘一個 (1−D)，因此固定 Vo 時與 D(1−D)² 成正比，峰值在 D=1/3。"
     },
-    "tryIt": "在 Boost BCM 課節，先固定 Vo、改 D，分別觀察臨界 IL 與臨界 Io 的曲線，確認兩者高點不同。"
+    "tryIt": "直接對照原圖與本頁例題：固定 Vo=100 V、L=100 µH、fs=100 kHz，從 D=0.35 移到 0.50，核對 Io,crit≈0.739→0.625 A，再標出 IL,crit 的 D=1/2 高點與 Io,crit 的 D=1/3 高點。"
   },
   "22": {
     "lesson": "mid-boost-dcm",
@@ -1766,29 +1768,29 @@
   },
   "27": {
     "lesson": "mid-four-switch",
-    "title": "四開關 Buck-Boost 怎麼用兩個橋臂中點讓電感升流或降流？",
-    "question": "左右各有一組半橋，為什麼要先求兩個中點電壓差，而不能只看一個 Gate？",
-    "takeaway": "以左向右電感方向定義 vL=vSW,left−vSW,right。不同模式是用不同橋臂狀態產生正、負伏秒，再透過電感傳能。",
+    "title": "四開關 Buck-Boost 的兩條載波與四條 Gate，如何讀出三種電感電壓？",
+    "question": "在原圖任選一段 Gate 高電位，能否同時指出哪兩管導通、左右中點電壓，以及 iL 的斜率？",
+    "takeaway": "先對齊兩條載波與四條 Gate：紅色谷底窄脈波給 +Vin，綠色波峰窄脈波給 −Vo，兩段之間給 Vin−Vo；一律用左端減右端求 vL。",
     "intuition": [
-      "四開關非隔離 Buck-Boost 是『左半橋 → 電感 → 右半橋』。兩橋臂中點都能切換，因此電感兩端電壓是它們的差值；MOSFET Gate 只是命令，不等於真實開關節點電壓。",
-      "Vin 高於 Vo 時，可能讓左端作 Buck PWM、右端保持適當固定狀態；Vin 低於 Vo 時則可令右端作 Boost PWM。接近交界時還有混合方式，但模式切換與 dead time 必須由實際控制器規定。"
+      "先認圖上的管名：左側 Buck 橋臂上管 Q1 接 Vin、下管 Q1p 接地；右側 Boost 橋臂下管 Q2 接地、上管 Q2p 接 Vo。電感跨在兩中點之間，vL 定義為左中點減右中點。",
+      "沿同一時間軸把紅色 Boost 載波、綠色 Buck 載波與 Q1、Q1p、Q2、Q2p 四條 Gate 對齊。從紅色谷底窄脈波出發，接著是傳能段、綠色波峰窄脈波，再回到傳能段；這一頁要逐段讀這三種狀態。"
     ],
     "steps": [
       {
-        "title": "先定義左、右電壓與電感電流方向",
-        "detail": "令 iL 正方向由左向右、vL=vSW,left−vSW,right；每個橋臂上下管都不能同時開通。"
+        "title": "1. 先將四條 Gate 垂直對齊",
+        "detail": "令 iL 正方向由左向右，vL=vSW,L−vSW,R。任選一段時間，同時讀左右橋臂各一條高 Gate；理想互補下，Q1 與 Q1p、Q2 與 Q2p 各有一管導通。"
       },
       {
-        "title": "Buck：左端 PWM、右端近似固定 Vo",
-        "detail": "左節點切 Vin／0，右節點維持 Vo；左上管 ON 時 vL=Vin−Vo，左下管導通時 vL=−Vo，平均伏秒得 Vo≈Dbuck Vin。"
+        "title": "2. 紅色 Boost 載波谷底的窄脈波",
+        "detail": "Q1、Q2 導通，Q1p、Q2p 截止：左中點接 Vin、右中點接 0，vL=+Vin，diL/dt=+Vin/L。沿 Vin→Q1→電感→Q2→地追電流，iL 在此段上升。"
       },
       {
-        "title": "Boost：左端固定 Vin、右端 PWM",
-        "detail": "右側低管導通時右中點≈0，vL≈+Vin；右側高管送能時右中點≈Vo，vL≈Vin−Vo，得到 Vo≈Vin/(1−Dboost)。"
+        "title": "3. 綠色 Buck 載波波峰的窄脈波",
+        "detail": "Q1p、Q2p 導通，Q1、Q2 截止：左中點接 0、右中點接 Vo，vL=−Vo，diL/dt=−Vo/L。正向電感電流經 Q2p 送至輸出、由 Q1p 續流，iL 在此段下降。"
       },
       {
-        "title": "把時序與保護加回現實世界",
-        "detail": "兩半橋要處理 dead time、body diode、電流正負、PWM Shadow 更新與模式切換；不能只把兩個 Duty 公式拼起來就完成控制。"
+        "title": "4. 兩窄脈波之間的傳能段",
+        "detail": "Q1、Q2p 導通，Q1p、Q2 截止：左中點接 Vin、右中點接 Vo，vL=Vin−Vo，diL/dt=(Vin−Vo)/L。Vin>Vo 時上升、Vin<Vo 時下降、Vin=Vo 時水平；Q2 Gate 低不代表 iL 必然下降。"
       }
     ],
     "equations": [
@@ -1796,40 +1798,47 @@
         "label": "真正控制電感斜率的是兩中點差",
         "tex": "v_L=v_{SW,L}-v_{SW,R}=L\\frac{di_L}{dt}",
         "plain": "vL=vSW,L−vSW,R=L diL/dt",
-        "why": "當 vSW,L>vSW,R，沿定義方向電感電流增加；反之下降。"
+        "why": "先由兩顆導通開關找中點電壓，再相減；結果正、負、零分別對應升流、降流與水平。"
       },
       {
-        "label": "指定 Buck 工作策略的平均式",
-        "tex": "V_o\\approx D_{buck}V_{in}",
-        "plain": "Vo≈Dbuck×Vin",
-        "why": "右橋臂高側保持適當導通、左橋臂以 Dbuck PWM 且為理想 CCM。"
+        "label": "紅色谷底窄脈波：Q1、Q2 導通",
+        "tex": "v_L=V_{in}-0=V_{in},\\quad\\frac{di_L}{dt}=\\frac{V_{in}}{L}",
+        "plain": "vL=Vin−0=+Vin；diL/dt=+Vin/L",
+        "why": "左上管把左中點接至 Vin、右下管把右中點接地，兩端差為正。"
       },
       {
-        "label": "指定 Boost 工作策略的平均式",
-        "tex": "V_o\\approx\\frac{V_{in}}{1-D_{boost}}",
-        "plain": "Vo≈Vin/(1−Dboost)",
-        "why": "左橋臂高側導通、右橋臂低側的佔比為 Dboost，且理想 CCM、忽略損耗。"
+        "label": "綠色波峰窄脈波：Q1p、Q2p 導通",
+        "tex": "v_L=0-V_o=-V_o,\\quad\\frac{di_L}{dt}=-\\frac{V_o}{L}",
+        "plain": "vL=0−Vo=−Vo；diL/dt=−Vo/L",
+        "why": "左下管把左中點接地、右上管把右中點接至 Vo，兩端差為負。"
+      },
+      {
+        "label": "兩窄脈波之間：Q1、Q2p 導通",
+        "tex": "v_L=V_{in}-V_o,\\quad\\frac{di_L}{dt}=\\frac{V_{in}-V_o}{L}",
+        "plain": "vL=Vin−Vo；diL/dt=(Vin−Vo)/L",
+        "why": "兩側上管接通輸入與輸出，斜率符號取決於 Vin 和 Vo 的大小，相等時斜率為零。"
       }
     ],
     "worked": {
-      "given": "電感 L=100 µH、PWM=100 kHz。比較 Vin=24 V→Vo=12 V 降壓，以及 Vin=12 V→Vo=24 V 升壓。",
+      "given": "沿原圖三種狀態，另取 Vin=24 V、Vo=24 V、L=100 µH、fs=100 kHz。紅、綠窄脈波各 1 µs，中間傳能段每週期合計 8 µs；這些時間只供計算，並非量取原圖的占比。",
       "steps": [
-        "Buck 選 Dbuck=0.5，左端 ON/OFF 分別 24／0 V，右端近似 12 V，因此 vL=+12／−12 V。",
-        "每段 5 µs，電感上升或下降 12×5 µs/100 µH=0.6 A，正負伏秒抵消。",
-        "Boost 選 Dboost=0.5，左端近似 12 V；右低側導通時 vL=+12 V，右高側送能時 vL=12−24=−12 V，也能週期閉合。"
+        "紅色谷底窄脈波，Q1、Q2 導通：vSW,L=24 V、vSW,R=0 V；vL=+24 V、diL/dt=+0.24 A/µs，t=1 µs，ΔiL=+0.24 A。",
+        "綠色波峰窄脈波，Q1p、Q2p 導通：vSW,L=0 V、vSW,R=24 V；vL=−24 V、diL/dt=−0.24 A/µs，t=1 µs，ΔiL=−0.24 A。",
+        "兩窄脈波之間，Q1、Q2p 導通：vSW,L=24 V、vSW,R=24 V；vL=0 V、diL/dt=0 A/µs，合計 t=8 µs，ΔiL=0 A。",
+        "一個 10 µs 週期內，+24×1+0×8−24×1=0 V·µs，電感電流回到起點。傳能段在此例水平，原因是 Vin=Vo；若改變兩端電壓，須重新由 Vin−Vo 判斷斜率。"
       ],
-      "result": "同樣得到正負 12 V 電感電壓，但切換的是不同橋臂；要由兩個開關節點決定真實 vL，不能把兩套模式混用。"
+      "result": "圈出任一 Gate 時段後，都要依序回答：導通的是哪兩管、左／右中點各為多少、相減後的 vL 是多少、iL 上升或下降或水平。三種狀態都可用這個順序核對。"
     },
     "assumptions": [
-      "只演示非隔離四開關、固定橋臂＋單 PWM 的理想正向 CCM 策略，沒有模擬雙橋同時 PWM。",
-      "不含 body diode、MOSFET dead time、混合模式、反向功率或保護停機；實機必須依硬體 PWM／故障時序驗證。"
+      "依原圖兩條載波與四條 Gate 判讀三狀態；假設 Vin、Vo 為正且一週期內近似固定，電感處於正向 CCM，開關理想。",
+      "先忽略切換邊緣的 dead time、body diode 與寄生壓降；實機在死區內的中點電壓還受電流方向影響，不能只憑 Gate 高低代入理想值。"
     ],
-    "pitfall": "把四開關 Buck-Boost 當成負載直接接在 H-Bridge 兩中點的馬達驅動，忽略它中間串著能量轉移電感。",
+    "pitfall": "只看 Q2 的窄脈波就把其餘時間全當成降流，漏掉綠色脈波與中間傳能段的不同導通組合；或將 vL 的左減右極性反過來。",
     "check": {
-      "q": "左橋臂中點 24 V、右橋臂中點 12 V，電感兩端 vL 是多少？",
-      "a": "依左減右的參考方向，vL=24−12=+12 V，因此電感正方向電流開始上升。"
+      "q": "在兩窄脈波之間圈出一段：哪兩管導通？若 Vin 分別大於、小於、等於 Vo，iL 斜率各如何？",
+      "a": "Q1、Q2p 導通，Q1p、Q2 截止；左中點為 Vin，右中點為 Vo。vL=Vin−Vo，所以 Vin>Vo 時上升、Vin<Vo 時下降、Vin=Vo 時水平。"
     },
-    "tryIt": "到「四開關 Buck-Boost 的橋臂與控制」課節分別找 Buck／Boost 的固定橋臂和 PWM 橋臂。"
+    "tryIt": "回到原圖，在紅色谷底、綠色波峰與兩者之間各畫一條垂直線，逐條讀完四個 Gate；寫下導通管組、兩中點電壓、左減右的 vL 與 iL 斜率，再用本頁三狀態核對。"
   },
   "28": {
     "lesson": "mid-bidirectional",

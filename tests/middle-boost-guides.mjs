@@ -87,6 +87,17 @@ near(out,.5*il,1e-12,'P17 capacitor charge balance');
 const Pout=parasitic*out,Pin=48*il,Loss=il*il*reff+.7*out;
 near(Pin-Pout,Loss,1e-9,'P19 input/output energy and diode loss');
 assert.ok(Pin>Pout&&Loss>0,'P19 parasitic losses cannot increase power');
+// Check the displayed single-parameter comparison against the independent KVL solve.
+const ronComparison=guides[19].worked.steps.flatMap(s=>{
+ const m=s.match(/RON=([\d.]+)\s*Ω.*?Vo[=≈]([\d.]+)\s*V/);
+ return m?[{ron:Number(m[1]),vo:Number(m[2])}]:[];
+});
+assert.equal(ronComparison.length,2,'P19 worked example needs both RON comparison outputs');
+for(const [index,ron] of [.1,.2].entries()){
+ assert.equal(ronComparison[index].ron,ron,'P19 only RON changes between the two cases');
+ near(ronComparison[index].vo,boostRoot(48,.5,20,.2,ron,.05,.7),.005,
+  'P19 displayed Vo agrees with fixed-parameter KVL');
+}
 // P.16: OFF capacitor current sign changes while diode is still conducting.
 const iin16=1/(1-.4),ripple16=48*.4/(120e-6*100e3);
 const iValley=iin16-ripple16/2,ipeak=iin16+ripple16/2;
@@ -112,6 +123,18 @@ const boostBCM=(D)=>({lin:100*D*(1-D)/(2*L*fs),out:100*D*(1-D)**2/(2*L*fs)});
 near(boostBCM(.5).lin,1.25,1e-12,'P21 BCM inductor average');
 near(boostBCM(.5).out,.625,1e-12,'P21 BCM output average');
 near(100/boostBCM(.5).out,160,1e-12,'P21 critical resistor');
+const boundaryComparison=guides[21].worked.steps.flatMap(s=>{
+ const m=s.match(/D=([\d.]+).*?Vin=([\d.]+)\s*V.*?IL,crit[=≈]([\d.]+)\s*A.*?Io,crit[=≈]([\d.]+)\s*A/);
+ return m?[{d:Number(m[1]),vin:Number(m[2]),il:Number(m[3]),io:Number(m[4])}]:[];
+});
+assert.equal(boundaryComparison.length,2,'P21 worked example needs two fixed-Vo boundary points');
+for(const [index,D] of [.35,.5].entries()){
+ const point=boundaryComparison[index];
+ assert.equal(point.d,D,'P21 displayed duty comparison');
+ near(point.vin,100*(1-D),1e-10,'P21 Vin must change to keep Vo at 100 V');
+ near(point.il,boostBCM(D).lin,.0005,'P21 displayed critical inductor current');
+ near(point.io,boostBCM(D).out,.0005,'P21 displayed critical output current');
+}
 let peakL={D:0,i:0},peakO={D:0,i:0};
 for(let n=1;n<1000;n++){const D=n/1000,b=boostBCM(D);
  if(b.lin>peakL.i)peakL={D,i:b.lin};if(b.out>peakO.i)peakO={D,i:b.out};

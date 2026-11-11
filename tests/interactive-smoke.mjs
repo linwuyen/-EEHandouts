@@ -92,6 +92,50 @@ async function inspect(file,expectedCount,width) {
   await ctx.close();
 }
 try{
+  // Follow the same page-guide entry as a learner. RMS alone cannot detect
+  // an inverted neutral-current reference direction at a waveform instant.
+  const neutralCtx=await browser.newContext({viewport:{width:1440,height:900}});
+  const neutralPage=await neutralCtx.newPage();
+  neutralPage.on('pageerror',err=>errors.push('P83 neutral: '+err.message));
+  await neutralPage.goto(BASE+'/index.html#home');
+  await neutralPage.locator('.section-title a[href="#slides/all"]').click();
+  await neutralPage.locator('.slide-title-link[href="#slide/83"]').click();
+  await neutralPage.locator('[data-guide-page="83"] .guide-link[href$="/neutral"]').click();
+  const neutralHost=neutralPage.locator('#lesson-interactive');
+  await neutralHost.locator('[data-explore]').click();
+  for(const [key,value] of [['i1',5],['h3',15]]){
+    await neutralHost.locator('[data-knob="'+key+'"]').evaluate((el,n)=>{
+      el.value=String(n);el.dispatchEvent(new Event('input',{bubbles:true}));
+    },value);
+  }
+  await neutralHost.locator('[data-time]').evaluate(el=>{
+    el.value='25';el.dispatchEvent(new Event('input',{bubbles:true}));
+  });
+  assert.equal(await neutralHost.locator('[data-cursor-value]').innerText(),'25%');
+  const neutralRms=neutralHost.locator('.interactive-metric').filter({hasText:/中性線.*RMS/});
+  assert.ok(Math.abs(parseFloat(await neutralRms.locator('strong').innerText())-2.25)<0.005,
+    'P83: 5 A RMS per phase and 15% in-phase third harmonic give IN,rms = 2.25 A');
+  const neutralWave=await neutralHost.locator('.interactive-svg').evaluate(svg=>{
+    const label=Array.from(svg.querySelectorAll('text')).find(n=>/^IN\s/.test(n.textContent));
+    if(!label)return null;
+    let path=label.nextElementSibling;
+    while(path&&path.tagName.toLowerCase()!=='path')path=path.nextElementSibling;
+    const points=Array.from((path?.getAttribute('d')||'').matchAll(/[ML]([\d.]+)\s+([\d.]+)/g),m=>({x:Number(m[1]),y:Number(m[2])}));
+    return {label:label.textContent,points};
+  });
+  assert.ok(neutralWave,'P83 neutral waveform must expose the IN lane');
+  const instant=Number(neutralWave.label.replace(/^IN\s+/,'').split(/\s/)[0].replace('−','-'));
+  assert.ok(Math.abs(instant-(-3.181980515))<0.005,
+    'P83: at 25% IN = IA + IB + IC must display about -3.182 A, got '+neutralWave.label);
+  assert.equal(neutralWave.points.length,101,'Neutral waveform has a plotted sample at each percent');
+  const neutralYs=neutralWave.points.map(p=>p.y),lowY=Math.min(...neutralYs),highY=Math.max(...neutralYs);
+  assert.ok(neutralWave.points[25].y>lowY+0.95*(highY-lowY),
+    'P83: the rendered IN trace must be at its negative trough at 25%, matching the signed readout');
+  assert.ok(neutralWave.points[75].y<lowY+0.05*(highY-lowY),
+    'P83: the rendered IN trace must reach its positive crest at 75%');
+  await neutralHost.screenshot({path:'tests/screenshots/r2-neutral-p83.png'});
+  await neutralCtx.close();
+
   await inspect('index.html',38,1440);
   await inspect('middle.html',34,1440);
   const ctx=await browser.newContext({viewport:{width:390,height:844}});
