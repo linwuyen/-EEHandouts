@@ -40,7 +40,7 @@
  const applicationRoutes=['applications.html','applications.html#guided-applications',...['buck','boost','pfc','psfb','llc','inverter'].map(id=>'applications.html#'+id),...['pfc','psfb','llc','inverter'].map(id=>'applications.html?lesson='+id+'#guided-applications')];
  const opampCourseFiles=["01_slew_rate.html","02_step_response.html","03_sine_fpbw.html","04_gbw_vs_slew.html","05_settling_time.html","06_datasheet_selection.html"];
  const opampCourseRoutes=opampCourseFiles.map(file=>'12_opamp_slew_rate/'+file);
- const focusedV8Modules=['bms','ad5543','c2000-dds'];
+ const focusedV8Modules=['bms','ad5543','c2000-dds','afe','acmc-pro'];
  const focusedV8Routes=focusedV8Modules.map(id=>'v8-assessment.html?module='+id);
  const destinations=new Set([...applicationRoutes,...focusedV8Routes,'opamp-course.html','opamp-diagnosis.html','opamp-dc-trainer.html','opamp-assessment.html','adc-assessment.html','spi-assessment.html','buck-assessment.html','topology-assessment.html','power-firmware-assessment.html','v8-assessment.html',...opampCourseRoutes,course,'opamp-step.html','opamp-sine.html','adc.html','adc-course.html',...['lesson-0','lesson-1','lesson-2','lesson-3','lesson-4','lesson-5','formulas'].map(id=>'adc-course.html#'+id),'topology.html','index.html#experiment','index.html#experiment-energy','../middle.html#lesson/mid-boost/mid-boost-ccm','records.html','coverage.html','../index.html','../index.html#lesson/analog/adc','../index.html#lesson/analog/op','../index.html#lesson/analog/pi','../advanced.html#timing']);
  function safeDestination(path){
@@ -125,6 +125,7 @@
  }
  function complete(){return leave('topology.html');}
  function markReady(){if(loadFailed||!guardEvidence())return false;mounted=true;document.documentElement.dataset.eeWorkbenchState='ready';notice('EEHandouts 內建實驗 · 來源 '+sourceCommit.slice(0,8)+' · 實驗證據與教材已讀分開保存。');return true;}
+ $('ee-coverage')?.addEventListener('click',()=>leave('coverage.html'));
  $('ee-return')?.addEventListener('click',()=>leave(course));
  $('ee-experiment')?.addEventListener('click',()=>leave('index.html#experiment'));
  $('ee-comparison')?.addEventListener('click',()=>leave('topology.html'));

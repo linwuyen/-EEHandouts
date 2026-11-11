@@ -12,8 +12,8 @@ const context={CircuitQuizBank:Q,CircuitAssessment:A};
 runInNewContext(readFileSync('workbench/assets/learning/assessment-v8.js','utf8'),context,{filename:'assessment-v8.js'});
 const V8=context.CircuitAssessmentV8;
 const H=require('../workbench/ee-v8-assessment.js');
-const IDS=['inv-shoot-through-safety','foc-park-frame','pi-integrator-crossover','loop10us-deadline-budget','bms-failsafe-convergence','ad5543-code-mapping','dds-real-power'];
-const MODULES=['inverter','foc','pi','loop10us','bms','ad5543','c2000-dds'];
+const IDS=['inv-shoot-through-safety','foc-park-frame','pi-integrator-crossover','loop10us-deadline-budget','bms-failsafe-convergence','ad5543-code-mapping','dds-real-power','afe-phase-power','acmc-protection-boundary'];
+const MODULES=['inverter','foc','pi','loop10us','bms','ad5543','c2000-dds','afe','acmc-pro'];
 const KEY=H.KEY,now=Date.now();
 const store=(values={})=>({getItem:key=>Object.hasOwn(values,key)?values[key]:null});
 const stateAt=s=>({[KEY]:JSON.stringify(s)});
@@ -22,7 +22,7 @@ const questions=H.familyModel(A,Q);
 const find=(id,variant)=>questions.find(q=>q.familyId===id&&q.variantId===variant);
 const stamp=n=>new Date(n).toISOString();
 const mark=(state,q,correct,t)=>A.recordAttempt(state,q,q.options.find(o=>o.correct===correct),{at:stamp(t)});
-test('pinned source V8 installed; 7 original question families exposed',()=>{
+test('pinned source V8 installed; 9 original question families exposed',()=>{
  assert.equal(V8.VERSION,'8.1.0');assert.equal(A.__v8Installed,true);
  assert.equal(V8.baseQuestions.length,9,'complete original question bank intact');
  assert.deepEqual(Array.from(H.FAMILIES),IDS);assert.equal(questions.length,IDS.length*4);
@@ -161,6 +161,8 @@ const newFamilies = [
   ['bms-failsafe-convergence', 'bms', ['adc.current.offset']],
   ['ad5543-code-mapping', 'ad5543', ['spi.mode.cpol-cpha']],
   ['dds-real-power', 'c2000-dds', ['adc.quantization.levels']],
+  ['afe-phase-power', 'afe', ['adc.divider.power']],
+  ['acmc-protection-boundary', 'acmc-pro', ['afe.phase.power','buck.model.validity']],
 ];
 
 test('source prerequisite graph uses transfer evidence and preserves incomplete dependencies', () => {
@@ -240,10 +242,30 @@ test('BMS fault isolation, 16-bit DAC scaling and signed DDS watts match source 
   }
 });
 
+test('AFE displacement factor and ACMC peak/OCP depend on the specified teaching assumptions', () => {
+  const trips = new Set();
+  for (const depth of [1, 3, 7, 12]) {
+    const afe = V8.generateVariant(find('afe-phase-power', 'A'), 'T' + depth, 'transfer', depth);
+    const pf = Math.cos(afe.parameters.deg * Math.PI / 180);
+    assert.equal(Number(afe.options.find(o => o.correct).text), Number(pf.toFixed(3)));
+
+    const acmc = V8.generateVariant(find('acmc-protection-boundary', 'A'), 'T' + depth, 'transfer', depth);
+    assert.match(acmc.prompt, /220 Vrms、PF=1/);
+    const {load, peak, ocp} = acmc.parameters;
+    assert.equal(peak, Number((load / 220 * Math.SQRT2).toFixed(2)));
+    const trip = peak > ocp, text = acmc.options.find(o => o.correct).text;
+    trips.add(trip);
+    assert.match(text, trip ? /可能 OCP/ : /未達 OCP/);
+    assert.match(text, /硬體量測\/容差/);
+  }
+  assert.equal(trips.size, 2, 'exercise both sides of the teaching-model trip boundary');
+});
+
 test('numeric choices with equal rounded values identify the calculation before grading', () => {
   for (const [family, depth, first, second] of [
     ['ad5543-code-mapping', 1, 'inverse', 'max'],
     ['dds-real-power', 125, 'correct', 'sin'],
+    ['afe-phase-power', 10, 'correct', 'sin'],
   ]) {
     const q = V8.generateVariant(find(family, 'A'), 'T' + depth, 'transfer', depth);
     const pair = [first, second].map(id => q.options.find(option => option.id === id));

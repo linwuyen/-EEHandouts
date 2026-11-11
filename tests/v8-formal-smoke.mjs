@@ -1,10 +1,10 @@
-/* Actual browser V5 acceptance: original source 7 V8 families, no secondary score owner. */
+/* Actual browser V5 acceptance: original source 9 V8 families, no secondary score owner. */
 import assert from 'node:assert/strict';
 import {readFileSync,mkdirSync} from 'node:fs';
 import {chromium,firefox,webkit} from 'playwright';
 const BASE=process.env.PLAYWRIGHT_BASE_URL||'http://127.0.0.1:4173';
 const PAGE=BASE+'/workbench/v8-assessment.html',KEY='circuit-learning-state-v5';
-const FAMILIES=['inv-shoot-through-safety','foc-park-frame','pi-integrator-crossover','loop10us-deadline-budget','bms-failsafe-convergence','ad5543-code-mapping','dds-real-power'];
+const FAMILIES=['inv-shoot-through-safety','foc-park-frame','pi-integrator-crossover','loop10us-deadline-budget','bms-failsafe-convergence','ad5543-code-mapping','dds-real-power','afe-phase-power','acmc-protection-boundary'];
 mkdirSync('tests/screenshots',{recursive:true});
 for(const [name,engine] of Object.entries(process.argv.includes('--cross-browser')?{firefox,webkit}:{chromium})){
  const browser=await engine.launch({headless:true});
@@ -95,6 +95,8 @@ for(const [name,engine] of Object.entries(process.argv.includes('--cross-browser
      ['bms', 'bms-failsafe-convergence', ['adc-assessment.html']],
      ['ad5543', 'ad5543-code-mapping', ['spi-assessment.html']],
      ['c2000-dds', 'dds-real-power', ['adc-assessment.html']],
+     ['afe', 'afe-phase-power', ['adc-assessment.html']],
+     ['acmc-pro', 'acmc-protection-boundary', ['v8-assessment.html?module=afe','buck-assessment.html']],
    ];
    for (const [moduleId, familyId, expectedLessons] of focusedModules) {
      const focused = await browser.newContext(), lesson = await focused.newPage();
@@ -143,6 +145,17 @@ for(const [name,engine] of Object.entries(process.argv.includes('--cross-browser
        assert.equal(stored.questions[familyId].history[0].correct, true);
      } finally { await focused.close(); }
    }
+   const entryContext = await browser.newContext(), entry = await entryContext.newPage();
+   try {
+     await entry.goto(BASE + '/workbench/index.html');
+     await entry.waitForSelector('html[data-ee-workbench-state="ready"]');
+     await entry.getByRole('button', {name:'保存後查看教材與正式評量'}).click();
+     await entry.waitForURL('**/workbench/coverage.html');
+     await entry.getByRole('link', {name:'ACMC 保護模型邊界'}).click();
+     await entry.waitForSelector('#ee-formal-question[data-family="acmc-protection-boundary"]');
+     await entry.locator('#ee-formal-prerequisites').getByRole('link', {name:'AFE 位移功率因數'}).click();
+     await entry.waitForSelector('#ee-formal-question[data-family="afe-phase-power"]');
+   } finally { await entryContext.close(); }
    const invalid = await browser.newContext(), invalidPage = await invalid.newPage();
    try {
      for (const selector of ['?module=unknown', '?module=bms&score=100', '?module=bms#passed', '?module=bms&module=ad5543']) {
@@ -337,7 +350,7 @@ for(const [name,engine] of Object.entries(process.argv.includes('--cross-browser
    await mp.goto(PAGE);await mp.waitForFunction(()=>document.querySelector('#ee-v8-formal-root')?.dataset.state==='protected');
    assert.equal(await mp.locator('#ee-formal-submit').isEnabled(),false);await missing.close();
    assert.deepEqual(errors,[]);assert.deepEqual(external,[]);
-   console.log('PASS V8 formal '+name+': 7 original families, wrong baseline→transfer, persisted V5, quotas, conflict backup, future schema, mobile');
+   console.log('PASS V8 formal '+name+': 9 original families, wrong baseline→transfer, persisted V5, quotas, conflict backup, future schema, mobile');
   }finally{try{await ctx.close();}catch(_){}}
  }finally{await browser.close();}
 }

@@ -130,7 +130,7 @@ for(const module of ['power-sync','protection','power-capstone']){
 console.log('PASS 6b-5 actual formal V5 reference text and button labels');
 
 // 6b-6: V8 exact source route allowlist and honest V5 disclosure, no arbitrary suffixes.
-const focusedModules = ['bms','ad5543','c2000-dds'];
+const focusedModules = ['bms','ad5543','c2000-dds','afe','acmc-pro'];
 const legacyModules = ['inverter','foc','pi','loop10us'];
 for(const module of [...legacyModules, ...focusedModules]){
  const destination = focusedModules.includes(module) ? 'v8-assessment.html?module=' + module : 'v8-assessment.html';
@@ -172,8 +172,3 @@ for (const module of focusedModules) {
  }
 }
 console.log('PASS V8 exact routes, hostile suffix rejection and formal V5 disclosures');
-
-for (const deferred of ['afe', 'acmc-pro']) {
- f=fixture();assert.equal(f.host.referenceHref('quiz.html?module=' + deferred),'coverage.html');
- assert.equal(await f.host.leave('v8-assessment.html?module=' + deferred),false);
-}
