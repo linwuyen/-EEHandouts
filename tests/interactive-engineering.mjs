@@ -163,6 +163,10 @@ assert.ok(bus.metrics[2].value>0,'Three-phase AC line RMS positive');
 assert.ok(bus.metrics[3].value>1,'Capacitor-input rectifier AC current crest factor above one');
 assert.ok(bus.metrics[4].value>0,'Capacitor-input current has harmonics');
 const balance=bus.balance;
+eq(balance.pin,584.50,0.01,'P93–96 total three-phase active input power');
+eq(bus.metrics[2].value,2.749,0.001,'P93–96 line current RMS at 120 V phase RMS');
+eq(balance.pin/(3*120*bus.metrics[2].value),0.591,0.001,
+  'P93–96 PF uses total three-phase power / (3 × phase voltage RMS × line current RMS)');
 assert.ok(Math.abs(balance.pin-balance.pout-balance.rloss)<Math.max(8,0.05*balance.pin),
   'Three-phase capacitor/input/output/source-loss power must approximately balance');
 const smallC=make('threeBus',{cap:330,io:2,rs:1,vphase:120});

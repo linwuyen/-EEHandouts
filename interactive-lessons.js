@@ -219,9 +219,9 @@
     },
     neutral:{
       title:'三相三次諧波與中性線電流',knobs:[knob('h3','每相 3 次諧波／基波',0,60,5,15,' %'),knob('i1','每相基波 RMS',1,20,1,5,' A')],
-      assumption:'理想平衡基波、相同相位的三次零序諧波，且有可導通中性線；忽略其他不平衡與諧波。',
+      assumption:'理想平衡基波、相同相位的三次零序諧波，且有可導通中性線；相電流以電源流向負載為正，中性線依原圖以負載流回電源為正，iN=iA+iB+iC。忽略其他不平衡與諧波。',
       compute:function(v){return result([metric('中性線 RMS',3*v.i1*v.h3/100,' A'),metric('單相 3 次 RMS',v.i1*v.h3/100,' A')],
-        '平衡基波在中性線抵消，同相位三次諧波卻會相加。',{series:[trace('IA','A',function(t){return v.i1*Math.SQRT2*(sin(t)+v.h3/100*sin(3*t));}),trace('IB','A',function(t){return v.i1*Math.SQRT2*(sin(t,-2*Math.PI/3)+v.h3/100*sin(3*t));}),trace('IN','A',function(t){return -3*v.i1*Math.SQRT2*v.h3/100*sin(3*t);})]});}
+        '中性線以流回電源為正：iN=iA+iB+iC。平衡基波抵消，同相位三次諧波相加；負值表示當下電流反向。',{series:[trace('IA','A',function(t){return v.i1*Math.SQRT2*(sin(t)+v.h3/100*sin(3*t));}),trace('IB','A',function(t){return v.i1*Math.SQRT2*(sin(t,-2*Math.PI/3)+v.h3/100*sin(3*t));}),trace('IC','A',function(t){return v.i1*Math.SQRT2*(sin(t,2*Math.PI/3)+v.h3/100*sin(3*t));}),trace('IN','A',function(t){return 3*v.i1*Math.SQRT2*v.h3/100*sin(3*t);})]});}
     },
     op:{
       title:'反相放大器與線性工作範圍',knobs:[knob('gain','理想反相增益絕對值',1,10,0.5,3,''),knob('vin','輸入電壓',-2,2,0.1,0.5,' V')],
