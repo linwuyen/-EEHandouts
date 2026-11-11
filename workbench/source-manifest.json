@@ -546,7 +546,7 @@
       "path": "ee-power-firmware-assessment.js",
       "sourcePath": "quiz.html",
       "sourceBlob": "61ad104246926cea2ea5b94ce9ded605c34340da",
-      "sha256": "cbd333af60619313696ec3c53c440ecdd1aaa4153e173a340ef6a60c5765dd21",
+      "sha256": "81be256da252caa737ddc405e68043c1fc14fd747a30229077b6cee87a6accc6",
       "adapted": true,
       "adaptation": "EE-only Power Firmware seeded variant presentation and guarded V5 flow; Web Lock/raw backup and pending draft retained; no separate grade store."
     }

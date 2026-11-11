@@ -56,7 +56,7 @@ function gate(storage,assessment,bank,source){
     for(const id of FAMILIES){
       const rec=data.questions[id];if(rec===undefined)continue;
       const allowed=['history','choiceId','correct','attempts','updatedAt'];
-      const roleFor=v=>v==='A'?'baseline':v==='B'||v==='C'||/^T[1-9]\d*$/.test(v)?'transfer':v==='D'||/^R[1-4]$/.test(v)||/^RX[1-9]\d*$/.test(v)?'retention':null;
+      const roleFor=v=>v==='A'?'baseline':v==='B'||v==='C'||v==='D'||/^T[1-9]\d*$/.test(v)?'transfer':/^R[1-4]$/.test(v)||/^RX[1-9]\d*$/.test(v)?'retention':null;
       if(!plain(rec)||!Array.isArray(rec.history)||Object.keys(rec).some(k=>!allowed.includes(k))||
         rec.history.some((h,index)=>!plain(h)||typeof h.at!=='string'||!Number.isFinite(Date.parse(h.at))||Date.parse(h.at)>Date.now()+60000||
           h.familyId!==id||h.questionId!==(h.variantId==='A'?id:id+'-'+String(h.variantId).toLowerCase())||

@@ -28,7 +28,7 @@ test('original power firmware extension with three distinct formal family owners
   const items=questions.filter(q=>q.familyId===id);
   assert.equal(items.length,8);assert.equal(items[0].moduleId,modules[n]);
   assert.deepEqual(items.map(q=>q.variantId),['A','B','C','D','R1','R2','R3','R4']);
-  assert.deepEqual(items.map(q=>q.assessmentRole),['baseline','transfer','transfer','retention','retention','retention','retention','retention']);
+  assert.deepEqual(items.map(q=>q.assessmentRole),['baseline','transfer','transfer','transfer','retention','retention','retention','retention']);
   assert.equal(items.every(q=>q.options.filter(o=>o.correct).length===1),true);
   assert.notEqual(items[0].prompt,items[1].prompt);
  }
@@ -87,7 +87,7 @@ test('baseline wrong answer remains immutable and next transfer/1-7-30-90 schedu
  assert.equal(gate(snapshot(s)).ok,true);
  assert.equal(H.projection(A,questions,s,t+20000).next,null);
  p=H.projection(A,questions,s,t+20000+A.DAY_MS+1);
- assert.equal(p.next.familyId,FAMILIES[0]);assert.equal(p.next.assessmentRole,'retention');assert.equal(p.next.variantId,'D');
+ assert.equal(p.next.familyId,FAMILIES[0]);assert.equal(p.next.assessmentRole,'retention');assert.equal(p.next.variantId,'R1');
  A.recordAttempt(s,p.next,p.next.options.find(o=>o.correct),{at:at(t+20000+A.DAY_MS+1)});
  p=H.projection(A,questions,s,t+20000+A.DAY_MS+2);
  assert.equal(p.rows[0].metrics.retentionStage,1);
@@ -96,7 +96,7 @@ test('baseline wrong answer remains immutable and next transfer/1-7-30-90 schedu
 });
 test('source-generated dynamic Tn is verified; spoofed role, seed and answer cannot acquire credit',()=>{
  const s=E.emptyState(),id=FAMILIES[0],t=Date.now()-220000,grp=questions.filter(q=>q.familyId===id);
- for(const [i,variant] of ['A','B','C'].entries()){
+ for(const [i,variant] of ['A','B','C','D'].entries()){
   const q=find(id,variant),bad=q.options.find(o=>!o.correct);
   A.recordAttempt(s,q,bad,{at:at(t+i*1000)});
  }
