@@ -89,3 +89,21 @@ for(const reason of ['pending','conflict','quota']){
 f=fixture();f.host.markReady();assert.equal(await f.host.leave('topology-assessment.html'),true);
 assert.match(f.nav[0],/topology-assessment\.html$/);
 console.log('PASS 6b-4 topology quiz exact allowlist, hostile suffix denial, blocked stale Evidence navigation');
+
+// 6b-5: source power-firmware formal routes are exact, and source V5 must flush before leaving.
+for(const module of ['power-sync','protection','power-capstone']){
+ f=fixture();assert.equal(f.host.referenceHref('quiz.html?module='+module),'power-firmware-assessment.html');
+ for(const suffix of ['#passed','&score=100']){
+  f=fixture();assert.equal(f.host.referenceHref('quiz.html?module='+module+suffix),'coverage.html');
+ }
+}
+for(const path of ['power-firmware-assessment.html#passed','power-firmware-assessment.html?grade=pass']){
+ f=fixture();assert.equal(await f.host.leave(path),false);assert.equal(f.nav.length,0);
+}
+for(const reason of ['pending','conflict','quota']){
+ f=fixture();f.host.markReady();f.ctx.CircuitEvidence.flush=async()=>({saved:false,reason});
+ assert.equal(await f.host.leave('power-firmware-assessment.html'),false);assert.equal(f.nav.length,0);
+}
+f=fixture();f.host.markReady();assert.equal(await f.host.leave('power-firmware-assessment.html'),true);
+assert.match(f.nav[0],/power-firmware-assessment\.html$/);
+console.log('PASS 6b-5 firmware exact allowlist and guarded V5 navigation');
