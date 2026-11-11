@@ -86,7 +86,7 @@
     'mid-bridge':{
       name:'H-Bridge 四象限與平均差動電壓',hint:'兩個橋臂平均占空比決定 VAB，電流方向決定功率符號',
       knobs:[k('vbus','DC Bus',40,300,20,100,' V'),k('da','A 橋臂高電位時間',0,100,5,75,'%'),k('db','B 橋臂高電位時間',0,100,5,25,'%'),k('current','負載電流 IAB',-10,10,1,2,' A')],
-      note:'可切換同載波單極性或互補雙極性模式；兩橋臂使用同步前緣鋸齒載波。雙極性模式 B Duty=100%−A Duty，B 滑桿不作用。忽略 Dead Time、Body Diode 與再生能量吸收能力。',
+      note:'單極性採 P.32 的對稱三角載波，兩橋臂各自比較 Duty；雙極性沿用 P.31 的互補切換。雙極性模式 B Duty=100%−A Duty，B 滑桿不作用。忽略 Dead Time、Body Diode 與再生能量吸收能力。',
       compute:function(v){var db=v.mode==='bipolar'?100-v.da:v.db,vab=(v.da-db)*v.vbus/100,p=vab*v.current,quad=(vab>=0?(v.current>=0?'I':'IV'):(v.current>=0?'II':'III'));
         return {values:[['平均 VAB',f(vab,1)+' V'],['負載功率 P',f(p,1)+' W'],['電壓／電流象限',vab===0||v.current===0?'軸上':('第 '+quad+' 象限')],['能量方向',p>0?'負載吸收':p<0?'負載回送':'淨功率 0']],warning:p<0?'此條件為回送功率，須確保 DC Bus 能吸收再生能量。':''}
       }
@@ -142,29 +142,19 @@
       '<text x="25" y="210" fill="currentColor" opacity=".7" font-size="10">理想穩態、依計算的電流峰谷與導通時間繪製</text></svg>';
   }
   function bridgeWave(v){
-    // Explicit, synchronized leading-edge PWM carrier.  B follows 1-A
-    // in bipolar mode; in unipolar mode each arm compares its own duty
-    // with the SAME rising sawtooth, yielding three differential levels.
-    var bipolar=v.mode==='bipolar',a=v.da/100,b=bipolar?1-a:v.db/100;
-    var segments='',N=100;
-    function y(level,offset){return offset-23*level}
-    for(var lane=0;lane<3;lane++){
+    var bipolar=v.mode==='bipolar',pwm=window.EE_INTERACTIVE.bridgePwm(v.da,v.db,bipolar);
+    var channels=['va','vb','vab'],segments='';
+    for(var lane=0;lane<channels.length;lane++){
       var o=[48,111,169][lane],path='';
-      for(var i=0;i<=N;i++){
-        // At x=356, draw the next period's reset as a vertical edge.
-        // Only the electrical phase wraps; display time must keep increasing.
-        var displayTime=i/N,phaseTime=i===N?0:displayTime;
-        var va=phaseTime<a?1:0,vb=bipolar?1-va:(phaseTime<b?1:0);
-        var n=lane===0?va:lane===1?vb:va-vb;
-        var x=38+318*displayTime;
-        // Step waveform: ideal bridge-leg voltage jumps at the switching instant.
-         path+=(i?' H':'M')+f(x,2)+(i?' V':' ')+f(y(n,o),2);
-      }
+      pwm.times.forEach(function(t,i){
+        var x=f(38+318*t,3),y=f(o-23*pwm.stateAt(t)[channels[lane]],2);
+        path+=(i?' H':'M')+x+(i?' V':' ')+y;
+      });
       segments+='<path d="'+path+'" fill="none" stroke="'+['#0891b2','#d97706','#16a34a'][lane]+'" stroke-width="2.5"/>';
       segments+='<text x="6" y="'+o+'" font-size="12" fill="currentColor">'+['VA','VB','VAB'][lane]+'</text>';
     }
-    return '<svg viewBox="0 0 380 224" role="img" aria-label="同步前緣載波三通道 PWM：A橋臂、B橋臂與差動電壓">'+segments+
-      '<text x="24" y="200" fill="currentColor" font-size="10">'+(bipolar?'B 橋臂與 A 互補（雙極性）':'A／B 同載波比較（單極性三電平）')+'</text>'+
+    return '<svg viewBox="0 0 380 224" role="img" aria-label="三通道 PWM：A橋臂、B橋臂與差動電壓">'+segments+
+      '<text x="24" y="200" fill="currentColor" font-size="10">'+(bipolar?'B 橋臂與 A 互補（雙極性）':'A／B 共用對稱三角載波（單極性）')+'</text>'+
       '<text x="24" y="217" fill="currentColor" font-size="10">未計 Dead Time；僅為已明定載波條件的理想瞬時波形</text></svg>';
   }
   function graph(id,v,metrics){

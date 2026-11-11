@@ -29,3 +29,27 @@ const readme=readFileSync('README.md','utf8');
 assert.ok(readme.includes(lessonCount+' 節、'+equationCount+' 條公式'),
   'README equation counts must match the committed model data');
 console.log('PASS course content contract:',JSON.stringify({upper:38,middle:34,typedMath:lessonCount,equations:equationCount}));
+
+// Read the same data files, in the order shipped in the middle-volume entry point.
+const entry = readFileSync('middle.html','utf8');
+const middleScripts = [...entry.matchAll(/src="\.\/(middle-[^"]+\.js)"/g)].map(match=>match[1]);
+function edition(search){
+  const context={window:{},location:{search},URLSearchParams};
+  for(const file of middleScripts.filter(name=>name!=='middle-labs.js')){
+    runInNewContext(readFileSync(file,'utf8'),context);
+  }
+  return context.window;
+}
+const r2=edition('').EE_DATA, legacy=edition('?edition=52').EE_DATA;
+assert.equal(legacy.pageCount,52);
+assert.equal(r2.pageCount,169);
+assert.equal(r2.slideTitles[169],legacy.slideTitles[52]);
+assert.equal(Object.keys(r2.readings).length,117);
+for(let p=52;p<=168;p++){
+  const note=r2.readings[p];
+  assert.ok(note && note.title && note.paragraphs.length>=1 && note.paragraphs.every(Boolean),'R2 missing reading P.'+p);
+  assert.equal(note.title,r2.slideTitles[p]);
+}
+assert.match(r2.readings[56].paragraphs.join(' '),/D2/);
+assert.match(r2.readings[104].paragraphs.join(' '),/0.85/);
+assert.match(r2.readings[105].paragraphs.join(' '),/22.93/);

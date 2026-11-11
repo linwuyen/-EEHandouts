@@ -18,7 +18,7 @@ await run('seven topics, 34 lessons and independent progress',async()=>{
   await visit('middle.html#home','.subject-card');
   assert.equal(await page.locator('.subject-card').count(),7);
   assert.equal(await page.evaluate(()=>EE_DATA.chapters.reduce((n,c)=>n+c.lessons.length,0)),34);
-  assert.equal(await page.evaluate(()=>EE_DATA.pageCount),52);
+  assert.equal(await page.evaluate(()=>EE_DATA.pageCount),169);
   assert.equal(await page.locator('a[href="./index.html"]').count()>0,true);
   assert.equal(await page.locator('a[href="#slides/all"]').count()>0,true);
   await page.screenshot({path:'tests/screenshots/middle-home-desktop.png',fullPage:true});
@@ -57,17 +57,17 @@ await run('all 34 lessons and inline quiz',async()=>{
   assert.ok((await page.evaluate(()=>JSON.parse(localStorage.getItem('ee.middle.done')||'[]'))).includes('mid-topologies'));
   assert.equal(await page.evaluate(()=>localStorage.getItem('ee.done')),null);
 });
-await run('52 slide summaries, local PDF viewer placeholder, boundary pages',async()=>{
-  await visit('middle.html#slides/all','.slide-card');
+await run('52-page edition: slide summaries, local PDF viewer placeholder, boundary pages',async()=>{
+  await visit('middle.html?edition=52#slides/all','.slide-card');
   assert.equal(await page.locator('.slide-card').count(),52);
   for(const n of [1,2,5,23,33,40,51,52]){
-    await visit('middle.html#slide/'+n,'.slide-transcript');
+    await visit('middle.html?edition=52#slide/'+n,'.slide-transcript');
     const text=await page.locator('.slide-transcript').innerText();
     assert.ok(text.length>5,'missing summary '+n);
     assert.equal(await page.locator('#source-pdf-holder input[type="file"]').count(),1);
     assert.ok((await page.locator('.reading-block h2').last().innerText()).includes('摘要'));
   }
-  await visit('middle.html#slide/52','.slide-transcript');
+  await visit('middle.html?edition=52#slide/52','.slide-transcript');
   assert.equal(await page.locator('.lesson-pager a[href="#slide/53"]').count(),0);
   await page.screenshot({path:'tests/screenshots/middle-slide-desktop.png',fullPage:true});
 });
@@ -311,7 +311,8 @@ async function makeMiddlePdf(count,kind='valid'){
     33:'Basic Topologies of Switching-mode DC-DC Converters With Isolation',
     37:'Flyback Converter',
     41:'Forward Converter',
-    51:'B-H Curve Core Loss Curve'
+    51:'B-H Curve Core Loss Curve',93:'Buck Control Block Diagram',
+    125:'Sub-Harmonic Oscillation',148:'Quasi-Resonant Flyback Converter'
   };
   for(let p=1;p<=count;p++){
     const pg=doc.addPage([720,540]);
@@ -324,12 +325,12 @@ async function makeMiddlePdf(count,kind='valid'){
   }
   return Buffer.from(await doc.save());
 }
-async function awaitMiddlePdf(pg){
-  await page.waitForFunction(n=>{
+async function awaitMiddlePdf(pg,total=52){
+  await page.waitForFunction(([n,total])=>{
     const c=document.getElementById('source-pdf-canvas');
     const status=document.getElementById('source-pdf-feedback');
-    return c&&c.width>150&&c.height>150&&status?.textContent?.startsWith('已驗證講義：第 '+n+'／52 頁');
-  },pg,{timeout:30000});
+    return c&&c.width>150&&c.height>150&&status?.textContent?.startsWith('已驗證講義：第 '+n+'／'+total+' 頁');
+  },[pg,total],{timeout:30000});
 }
 await run('52-page PDF identity, render, navigation and separate local cache',async()=>{
   await visit('middle.html#slide/37','#source-pdf-file');
@@ -372,6 +373,27 @@ await run('52-page PDF identity, render, navigation and separate local cache',as
   assert.equal(await page.locator('.source-pdf-placeholder').count(),1);
 });
 
+await run('R2 reading, edition switch and matching PDF pages',async()=>{
+  await visit('middle.html#slides/all','.slide-card');
+  assert.equal(await page.locator('.slide-card').count(),169);
+  await page.locator('#slide-p104 .slide-title-link').click();
+  const note=page.locator('[data-guide-page="104"]');
+  assert.match(await note.innerText(),/28/);
+  await page.locator('#source-pdf-file').setInputFiles({name:'middle-52.pdf',mimeType:'application/pdf',buffer:await makeMiddlePdf(52)});
+  await page.getByText('這一頁只收錄在中冊 R2。',{exact:false}).waitFor();
+  assert.equal(await page.locator('#source-pdf-canvas').count(),0);
+  await visit('middle.html#slide/169','#source-pdf-file');
+  await awaitMiddlePdf(52);
+  await page.locator('#source-pdf-file').setInputFiles({name:'middle-R2.pdf',mimeType:'application/pdf',buffer:await makeMiddlePdf(169)});
+  await awaitMiddlePdf(169,169);
+  await page.locator('#middle-edition-link').click();
+  await page.waitForURL(/middle\.html\?edition=52#slide\/52$/);
+  await awaitMiddlePdf(169,169);
+  await visit('middle.html#slide/104','#source-pdf-file');
+  await awaitMiddlePdf(104,169);
+  await page.locator('#source-pdf-remove').click();
+});
+
 await run('P.41-51 Forward / bridge / magnetic original guides, PDF and responsive contract',async()=>{
   const ids={
     41:'mid-forward-reset',42:'mid-forward-reset',43:'mid-double-forward',
@@ -405,8 +427,8 @@ await run('P.41-51 Forward / bridge / magnetic original guides, PDF and responsi
       await page.screenshot({path:'tests/screenshots/middle-magnetic-page-'+p+'.png',fullPage:true});
   }
   assert.equal(titles.size,11,'All eleven magnetic pages have unique titles');
-  await visit('middle.html#slide/52','#source-pdf-file');
-  assert.equal(await page.locator('.page-guide').count(),0,'P.52 conclusion remains an original non-engineering page');
+  await visit('middle.html?edition=52#slide/52','#source-pdf-file');
+  assert.equal(await page.locator('.page-guide').count(),0,'Legacy P.52 conclusion remains an original non-engineering page');
   await visit('middle.html#home','.subject-card');
   await page.locator('#search-trigger').click();
   await page.locator('#search-input').fill('磁通');

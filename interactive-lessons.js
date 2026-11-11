@@ -31,6 +31,25 @@
   function sin(t,p) { return Math.sin(2*Math.PI*t+(p||0)); }
   function clamp(x,lo,hi) { return Math.max(lo,Math.min(hi,x)); }
 
+  // Normalized time, 0..1. At a switching instant report the new state.
+  // The centered unipolar carrier starts at its valley; bipolar retains
+  // the original leading-edge A pulse and complementary B state.
+  function bridgePwm(da, db, bipolar) {
+    var aFall = bipolar ? da / 100 : da / 200;
+    var aRise = (200 - da) / 200;
+    var bFall = db / 200;
+    var bRise = (200 - db) / 200;
+    var edges = bipolar ? [0, aFall, 1] : [0, aFall, aRise, bFall, bRise, 1];
+    var times = Array.from(new Set(edges)).sort(function(a, b){ return a - b; });
+    function stateAt(t) {
+      var phase = t === 1 ? 0 : t;
+      var va = Number(phase < aFall || (!bipolar && phase >= aRise));
+      var vb = bipolar ? 1 - va : Number(phase < bFall || phase >= bRise);
+      return {va:va, vb:vb, vab:va - vb};
+    }
+    return {times:times, stateAt:stateAt};
+  }
+
   var M={
     signed:{
       title:'瞬時功率與能量方向', knobs:[knob('v','參考電壓',-48,48,2,24,' V'),knob('i','參考電流',-10,10,1,2,' A')],
@@ -278,10 +297,22 @@
     },
     bridge:{
       title:'H-Bridge：橋臂、PWM 與四象限',knobs:[knob('da','A 臂高電位 Duty',0,100,5,75,' %'),knob('db','B 臂高電位 Duty',0,100,5,25,' %'),knob('i','IAB 電流',-10,10,1,2,' A'),knob('bipolar','雙極性互補模式',0,1,1,0,'')],
-      assumption:'理想同步前緣 PWM，單極性同載波比較或雙極性 A/B 瞬時互補；忽略死區、二極體續流、換向瞬態與 Bus 回生吸收限制。',
-      compute:function(v){var a=v.da/100,b=v.bipolar?1-a:v.db/100,avg=v.bipolar?(2*a-1)*100:(a-b)*100,p=avg*v.i,mode=v.bipolar?'雙極性互補':'同載波單極性';
-        return result([metric('平均差動 VAB',avg,' V'),metric('平均輸出功率',p,' W'),metric('A 臂平均電壓',a*100,' V'),metric('0.9T 的 VAB',(0.9<a?100:0)-((v.bipolar?0.9>=a:0.9<b)?100:0),' V'),metric('VAB 零電壓比例',v.bipolar?0:100*(1-Math.abs(a-b)),' %')],
-          mode+'；'+(p<0?'負載回送能量，DC Bus 必須可吸收。':'平均功率方向由 VAB 與 IAB 共同決定。'),{series:[trace('VA','V',function(t){t=t>=1?0:t;return t<a?100:0;},true),trace('VB','V',function(t){t=t>=1?0:t;return (v.bipolar?t>=a:t<b)?100:0;},true),trace('VAB','V',function(t){t=t>=1?0:t;return (t<a?100:0)-((v.bipolar?t>=a:t<b)?100:0);},true)],stage:{kind:'bridge',on:a,b:b,bipolar:Boolean(v.bipolar),mode:mode}});}
+      assumption:'理想 100 V 母線。單極性 A、B 共用對稱三角載波，雙極性兩臂互補。每張圖是一個載波週期，忽略死區及換向過渡。',
+      compute:function(v){
+        var bipolar=Boolean(v.bipolar), a=v.da/100, b=bipolar?1-a:v.db/100;
+        var pwm=bridgePwm(v.da,v.db,bipolar), avg=(a-b)*100, power=avg*v.i;
+        var series=['va','vb','vab'].map(function(key){
+          function voltageAt(t){ return pwm.stateAt(t)[key]*100; }
+          var lane=trace(key.toUpperCase(),'V',voltageAt,true);
+          lane.steps=pwm.times.map(function(t){ return {t:t,value:voltageAt(t)}; });
+          return lane;
+        });
+        return result([metric('平均差動 VAB',avg,' V'),metric('平均輸出功率',power,' W'),
+          metric('A 臂平均電壓',a*100,' V'),metric('0.9T 的 VAB',pwm.stateAt(0.9).vab*100,' V'),
+          metric('VAB 零電壓比例',bipolar?0:100*(1-Math.abs(a-b)),' %')],
+          (bipolar?'雙極性互補':'對稱三角載波單極性')+'；'+(power<0?'負載回送能量，DC Bus 必須可吸收。':'平均功率方向由 VAB 與 IAB 共同決定。'),
+          {series:series,stage:{kind:'bridge',on:a,b:b,bipolar:bipolar,mode:bipolar?'雙極性互補':'同載波單極性',pwm:pwm}});
+      }
     },
     flyback:{
       title:'Flyback：激磁、放能與工作模式',knobs:[knob('io','輸出定電流負載',0.1,4,0.1,1.5,' A'),knob('duty','Duty',10,70,5,40,' %'),knob('vin','Vin',24,240,12,96,' V'),knob('ratio','Np／Ns',1,6,0.5,2,''),knob('lm','磁化電感',100,600,50,200,' μH'),knob('freq','開關頻率',50,250,25,100,' kHz')],
@@ -637,7 +668,7 @@
     if(!stage)return '';
     if(t>=1)t=0;
     if(stage.kind==='bridge'){
-      var ah=t<stage.on,bh=stage.bipolar?!ah:t<stage.b;
+      var state=stage.pwm.stateAt(t),ah=state.va,bh=state.vb;
       return 'A 臂 '+(ah?'HIGH':'LOW')+'／B 臂 '+(bh?'HIGH':'LOW')+'；差動 VAB = '+(ah===bh?'0':ah?'＋Vbus':'−Vbus')+'（理想，未加死區）';
     }
     if(t<stage.on-1e-8){
@@ -670,13 +701,20 @@
   function waveChart(series,cursor) {
     var w=700,h=series.length*115+24,markup='<svg class="interactive-svg" viewBox="0 0 '+w+' '+h+'" role="img" aria-label="同時間軸對齊的互動波形" xmlns="http://www.w3.org/2000/svg">';
     series.forEach(function(s,idx){
-      var y=idx*115,lo=Math.min.apply(null,s.points),hi=Math.max.apply(null,s.points),pad=Math.max((hi-lo)*.1,.001);
+      var levels=s.steps?s.steps.map(function(point){return point.value;}):s.points;
+      var y=idx*115,lo=Math.min.apply(null,levels),hi=Math.max.apply(null,levels),pad=Math.max((hi-lo)*.1,.001);
       lo-=pad;hi+=pad;
       var plot=svgLine(s.points,w,104,lo,hi).replace(/(M|L)([\d.]+) ([\d.]+)/g,function(_,cmd,x,v){return cmd+x+' '+(Number(v)+y);});
        if(s.step){
          var ordinate=function(val){return (y+22+50*(hi-val)/(hi-lo||1)).toFixed(1);};
          plot='M50 '+ordinate(s.points[0]);
-         for(var j=1;j<s.points.length;j++)plot+=' H'+(50+622*j/(s.points.length-1)).toFixed(1)+' V'+ordinate(s.points[j]);
+         if(s.steps){
+           s.steps.slice(1).forEach(function(point){
+             plot+=' H'+(50+622*point.t).toFixed(2)+' V'+ordinate(point.value);
+           });
+         } else {
+           for(var j=1;j<s.points.length;j++)plot+=' H'+(50+622*j/(s.points.length-1)).toFixed(1)+' V'+ordinate(s.points[j]);
+         }
        }
       var at=s.points[Math.min(100,Math.round(cursor*100))];
       markup+='<rect x="45" y="'+(y+18)+'" width="632" height="62" rx="5" fill="currentColor" fill-opacity=".035"/>'+
@@ -895,5 +933,5 @@
     });
     refresh();
   }
-  window.EE_INTERACTIVE={mount:mount,catalog:C,models:M,comparisonTarget:comparisonTarget};
+  window.EE_INTERACTIVE={mount:mount,catalog:C,models:M,bridgePwm:bridgePwm,comparisonTarget:comparisonTarget};
 })();

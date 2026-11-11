@@ -8,8 +8,14 @@
   var DB_NAME='eehandouts-source-pdf', STORE='source', KEY=CFG.key||'upper-volume-r2';
   var pageCount=Number(CFG.pageCount)||107;
   var sourceLabel=CFG.label||'電力電子初級班講義（上）R2';
-  var middle=pageCount===52;
-  var referencePage=middle?37:24;
+  var middle=CFG.volume==='middle';
+  var editionHint=middle?'中冊 R2（169 頁）或 52 頁版':sourceLabel+'（'+pageCount+' 頁）';
+  function pdfPageNumber(){
+    if(!documentProxy)return null;
+    var count=documentProxy.numPages;
+    if(!middle || count===pageCount || currentPage<=51)return currentPage;
+    return currentPage===pageCount?count:null;
+  }
   var PDF_ASSET_BASE='./vendor/pdfjs/'; // Pinned, npm SHA-512-verified build assets on the site's own origin.
   var pdfLibraryPromise=null, documentProxy=null, selectedBlob=null, selectedName='';
   var currentPage=1, mountTarget=null, cacheAttempted=false, loadVersion=0, renderVersion=0, loadedFromCache=false;
@@ -63,7 +69,7 @@
     var lib=await pdfLibrary(),task=lib.getDocument({data:new Uint8Array(await file.arrayBuffer()),isEvalSupported:false});
     var pdf=await task.promise;
     try{
-      if(pdf.numPages!==pageCount)throw new Error('頁數不符：目前 '+pdf.numPages+' 頁，'+sourceLabel+' 必須是 '+pageCount+' 頁');
+      if(middle ? ![52,169].includes(pdf.numPages) : pdf.numPages!==pageCount)throw new Error('頁數不符：目前 '+pdf.numPages+' 頁，請選擇'+editionHint+'。');
       if(middle){
         // Nine independent chapter anchors from the original 52-page source.
         // "Converter" alone is too generic to establish this is the user's booklet.
@@ -79,6 +85,9 @@
           [41,/forwardconverter/i],
           [51,/coreloss|b.?hcurve|鐵損曲線/i]
         ];
+        if(pdf.numPages===169){
+          anchorsMiddle.push([93,/buckcontrolblockdiagram/],[125,/sub.?harmonicoscillation/],[148,/quasi.?resonant/]);
+        }
         var failedMiddle=[];
         for(var n=0;n<anchorsMiddle.length;n++){
           var target=anchorsMiddle[n],middlePage=await pdf.getPage(target[0]);
@@ -114,16 +123,16 @@
     }catch(err){await pdf.destroy();throw err}
   }
   function html(){
-    var yes=!!documentProxy;
+    var yes=!!documentProxy,pg=pdfPageNumber();
     return '<section class="source-pdf-panel">'+
-      '<div class="source-pdf-top"><div><h3>原始投影片 PDF 對照</h3><p>先驗證 '+pageCount+' 頁和內容特徵，再顯示第 '+currentPage+' 頁的原始圖文。PDF 只留在瀏覽器本機。</p></div>'+
+      '<div class="source-pdf-top"><div><h3>原始投影片 PDF 對照</h3><p>可載入'+e(editionHint)+'。PDF 只留在這台裝置。</p></div>'+
       '<label class="btn btn-primary source-pdf-picker" for="source-pdf-file">'+(yes?'更換 PDF':'載入原始講義 PDF')+'</label><input id="source-pdf-file" type="file" class="sr-only" accept="application/pdf,.pdf"></div>'+
       '<div id="source-pdf-feedback" class="source-pdf-feedback" role="status" aria-live="polite">'+
-      (yes?'已驗證 '+pageCount+' 頁及來源內容特徵：'+e(selectedName):'尚未驗證原始 PDF，請先載入講義檔案。')+'</div>'+
+      (yes?(pg?'已載入 '+documentProxy.numPages+' 頁講義：'+e(selectedName):'這一頁只收錄在中冊 R2。可繼續讀上方導讀，或更換 169 頁 PDF 查看原圖。'):'尚未驗證原始 PDF，請先載入講義檔案。')+'</div>'+
       (yes?
-        '<div class="source-pdf-canvas-wrap"><canvas id="source-pdf-canvas" role="img" aria-label="原始講義第 '+currentPage+' 頁 PDF 圖文"></canvas></div>'+
+        (pg?'<div class="source-pdf-canvas-wrap"><canvas id="source-pdf-canvas" role="img" aria-label="原始講義第 '+pg+' 頁 PDF 圖文"></canvas></div>':'')+
         '<div class="source-pdf-actions"><button class="btn btn-muted" type="button" id="source-pdf-remove">清除這台裝置的 PDF</button></div>':
-        '<div class="source-pdf-placeholder"><div class="source-pdf-symbol">▧</div><strong>等待載入已驗證的 '+pageCount+' 頁講義</strong><p>本檢視器會檢查頁數與課程文字特徵，確認後才能顯示 PDF 原圖。</p></div>')+
+        '<div class="source-pdf-placeholder"><div class="source-pdf-symbol">▧</div><strong>載入'+e(editionHint)+'以對照原圖</strong><p>本檢視器會檢查頁數與課程文字特徵，確認後才能顯示 PDF 原圖。</p></div>')+
       '</section>';
   }
   function feedback(message,isError){
@@ -132,11 +141,11 @@
     if(node){node.textContent=message;node.classList.toggle('error',!!isError)}
   }
   async function renderCurrent(){
-    var seq=++renderVersion,root=mountTarget,doc=documentProxy,pg=currentPage;
-    if(!root||!root.isConnected||!doc)return;
+    var seq=++renderVersion,root=mountTarget,doc=documentProxy,pg=pdfPageNumber();
+    if(!root||!root.isConnected||!doc||!pg)return;
     var canvas=root.querySelector('#source-pdf-canvas');
     if(!canvas)return;
-    feedback('正在呈現原講義第 '+pg+'／'+pageCount+' 頁…',false);
+    feedback('正在呈現原講義第 '+pg+'／'+doc.numPages+' 頁…',false);
     try{
       var page=await doc.getPage(pg);
       if(seq!==renderVersion || root!==mountTarget || doc!==documentProxy)return;
@@ -151,8 +160,8 @@
       var ctx=canvas.getContext('2d',{alpha:false});
       await page.render({canvasContext:ctx,viewport:viewport}).promise;
       if(seq===renderVersion && root===mountTarget && doc===documentProxy){
-        feedback('已驗證講義：第 '+pg+'／'+pageCount+' 頁 · '+selectedName+(loadedFromCache?'（從本機儲存恢復）':''),false);
-        root.dispatchEvent(new CustomEvent('eehandouts-pdf-page-rendered',{bubbles:true,detail:{page:pg,total:pageCount}}));
+        feedback('已驗證講義：第 '+pg+'／'+doc.numPages+' 頁 · '+selectedName+(loadedFromCache?'（從本機儲存恢復）':''),false);
+        root.dispatchEvent(new CustomEvent('eehandouts-pdf-page-rendered',{bubbles:true,detail:{page:pg,total:doc.numPages}}));
       }
     }catch(err){
       if(seq===renderVersion)feedback('PDF 第 '+pg+' 頁呈現失敗：'+err.message,true);
@@ -160,7 +169,7 @@
   }
   async function adopt(file,name,fromCache){
     var seq=++loadVersion;
-    feedback('檢查 PDF 格式、'+pageCount+' 頁及講義內容中…',false);
+    feedback('正在讀取 PDF 並核對講義內容…',false);
     var newDocument;
     try{
       newDocument=await verifyPdf(file);

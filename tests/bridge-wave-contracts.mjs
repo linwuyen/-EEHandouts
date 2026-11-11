@@ -9,6 +9,7 @@ const source=readFileSync('middle-labs.js','utf8');
 const anchor='window.EE_LABS={mount:mount,definitions:defs};';
 assert.equal(source.split(anchor).length,2,'Instrument the known renderer closure once');
 const root={};
+runInNewContext(readFileSync('interactive-lessons.js','utf8'),{window:root});
 runInNewContext(source.replace(anchor,'window.reviewBridgeWave=bridgeWave;'+anchor),{window:root});
 let cases=0;
 for(const mode of ['unipolar','bipolar'])for(let da=0;da<=100;da+=5)for(let db=0;db<=100;db+=5){

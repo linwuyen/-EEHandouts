@@ -89,6 +89,26 @@
     if(r.type==='slide')html+='<span class="crumb-sep">/</span><a href="#slides/all">全講義索引</a><span class="crumb-sep">/</span><strong>第 '+Number(r.id)+' 頁</strong>';
     $('#breadcrumb').innerHTML=html;
   }
+  function readingSection(p){
+    return (D.readingSections||[]).find(function(section){return section[0]<=p && p<=section[1]});
+  }
+  function readingLinks(){
+    if(!D.readingSections)return '';
+    return '<section class="reading-block"><h2>R2 逐頁導讀</h2><div class="slide-card-links">'+D.readingSections.map(function(section){
+      return '<a href="#slide/'+section[0]+'">P.'+section[0]+'–'+section[1]+'　'+e(section[2])+'</a>';
+    }).join('')+'</div></section>';
+  }
+  function updateEditionLink(r){
+    var link=$('#middle-edition-link');
+    if(!link)return;
+    var legacy=D.edition==='52',page=Number(r.id),hash=location.hash;
+    if(r.type==='slide'){
+      if(page===pageCount)hash='#slide/'+(legacy?169:52);
+      else if(page>51)hash='#slides/all';
+    }
+    link.href=(legacy?'?edition=R2':'?edition=52')+hash;
+    link.textContent=legacy?'切換至 R2（169 頁）':'切換至 52 頁版';
+  }
   function home(){
     var next=flat.find(function(x){return !completed.has(x.lesson.id)})||flat[0];
     var cards=D.chapters.map(function(c){
@@ -97,7 +117,7 @@
     }).join('');
     return '<section class="hero"><div class="hero-decoration"></div><div class="hero-copy"><div class="hero-kicker">POWER ELECTRONICS · LEARNING HUB</div><h1>把電力電子，<br>學成真正能用的知識。</h1><p>'+e(D.heroDescription||'從物理、磁性元件、功率開關，到 PFC、整流與 MCU 量測。想看哪一章就看哪一章。')+'</p><a class="hero-cta" href="'+lessonPath(next.chapter,next.lesson)+'">接著學習 →</a><div class="hero-stats"><div class="hero-stat"><strong>07</strong><span>大主題</span></div><div class="hero-stat"><strong>'+flat.length+'</strong><span>觀念小節</span></div><div class="hero-stat"><strong>'+pageCount+'</strong><span>講義頁碼</span></div><div class="hero-stat"><strong>'+pct(completed.size,flat.length)+'%</strong><span>完成進度</span></div></div></div></section>'+
       '<div class="section-title"><h2>選一個你想學的主題</h2><a class="text-link" href="#slides/all">或瀏覽原講義 '+pageCount+' 頁 →</a></div><div class="subject-grid">'+cards+'</div>'+
-      '<div class="secondary-panels"><div class="panel continue-panel"><span class="continue-orb">↗</span><div><h3>接著學：'+e(next.chapter.short)+'</h3><p>'+e(next.lesson.title)+'</p><a class="text-link" href="'+lessonPath(next.chapter,next.lesson)+'">開啟這一節 →</a></div></div><div class="panel tip-panel"><h3>閱讀方式</h3><p>先看物理現象，再看公式與工程條件。每章有實驗與小測驗，學習記錄保存在這台裝置的瀏覽器。</p></div></div>';
+      readingLinks()+'<div class="secondary-panels"><div class="panel continue-panel"><span class="continue-orb">↗</span><div><h3>接著學：'+e(next.chapter.short)+'</h3><p>'+e(next.lesson.title)+'</p><a class="text-link" href="'+lessonPath(next.chapter,next.lesson)+'">開啟這一節 →</a></div></div><div class="panel tip-panel"><h3>閱讀方式</h3><p>先看物理現象，再看公式與工程條件。每章有實驗與小測驗，學習記錄保存在這台裝置的瀏覽器。</p></div></div>';
   }
   function chapter(c){
     var n=chapterDone(c);
@@ -147,24 +167,27 @@
     for(var p=start;p<=end;p++){
       var c=chapterForPage(p),matches=related(c,p),text=sourceText[p]||'',preview=/^\d+\s*$/.test(text.trim())?'本頁以圖片／公式為主，請載入原始 PDF':text.trim().replace(/\s+/g,' ').slice(0,110);
       var links=matches.map(function(l){return '<a href="'+lessonPath(c,l)+'" class="slide-lesson-link">'+e(l.title)+' →</a>'}).join('');
-      cards.push('<article class="slide-card" id="slide-p'+p+'"><span class="slide-pageno">P.'+p+'</span><div><a class="slide-title-link" href="#slide/'+p+'"><h3>'+e(D.slideTitles[p]||('第 '+p+' 頁'))+'</h3></a><p>'+(c?e(c.short):'原講義資訊頁')+(preview?' · '+e(preview):'')+'</p><div class="slide-card-links"><a href="#slide/'+p+'">'+e(D.pageTextLink||'查看原始文字與 PDF 對照')+' →</a>'+links+'</div></div></article>');
+      cards.push('<article class="slide-card" id="slide-p'+p+'"><span class="slide-pageno">P.'+p+'</span><div><a class="slide-title-link" href="#slide/'+p+'"><h3>'+e(D.slideTitles[p]||('第 '+p+' 頁'))+'</h3></a><p>'+(c?e(c.short):readingSection(p)?e(readingSection(p)[2]):'原講義資訊頁')+(preview?' · '+e(preview):'')+'</p><div class="slide-card-links"><a href="#slide/'+p+'">'+e(D.pageTextLink||'查看原始文字與 PDF 對照')+' →</a>'+links+'</div></div></article>');
     }
     return cards;
   }
   function slides(c){
     var all=!c,start=all?1:c.range[0],end=all?pageCount:c.range[1],cards=slideCards(start,end),title=all?'完整原講義 '+pageCount+' 頁索引':c.title+' · 頁碼索引';
-    return '<div style="--c:'+(c?c.accent:'#4899EF')+'"><a class="back-link" href="'+(c?chapterPath(c):'#home')+'">← 返回'+(c?' '+e(c.title):'總覽')+'</a><header class="page-header"><div class="eyebrow">ORIGINAL LECTURE INDEX</div><h1>'+e(title)+'</h1><p>共 '+cards.length+' 頁。'+e(D.pageTextIntro||'點擊任一頁即可查看原講義抽取文字，並可在本機載入原始 PDF，對照圖片與電路圖。')+'</p></header><div class="content-note">'+e(D.indexNote||'原講義共 107 頁：第 1–2 頁為封面／課表，第 3–106 頁為教材，第 107 頁為結尾。文字來自 PPTX 擷取，公式圖與電路圖請以原始 PDF 視覺內容為準。')+'</div><div class="slides-toolbar"><strong>'+cards.length+' 頁完整標題索引</strong>'+(c?buttonLink('#quiz/'+c.id,'章末測驗 →'):buttonLink('#home','返回主題首頁'))+'</div><div class="slide-grid">'+cards.join('')+'</div></div>';
+    return '<div style="--c:'+(c?c.accent:'#4899EF')+'"><a class="back-link" href="'+(c?chapterPath(c):'#home')+'">← 返回'+(c?' '+e(c.title):'總覽')+'</a><header class="page-header"><div class="eyebrow">ORIGINAL LECTURE INDEX</div><h1>'+e(title)+'</h1><p>共 '+cards.length+' 頁。'+e(D.pageTextIntro||'點擊任一頁即可查看原講義抽取文字，並可在本機載入原始 PDF，對照圖片與電路圖。')+'</p></header><div class="content-note">'+e(D.indexNote||'原講義共 107 頁：第 1–2 頁為封面／課表，第 3–106 頁為教材，第 107 頁為結尾。文字來自 PPTX 擷取，公式圖與電路圖請以原始 PDF 視覺內容為準。')+'</div>'+(all?readingLinks():'')+'<div class="slides-toolbar"><strong>'+cards.length+' 頁完整標題索引</strong>'+(c?buttonLink('#quiz/'+c.id,'章末測驗 →'):buttonLink('#home','返回主題首頁'))+'</div><div class="slide-grid">'+cards.join('')+'</div></div>';
   }
 
-  function pageGuideData(p){return pageCount===52?(window.EE_PAGE_GUIDES&&window.EE_PAGE_GUIDES[p]||null):(window.EE_UPPER_PAGE_GUIDES&&window.EE_UPPER_PAGE_GUIDES[p]||null);}
+  function pageGuideData(p){return D.volume==='middle'?(window.EE_PAGE_GUIDES&&window.EE_PAGE_GUIDES[p]||null):(window.EE_UPPER_PAGE_GUIDES&&window.EE_UPPER_PAGE_GUIDES[p]||null);}
   function pageGuide(p){
+    var note=D.readings&&D.readings[p];
+    if(note)return '<section class="reading-block page-guide" data-guide-page="'+p+'"><h2>讀圖與推導</h2>'+
+      note.paragraphs.map(function(paragraph){return '<p>'+e(paragraph)+'</p>'}).join('')+'</section>';
     var g=pageGuideData(p);if(!g)return '';
     var linked=flat.find(function(x){return x.lesson.id===g.lesson;});
     var phases=g.phases?'<div class="guide-phase-bar" aria-hidden="true">'+g.phases.map(function(x,i){
       return '<span class="guide-phase-'+i+'" style="width:'+Math.min(100,Math.max(0,Number(x.pct)))+'%"></span>';
     }).join('')+'</div><p class="guide-phases">'+g.phases.map(function(x){return e(x.name)+' '+Number(x.pct.toFixed(2))+'%';}).join(' · ')+'</p>':'';
     return '<section class="page-guide" data-guide-page="'+p+'" aria-labelledby="guide-title-'+p+'">'+
-      '<header class="guide-intro"><small>'+(pageCount===52?'中冊':'上冊')+'第 '+p+' 頁 · STEP BY STEP</small><h2 id="guide-title-'+p+'">'+e(g.title)+'</h2>'+
+      '<header class="guide-intro"><small>'+(D.volume==='middle'?'中冊':'上冊')+'第 '+p+' 頁 · STEP BY STEP</small><h2 id="guide-title-'+p+'">'+e(g.title)+'</h2>'+
       '<p><strong>先想：</strong>'+e(g.question)+'</p><p class="guide-takeaway"><strong>一句話記住：</strong>'+e(g.takeaway)+'</p>'+
       '<p class="guide-source">以下是本站另外撰寫的導讀；原講義電路圖與公式請用下方本機 PDF 核對。</p></header>'+
       '<section class="guide-section"><h3>① 用白話想像物理現象</h3>'+g.intuition.map(function(x){return '<p>'+e(x)+'</p>';}).join('')+'</section>'+
@@ -199,6 +222,8 @@
     });
   }
   function guideSearchText(p){
+    var note=D.readings&&D.readings[p];
+    if(note)return note.paragraphs.join(' ');
     var g=pageGuideData(p);if(!g)return '';
     return [g.title,g.question,g.takeaway,g.pitfall,g.tryIt,g.check.q,g.check.a,
       g.worked.given,g.worked.result].concat(g.intuition,g.steps.map(function(x){return x.title+' '+x.detail;}),
@@ -216,12 +241,12 @@
       '<a class="back-link" href="#slides/all">← 返回完整講義索引</a>'+
       '<header class="lesson-header"><div class="eyebrow">ORIGINAL SLIDE / '+p+' OF '+pageCount+'</div>'+
       '<h1>第 '+p+' 頁｜'+e(D.slideTitles[p])+'</h1>'+
-      '<p class="lesson-lead">'+(c?'對應主題：'+e(c.title):'封面、課程資訊或結語')+'</p>'+
+      '<p class="lesson-lead">'+(c?'對應主題：'+e(c.title):readingSection(p)?e(readingSection(p)[2]):'封面、課程資訊或結語')+'</p>'+
       '<div class="chapter-actions">'+links+'</div></header>'+
       pageGuide(p)+'<div id="source-pdf-holder"></div>'+
-      '<section class="reading-block"><h2>'+e(D.pageTextTitle||'原講義抽取文字')+'</h2>'+
+      (D.readings&&D.readings[p]?'':'<section class="reading-block"><h2>'+e(D.pageTextTitle||'原講義抽取文字')+'</h2>'+
       '<p class="muted">'+e(D.pageTextNote||'文字由原始 PPTX 擷取，可能缺漏圖片形式的公式與電路圖；原講義 PDF 才是圖形內容的依據。')+'</p>'+
-      transcript+'</section>'+
+      transcript+'</section>')+
       '<div class="lesson-bottom"><div class="lesson-pager">'+
       (p>1?buttonLink('#slide/'+(p-1),'← 上一頁'):'')+
       (p<pageCount?buttonLink('#slide/'+(p+1),'下一頁 →',true):'')+
@@ -244,7 +269,7 @@
     if(!['home','chapter','lesson','slides','quiz','slide'].includes(r.type)||(r.type!=='home'&&!c&&!allSlides&&!isSource)||(r.type==='lesson'&&!l)){
       location.hash='#home';return;
     }
-    updateSidebar(r);updateBreadcrumb(r,c,l);
+    updateSidebar(r);updateBreadcrumb(r,c,l);updateEditionLink(r);
     if(r.type==='home')main.innerHTML=home();
     else if(r.type==='chapter'){main.innerHTML=chapter(c);window.EE_LABS.mount(c.lab,$('#lab-holder'))}
     else if(r.type==='lesson'){main.innerHTML=lesson(c,l);if(window.EE_INTERACTIVE)window.EE_INTERACTIVE.mount(c,l,$('#lesson-interactive'))}
@@ -266,7 +291,7 @@
     });
     for(var p=1;p<=pageCount;p++){
       var c=chapterForPage(p),raw=(sourceText[p]||'');
-      items.push({type:'slide',title:'P.'+p+' '+D.slideTitles[p],subtitle:(c?c.short:'原講義資訊頁')+' · 原講義第 '+p+' 頁',url:'#slide/'+p,text:'P.'+p+' 第'+p+'頁 '+D.slideTitles[p]+' '+raw+' '+guideSearchText(p)});
+      items.push({type:'slide',title:'P.'+p+' '+D.slideTitles[p],subtitle:(c?c.short:readingSection(p)?readingSection(p)[2]:'原講義資訊頁')+' · 原講義第 '+p+' 頁',url:'#slide/'+p,text:'P.'+p+' 第'+p+'頁 '+D.slideTitles[p]+' '+raw+' '+guideSearchText(p)});
     }
     if(!s)return items.filter(function(x){return x.type==='chapter'});
     return items.filter(function(x){return (x.text+' '+x.subtitle).toLowerCase().includes(s)}).sort(function(a,b){function score(x){return (x.title.toLowerCase().startsWith(s)?3:0)+(x.title.toLowerCase().includes(s)?2:0)+(x.type==='lesson'?1:0)}return score(b)-score(a)}).slice(0,35);

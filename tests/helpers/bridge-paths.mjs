@@ -24,6 +24,16 @@ export function assertBridgePaths(paths,{mode,da,db}){
  for(let lane=0;lane<3;lane++){
   const points=lanes[lane];let area=0;
   for(let j=1;j<points.length;j++)area+=points[j-1][1]*(points[j][0]-points[j-1][0])/318;
+  // Sample the actual SVG away from any switch. A leading-edge pulse can
+  // have the correct mean but twice the motor current ripple of P.32.
+  for(let k=0;k<40;k++){
+   const phase=(k+.5)/40,x=38+318*phase;
+   const carrier=mode==='bipolar'?phase:2*Math.min(phase,1-phase);
+   const va=Number(carrier<da/100);
+   const vb=mode==='bipolar'?1-va:Number(carrier<db/100);
+   assert.equal(points.findLast(([t])=>t<=x)[1],[va,vb,va-vb][lane],
+    'Bridge state at phase '+phase+' on lane '+lane);
+  }
   assert.ok(Math.abs(area-means[lane])<1e-10,'F02 waveform average must agree with duty on lane '+lane);
   for(let j=0;j<points.length;j++){
    assert.equal(points[j][0],lanes[0][j][0],'F02 synchronized time axes');
