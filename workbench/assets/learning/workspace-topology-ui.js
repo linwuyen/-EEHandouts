@@ -43,7 +43,14 @@
    if(!blocked&&(!stored||stored.version===1)&&JSON.stringify(stored)===expectedRecord)return false;
    return suspendRecord('比較紀錄已被另一頁更新或版本不相容');
   }
-  window.addEventListener('storage',protectRecord);
+  function refreshRecommendation(){
+   const state=E.load(),next=U.next(state,CircuitCoreFlowV1.snapshot());
+   EEWorkbenchHost.recommendation(next,$('resume-task'),state.questions);
+   if(next.id==='topology')$('resume-task').hidden=true;
+  }
+  window.addEventListener('storage',event=>{
+   if(!protectRecord()&&(event.key===E.KEY||event.key===null))refreshRecommendation();
+  });
   EEWorkbenchHost.setNavigationGuard(url=>{
    if(!url.pathname.endsWith('/applications.html')||!E.storageStatus().saved)return true;
    const raw=localStorage.getItem(E.KEY);
@@ -103,8 +110,7 @@
   $('workspace-backup').onclick=()=>{const url=URL.createObjectURL(new Blob([E.exportBackup()],{type:'application/json'})),a=el('a');a.href=url;a.download='circuit-learning-backup.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
   $('detailed-records').onclick=()=>EEWorkbenchHost.leave('records.html');$('all-materials').onclick=()=>EEWorkbenchHost.leave('../index.html');
   if(!EEWorkbenchHost.guardEvidence())return false;
-  const next=U.next(E.load(),CircuitCoreFlowV1.snapshot());EEWorkbenchHost.recommendation(next,$('resume-task'));
-  if(next.id==='topology')$('resume-task').hidden=true;
+  refreshRecommendation();
   $('close-reference').onclick=()=>{$('workspace-reference').hidden=true;};
   return true;
  };

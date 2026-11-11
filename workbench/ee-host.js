@@ -40,9 +40,27 @@
  const applicationRoutes=['applications.html','applications.html#guided-applications',...['buck','boost','pfc','psfb','llc','inverter'].map(id=>'applications.html#'+id),...['pfc','psfb','llc','inverter'].map(id=>'applications.html?lesson='+id+'#guided-applications')];
  const opampCourseFiles=["01_slew_rate.html","02_step_response.html","03_sine_fpbw.html","04_gbw_vs_slew.html","05_settling_time.html","06_datasheet_selection.html"];
  const opampCourseRoutes=opampCourseFiles.map(file=>'12_opamp_slew_rate/'+file);
- const focusedV8Modules=['bms','ad5543','c2000-dds','afe','acmc-pro'];
+ // Only EE pages that can open a specific source family belong in the review queue.
+ const reviewRoutes=new Map([['opamp-slew-large-signal','opamp-assessment.html']]);
+ const groups={
+  adc:['adc-levels-vs-codes','adc-divider-power','adc-offset-purpose'],
+  buck:['buck-ripple-inductance-transfer','buck-dcm-boundary','buck-model-validity'],
+  spi:['spi-clock-throughput','spi-rx-overrun','spi-cpol-cpha'],
+  topology:['topology-pfc-scaling','topology-psfb-scaling','topology-llc-scaling','topology-inverter-scaling'],
+  'power-firmware':['power-sync-deadline','protection-trip-latency','capstone-signal-chain'],
+ };
+ for(const [page,families] of Object.entries(groups)){
+  for(const family of families)reviewRoutes.set(family,page+'-assessment.html?family='+family);
+ }
+ const v8Modules={
+  'inv-shoot-through-safety':'inverter','foc-park-frame':'foc','pi-integrator-crossover':'pi',
+  'loop10us-deadline-budget':'loop10us','bms-failsafe-convergence':'bms','ad5543-code-mapping':'ad5543',
+  'dds-real-power':'c2000-dds','afe-phase-power':'afe','acmc-protection-boundary':'acmc-pro',
+ };
+ for(const [family,module] of Object.entries(v8Modules))reviewRoutes.set(family,'v8-assessment.html?module='+module);
+ const focusedV8Modules=Object.values(v8Modules);
  const focusedV8Routes=focusedV8Modules.map(id=>'v8-assessment.html?module='+id);
- const destinations=new Set([...applicationRoutes,...focusedV8Routes,'opamp-course.html','opamp-diagnosis.html','opamp-dc-trainer.html','opamp-assessment.html','adc-assessment.html','spi-assessment.html','buck-assessment.html','topology-assessment.html','power-firmware-assessment.html','v8-assessment.html',...opampCourseRoutes,course,'opamp-step.html','opamp-sine.html','adc.html','adc-course.html',...['lesson-0','lesson-1','lesson-2','lesson-3','lesson-4','lesson-5','formulas'].map(id=>'adc-course.html#'+id),'topology.html','index.html#experiment','index.html#experiment-energy','../middle.html#lesson/mid-boost/mid-boost-ccm','records.html','coverage.html','../index.html','../index.html#lesson/analog/adc','../index.html#lesson/analog/op','../index.html#lesson/analog/pi','../advanced.html#timing']);
+ const destinations=new Set([...applicationRoutes,...reviewRoutes.values(),'opamp-course.html','opamp-diagnosis.html','opamp-dc-trainer.html','opamp-assessment.html','adc-assessment.html','spi-assessment.html','buck-assessment.html','topology-assessment.html','power-firmware-assessment.html','v8-assessment.html',...opampCourseRoutes,course,'opamp-step.html','opamp-sine.html','adc.html','adc-course.html',...['lesson-0','lesson-1','lesson-2','lesson-3','lesson-4','lesson-5','formulas'].map(id=>'adc-course.html#'+id),'topology.html','index.html#experiment','index.html#experiment-energy','../middle.html#lesson/mid-boost/mid-boost-ccm','records.html','coverage.html','../index.html','../index.html#lesson/analog/adc','../index.html#lesson/analog/op','../index.html#lesson/analog/pi','../advanced.html#timing']);
  function safeDestination(path){
   const u=new URL(path,location.href);
   return [...destinations].some(p=>new URL(p,location.href).href===u.href)?u:null;
@@ -101,7 +119,6 @@
    if(['power-sync','protection','power-capstone'].some(id=>source==='quiz.html?module='+id))return 'power-firmware-assessment.html';
   const focus=focusedV8Modules.find(id=>source==='quiz.html?module='+id);
   if(focus)return 'v8-assessment.html?module='+focus;
-  if(['inverter','foc','pi','loop10us'].some(id=>source==='quiz.html?module='+id))return 'v8-assessment.html';
   if(source.startsWith('12_opamp_slew_rate'))return 'coverage.html';
   if(source.startsWith('4_PI')||source.startsWith('18_control_unification'))return '../index.html#lesson/analog/pi';
   if(source.startsWith('6.')||source.startsWith('13_power_sync'))return '../advanced.html#timing';
@@ -115,7 +132,25 @@
   p.textContent=(destination==='opamp-course.html'||opampCourseRoutes.includes(destination))?'本站六課觀念不記錄已讀或評量通過；進入前先保存目前實驗。':destination==='opamp-diagnosis.html'?'本站 OP 三題診斷只在本頁記錄首次選擇，不授予正式成績；進入前先保存目前實驗。':destination==='topology-assessment.html'?'本站 PFC／PSFB／LLC／逆變器四題族正式首答、遷移與到期複習使用既有 V5 Evidence；非實板或控制安全認證。':destination==='buck-assessment.html'?'本站 Buck 三題族首答、遷移與到期複習共用原 V5 Evidence；不表示硬體、故障保護或控制迴路通過。':destination==='spi-assessment.html'?'本站 SPI 三題族首答、遷移與到期複習共用原 V5 Evidence；不代表 SPI 周邊時序、FIFO 或硬體已驗收。':destination==='adc-assessment.html'?'本站 ADC 三題族首答、遷移與到期複習共用原 V5 Evidence，不能替代實板認證；進入前先保存實驗。':destination==='opamp-assessment.html'?'本站 OP Slew Rate 首答、遷移與到期複習使用原有 V5 Evidence 記錄，不是 BOARD_PASS；進入前先保存目前實驗。':destination==='opamp-dc-trainer.html'?'本站 OP DC Trainer Level 0–5 只將 mastery 儲存在瀏覽器本地，不授予正式成績；進入前先保存目前實驗。':destination.startsWith('opamp-')?'本站 OP 實驗不帶入目前實驗參數、不保存輸入或授予評量通過；進入前先保存目前實驗。':destination.startsWith('adc-course.html')?'本站 ADC 逐課閱讀不記錄正式成績、不改寫舊進度；進入前先儲存目前實驗。':destination==='adc.html'?'本站 ADC 計算器只暫存自己的輸入，不帶入實驗參數，也不改寫作答紀錄；離開前先保存目前實驗。':source==='map.html'?'實驗、舊課及正式評量紀錄各自保留。可開啟唯讀紀錄頁並匯出完整備份。':destination==='coverage.html'?'這個進階功能尚未遷入 EEHandouts。既有作答仍保留，不會改成已完成；本批不連回舊網站。':'開啟 EEHandouts 對應教材；它的模型與參數不會自動套用到本實驗。';if(destination==='power-firmware-assessment.html')p.textContent='本站 PWM／ADC Deadline、Protection Trip 與 Capstone 三題族沿用原始 V5 Evidence；不代表硬體時序、Trip 安全或 BOARD_PASS。';if(destination==='v8-assessment.html'||focusedV8Routes.includes(destination))p.textContent='本題使用原始 Assessment V8 出題與評分，首答、遷移及到期複習記錄於 V5 Evidence。';links.append(p);
   const b=document.createElement('button');b.type='button';b.textContent=(destination==='opamp-course.html'||opampCourseRoutes.includes(destination))?'保存後開啟 OP 觀念課':destination==='opamp-diagnosis.html'?'保存後開啟 OP 診斷練習':destination==='topology-assessment.html'?'保存後開啟功率拓撲正式題目':destination==='buck-assessment.html'?'保存後開啟 Buck 正式題目':destination==='spi-assessment.html'?'保存後開啟 SPI 正式題目':destination==='adc-assessment.html'?'保存後開啟 ADC 正式題目':destination==='opamp-assessment.html'?'保存後開啟 OP 正式題目':destination==='opamp-dc-trainer.html'?'保存後開啟 OP DC 推理訓練':destination.startsWith('opamp-')?'保存後開啟 OP 實驗':destination.startsWith('adc-course.html')?'保存後開啟 ADC 逐課導讀':destination==='adc.html'?'保存後開啟 ADC 計算器':source==='map.html'?'保存後查看紀錄與備份':destination==='coverage.html'?'保存後查看遷移範圍':'保存後開啟本站教材';if(destination==='power-firmware-assessment.html')b.textContent='保存後開啟電源韌體正式題目';if(destination==='v8-assessment.html'||focusedV8Routes.includes(destination))b.textContent='保存後開啟 V8 正式題目';b.onclick=()=>leave(destination);links.append(b);box.scrollIntoView({block:'start'});
  }
- function recommendation(next,button){
+ function dueReviewRoute(questions){
+  let oldest=Infinity,route=null;
+  const now=Date.now();
+  for(const [id,answer] of Object.entries(questions||{})){
+   if(!reviewRoutes.has(id))continue;
+   const result=window.CircuitAssessment.metrics(answer,now);
+   const dueAt=Date.parse(result.nextReviewAt);
+   if(result.due&&dueAt<oldest){oldest=dueAt;route=reviewRoutes.get(id);}
+  }
+  return route;
+ }
+ function recommendation(next,button,questions){
+  if(next.id==='quiz'){
+   const route=dueReviewRoute(questions);
+   if(route){
+    button.hidden=false;button.textContent='保存後接續到期複習';button.dataset.route=route;
+    button.onclick=()=>leave(route);return;
+   }
+  }
   if(next.id==='applications'){button.hidden=false;button.textContent='保存後接續四種電路應用';button.dataset.route='applications.html';button.onclick=()=>leave('applications.html');return;}
   if(next.id==='topology'){button.hidden=false;button.textContent='保存後接續 Buck／Boost 比較';button.dataset.route='topology.html';button.onclick=()=>leave('topology.html');return;}
   button.hidden=next.id==='experiment'||/^(basic|bridge)-/.test(next.id);

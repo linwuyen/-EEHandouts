@@ -16,7 +16,7 @@ test('source manifest pins the 6b-4 HTML and JS, failing closed on missing or st
  const manifest=JSON.parse(readFileSync('workbench/source-manifest.json','utf8'));
  const expected={
   'topology-assessment.html':'8c1dbc7c79d25ee3f0e68bc7f387d05d450a947f6c7524189723f121d6049f66',
-  'ee-topology-assessment.js':'92c3d48f5bf6817fa7363eacee89dc61f600c792fda0cf7786398b0ae03dfce6'
+  'ee-topology-assessment.js':'a2ab144737b09c8d973aa60114a9812567cc15fe0e94ba631ba87378f3a470d4'
  };
  for(const [path,sha256] of Object.entries(expected)){
   const matching=manifest.files.filter(row=>row.path===path);
