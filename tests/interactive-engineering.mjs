@@ -103,8 +103,15 @@ for (const mode of [0,1]){
    assert.equal(s.step,true,s.label+' must render as an instantaneous step');
    eq(s.points[100],s.points[0],1e-12,s.label+' period wraps at t/T=1');
  }
- eq(series[0].points[74],100,1e-12,'VA before A duty edge');
- eq(series[0].points[75],0,1e-12,'VA after A duty edge');
+ if(mode){
+   eq(series[0].points[74],100,1e-12,'Bipolar VA before the leading duty edge');
+   eq(series[0].points[75],0,1e-12,'Bipolar VA after the leading duty edge');
+ }else{
+   eq(series[0].points[37],100,1e-12,'Unipolar VA before the triangular carrier crossing');
+   eq(series[0].points[38],0,1e-12,'Unipolar VA after the triangular carrier crossing');
+   assert.deepEqual(Array.from(series[2].steps,p=>p.t),[0,.125,.375,.625,.875,1],
+     'Unipolar leg transitions are exactly at half-duty crossings');
+ }
  eq(series[2].points[90],mode?-100:0,1e-12,'VAB bipolar/unipolar late state');
 }
 const pi=make('pi',{kp:1,ki:600,f:100});

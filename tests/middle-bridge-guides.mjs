@@ -113,14 +113,23 @@ near(pAvg,40,1e-12,'P31 bipolar average');
 near((dc-backdrop)*positiveShare*period/la,2.1,1e-12,'P31 positive current ramp');
 near((-dc-backdrop)*(1-positiveShare)*period/la,-2.1,1e-12,'P31 negative ramp');
 near(dc-(-dc),200,1e-12,'P31 full bus differential step');
-// P32 integrate both bridge-leg state functions over independent time samples.
-const DA=.7,DB=.3,N=20000;let total=0,zero=0,positive=0,negative=0;
+// P32: each reference crosses the up/down carrier twice per period.
+const DA=.7,DB=.3,N=20000;let total=0,zero=0,positive=0,negative=0,pulses=0;
+let current=0,minimum=0,maximum=0,lastV=0;
 for(let k=0;k<N;k++){
- const t=(k+.5)/N,SA=t<DA?1:0,SB=t<DB?1:0,v=(SA-SB)*dc;
+ const t=(k+.5)/N,carrier=2*Math.min(t,1-t);
+ const SA=carrier<DA?1:0,SB=carrier<DB?1:0,v=(SA-SB)*dc;
+ if(v>0&&lastV===0)pulses++;
  total+=v/N;if(v===0)zero++;else if(v>0)positive++;else negative++;
+ current+=(v-backdrop)*(period/N)/la;
+ minimum=Math.min(minimum,current);maximum=Math.max(maximum,current);lastV=v;
 }
 near(total,40,1e-8,'P32 two-arm average');
 near(positive/N,.4,1e-10,'P32 +bus duration');
 near(zero/N,.6,1e-10,'P32 differential zero duration');
 assert.equal(negative,0,'P32 positive unipolar command must not create a negative state');
+assert.equal(pulses,2,'P32 symmetric carrier produces two +100V pulses per carrier period');
+near((positive/N/pulses)*period,10e-6,1e-12,'P32 each positive pulse lasts 10 µs');
+near(current,0,1e-10,'P32 motor current closes over the full carrier period');
+near(maximum-minimum,.6,1e-10,'P32 peak-to-peak motor current ripple is 0.6 A');
 console.log('PASS P.23–32 middle guides: 10 source-linked explanations and independent CCM/BCM/DCM, H-Bridge, motor/PWM fixtures');
