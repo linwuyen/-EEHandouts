@@ -101,7 +101,7 @@ test('source-generated dynamic Tn is verified; spoofed role, seed and answer can
   A.recordAttempt(s,q,bad,{at:at(t+i*1000)});
  }
  const q=A.nextQuestion(grp,s.questions[id],t+3500);
- assert.equal(q.variantId,'T1');assert.equal(q.transferDepth,4);
+ assert.equal(q.variantId,'T4');assert.equal(q.transferDepth,7);
  A.recordAttempt(s,q,q.options.find(o=>o.correct),{at:at(t+4000)});
  assert.equal(gate(snapshot(s)).ok,true);
  const entry=s.questions[id].history.at(-1);
