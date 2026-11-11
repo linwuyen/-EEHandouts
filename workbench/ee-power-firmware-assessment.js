@@ -35,18 +35,18 @@ function gate(storage,assessment,bank,source){
     if(FAMILIES.some(id=>data.questions[id]!==undefined)){
       try{sourceVariants=familyModel(assessment,bank);}catch(_){return {ok:false,raw,reason:'電源韌體 source grading model missing'};}
     }
-    const sourceFor=(id,h)=>{
-      const fixed=sourceVariants.find(q=>q.familyId===id&&q.variantId===h.variantId);
-      if(fixed)return fixed;
-      const base=sourceVariants.find(q=>q.familyId===id&&q.variantId==='A');
-      const t=/^T([1-9]\d*)$/.exec(h.variantId);
-      const review=/^RX([1-9]\d*)$/.exec(h.variantId);
-      const depth=t?Number(t[1])+3:review?Number(review[1])+7:null;
-      if(!base||!Number.isSafeInteger(depth)||depth>500||!source||typeof source.generate!=='function')return null;
-      return source.generate(base,h.variantId,h.assessmentRole,depth);
+    // Reconstruct each attempted question via the original scheduler and
+    // the preceding history. Matching a claimed seed or option is insufficient:
+    // the source must have actually offered this variant at this timestamp.
+    // Source transfer/review generation is intentionally unbounded.
+    const sourceFor=(id,h,previous)=>{
+      if(!source||typeof source.generate!=='function'||typeof assessment?.nextQuestion!=='function')return null;
+      const items=sourceVariants.filter(q=>q.familyId===id);
+      const q=assessment.nextQuestion(items,{history:previous},Date.parse(h.at));
+      return q&&q.familyId===id&&q.variantId===h.variantId?q:null;
     };
-    const sourceMatch=(id,h)=>{
-      const q=sourceFor(id,h);
+    const sourceMatch=(id,h,previous)=>{
+      const q=sourceFor(id,h,previous);
       const chosen=q?.options?.find(o=>o.id===h.choiceId);
       return !!(q&&chosen&&q.id===h.questionId&&q.familyId===id&&
         q.assessmentRole===h.assessmentRole&&h.correct===!!chosen.correct&&
@@ -63,7 +63,7 @@ function gate(storage,assessment,bank,source){
           h.assessmentRole!==roleFor(h.variantId)||typeof h.correct!=='boolean'||typeof h.firstAttemptForVariant!=='boolean'||
           (index===0&&h.assessmentRole!=='baseline')||
           h.firstAttemptForVariant===rec.history.slice(0,index).some(prev=>prev.variantId===h.variantId)||
-          !sourceMatch(id,h)))
+          !sourceMatch(id,h,rec.history.slice(0,index))))
         return {ok:false,raw,reason:'unsupported 電源韌體 family history '+id};
     }
     return {ok:true,raw};

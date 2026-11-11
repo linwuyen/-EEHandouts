@@ -129,4 +129,26 @@ test('source firmware transfer physics, safety priority and independent numerica
  assert.ok(Math.abs(Number.parseFloat(cap.options.find(o=>o.correct).text)-(pc.periodUs-pc.sense-pc.control-pc.commit))<0.051);
  assert.match(find('protection-trip-latency','A').options.find(o=>o.correct).text,/Trip/);
 });
+
+test('source scheduler rejects impossible T1 transfer after A without B/C/D',()=>{
+ const id=FAMILIES[0],s=E.emptyState(),t=Date.now()-110000;
+ const base=find(id,'A');A.recordAttempt(s,base,base.options.find(o=>!o.correct),{at:at(t)});
+ const forged=FW.generate(base,'T1','transfer',4);
+ A.recordAttempt(s,forged,forged.options.find(o=>o.correct),{at:at(t+1000)});
+ assert.equal(gate(snapshot(s)).ok,false,'seeded dynamic variant cannot skip original transfer sequence');
+});
+test('genuine source T498/depth 501 is accepted, not truncated by the adapter',()=>{
+ const id=FAMILIES[0],s=E.emptyState(),grp=questions.filter(q=>q.familyId===id),start=Date.now()-650000;
+ let last=null;
+ for(let i=0;i<499;i++){
+  const q=A.nextQuestion(grp,s.questions[id]||null,start+i*1000);
+  assert.ok(q,'source must continue offering unseen transfer');
+  A.recordAttempt(s,q,q.options.find(o=>!o.correct),{at:at(start+i*1000)});
+  last=q;
+ }
+ assert.equal(last.variantId,'T498');assert.equal(last.transferDepth,501);
+ const checked=gate(snapshot(s));
+ assert.equal(checked.ok,true,checked.reason||'legitimate unbounded transfer history');
+ assert.equal(A.metrics(s.questions[id],start+500000).transfer,false,'wrong attempts cannot grant transfer');
+});
 console.log('PASS 6b-5 Power Firmware: source, 3x8 variants, V5, dynamic Tn, physics, Web Lock negative control');
