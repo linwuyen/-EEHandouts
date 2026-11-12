@@ -372,13 +372,13 @@
     "method": "view_image",
     "findings": "Key neutral waveform, P84 worked RMS, P85 direction, rendered PF, and mobile text fallback screenshots are readable and unobstructed.",
     "files": [
-      "final697071-upper-p83-neutral.png",
-      "final697071-upper-p84-worked.png",
-      "final697071-upper-p85-direction.png",
-      "final697071-upper-p93-pf.png",
-      "final697071-upper-p93-pf-fallback.png",
-      "final697071-upper-p84-neutral-fallback.png",
-      "final697071-upper-p96-pf-fallback.png"
+      "../screenshots/final697071-upper-p83-neutral.png",
+      "../screenshots/final697071-upper-p84-worked.png",
+      "../screenshots/final697071-upper-p85-direction.png",
+      "../screenshots/final697071-upper-p93-pf.png",
+      "../screenshots/final697071-upper-p93-pf-fallback.png",
+      "../screenshots/final697071-upper-p84-neutral-fallback.png",
+      "../screenshots/final697071-upper-p96-pf-fallback.png"
     ]
   }
 }
