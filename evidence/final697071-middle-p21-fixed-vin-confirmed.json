@@ -1,0 +1,149 @@
+{
+  "status": "PASS",
+  "expectedSha": "f660bf9abf55c002e8779147ed4a8b9f5f221574",
+  "startedAt": "2026-11-12T16:17:14.382Z",
+  "route": [
+    "https://linwuyen.github.io/-EEHandouts/index.html#home",
+    "https://linwuyen.github.io/-EEHandouts/middle.html",
+    "https://linwuyen.github.io/-EEHandouts/middle.html#slides/all",
+    "https://linwuyen.github.io/-EEHandouts/middle.html#slide/21",
+    "https://linwuyen.github.io/-EEHandouts/middle.html#lesson/mid-boost/mid-boost-dcm"
+  ],
+  "points": [
+    {
+      "duty": 35,
+      "controls": [
+        {
+          "label": "輸出定電流負載",
+          "value": 0.8
+        },
+        {
+          "label": "Duty",
+          "value": 35
+        },
+        {
+          "label": "Vin",
+          "value": 48
+        },
+        {
+          "label": "電感",
+          "value": 100
+        },
+        {
+          "label": "開關頻率",
+          "value": 100
+        },
+        {
+          "label": "波形時間游標",
+          "value": 25
+        }
+      ],
+      "metrics": [
+        {
+          "label": "理想 Vout",
+          "value": "73.85 V"
+        },
+        {
+          "label": "IL Peak",
+          "value": "2.07 A"
+        },
+        {
+          "label": "IL Valley",
+          "value": "0.39 A"
+        },
+        {
+          "label": "BCM 輸出 Io",
+          "value": "0.55 A"
+        },
+        {
+          "label": "零電流時間比例",
+          "value": "0 %"
+        }
+      ],
+      "independent": {
+        "expectedIoCrit": 0.5459999999999999,
+        "expectedVo": 73.84615384615384
+      },
+      "screenshot": "../screenshots/final697071-middle-p21-fixed-vin-duty-35.png"
+    },
+    {
+      "duty": 50,
+      "controls": [
+        {
+          "label": "輸出定電流負載",
+          "value": 0.8
+        },
+        {
+          "label": "Duty",
+          "value": 50
+        },
+        {
+          "label": "Vin",
+          "value": 48
+        },
+        {
+          "label": "電感",
+          "value": 100
+        },
+        {
+          "label": "開關頻率",
+          "value": 100
+        },
+        {
+          "label": "波形時間游標",
+          "value": 25
+        }
+      ],
+      "metrics": [
+        {
+          "label": "理想 Vout",
+          "value": "96 V"
+        },
+        {
+          "label": "IL Peak",
+          "value": "2.8 A"
+        },
+        {
+          "label": "IL Valley",
+          "value": "0.4 A"
+        },
+        {
+          "label": "BCM 輸出 Io",
+          "value": "0.6 A"
+        },
+        {
+          "label": "零電流時間比例",
+          "value": "0 %"
+        }
+      ],
+      "independent": {
+        "expectedIoCrit": 0.6,
+        "expectedVo": 96
+      },
+      "screenshot": "../screenshots/final697071-middle-p21-fixed-vin-duty-50.png"
+    }
+  ],
+  "pageErrors": [],
+  "releaseBefore": {
+    "status": 200,
+    "sha": "f660bf9abf55c002e8779147ed4a8b9f5f221574",
+    "checkedAt": "2026-11-12T16:17:14.596Z"
+  },
+  "chromium": "141.0.7390.37",
+  "displayPrecisionNote": "The live interactive metrics display two decimals: 0.546 A rounds to 0.55 A. The initial auxiliary check incorrectly used 0.0005 A tolerance; this confirmed run compares the displayed two-decimal value. Product behavior is correct.",
+  "releaseAfter": {
+    "status": 200,
+    "sha": "f660bf9abf55c002e8779147ed4a8b9f5f221574",
+    "checkedAt": "2026-11-12T16:17:18.277Z"
+  },
+  "finishedAt": "2026-11-12T16:17:18.333Z",
+  "visualInspection": {
+    "status": "PASS",
+    "images": [
+      "../screenshots/final697071-middle-p21-fixed-vin-duty-35.png"
+    ],
+    "method": "view_image",
+    "note": "Viewed actual Chromium screenshots. Required visible instructions, numeric values and formulas are legible without clipping or overlays.",
+    "checkedAt": "2026-11-12T16:17:39.6993801Z"
+  }
+}

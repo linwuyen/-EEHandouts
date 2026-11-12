@@ -1,0 +1,136 @@
+{
+  "status": "PASS",
+  "releaseBefore": {
+    "sha": "f660bf9abf55c002e8779147ed4a8b9f5f221574",
+    "status": 200,
+    "checkedAt": "2026-11-12T16:15:42.683Z"
+  },
+  "releaseAfter": {
+    "sha": "f660bf9abf55c002e8779147ed4a8b9f5f221574",
+    "status": 200,
+    "checkedAt": "2026-11-12T16:15:50.592Z"
+  },
+  "checkedAt": "2026-11-12T16:15:50.592Z",
+  "browser": "Chromium 141.0.7390.37",
+  "viewport": {
+    "width": 1440,
+    "height": 3912
+  },
+  "url": "https://linwuyen.github.io/-EEHandouts/middle.html#slide/27",
+  "releaseSha": "f660bf9abf55c002e8779147ed4a8b9f5f221574",
+  "expectedSha": "f660bf9abf55c002e8779147ed4a8b9f5f221574",
+  "steps": [
+    {
+      "action": "Open production upper-volume home",
+      "url": "https://linwuyen.github.io/-EEHandouts/",
+      "title": "總覽｜EE Handouts"
+    },
+    {
+      "action": "Click 中冊 DC-DC →",
+      "url": "https://linwuyen.github.io/-EEHandouts/middle.html",
+      "title": "總覽｜EE Handouts"
+    },
+    {
+      "action": "Click 依原講義頁碼閱讀 →",
+      "url": "https://linwuyen.github.io/-EEHandouts/middle.html#slides/all",
+      "p27IndexText": "P.27\n四開關 Bridge Buck-Boost\n\n升降壓與雙向能量 · Bridge Buck-Boost：兩組半橋分別是 Buck-arm 與 Boost-arm，中點之間接 L，PWM 三角波控制各開關。\n\n看頁面摘要與 PDF 對照 →\n四開關 Buck-Boost 的橋臂與控制 →"
+    },
+    {
+      "action": "Click P27 四開關 Bridge Buck-Boost index title",
+      "url": "https://linwuyen.github.io/-EEHandouts/middle.html#slide/27",
+      "heading": "第 27 頁｜四開關 Bridge Buck-Boost"
+    }
+  ],
+  "scope": "Verification of the production website guide explaining how to read the original diagram. No user PDF was loaded; no claim is made that the original PDF drawing was viewed.",
+  "visibleGuideText": "中冊第 27 頁 · STEP BY STEP\n四開關 Buck-Boost 的兩條載波與四條 Gate，如何讀出三種電感電壓？\n\n先想：在原圖任選一段 Gate 高電位，能否同時指出哪兩管導通、左右中點電壓，以及 iL 的斜率？\n\n一句話記住：先對齊兩條載波與四條 Gate：紅色谷底窄脈波給 +Vin，綠色波峰窄脈波給 −Vo，兩段之間給 Vin−Vo；一律用左端減右端求 vL。\n\n以下為本站導讀，可對照自己的講義 PDF 閱讀。\n\n原始投影片 PDF 對照\n\n可載入中冊 R2（169 頁）或 52 頁版。PDF 只留在這台裝置。\n\n載入原始講義 PDF\n手邊是 PPTX 時，請先匯出為 PDF。\n① 用白話想像物理現象\n\n先認圖上的管名：左側 Buck 橋臂上管 Q1 接 Vin、下管 Q1p 接地；右側 Boost 橋臂下管 Q2 接地、上管 Q2p 接 Vo。電感跨在兩中點之間，vL 定義為左中點減右中點。\n\n沿同一時間軸把紅色 Boost 載波、綠色 Buck 載波與 Q1、Q1p、Q2、Q2p 四條 Gate 對齊。從紅色谷底窄脈波出發，接著是傳能段、綠色波峰窄脈波，再回到傳能段；這一頁要逐段讀這三種狀態。\n\n② 追蹤訊號與能量流\n1. 先將四條 Gate 垂直對齊\n\n令 iL 正方向由左向右，vL=vSW,L−vSW,R。任選一段時間，同時讀左右橋臂各一條高 Gate；理想互補下，Q1 與 Q1p、Q2 與 Q2p 各有一管導通。\n\n2. 紅色 Boost 載波谷底的窄脈波\n\nQ1、Q2 導通，Q1p、Q2p 截止：左中點接 Vin、右中點接 0，vL=+Vin，diL/dt=+Vin/L。沿 Vin→Q1→電感→Q2→地追電流，iL 在此段上升。\n\n3. 綠色 Buck 載波波峰的窄脈波\n\nQ1p、Q2p 導通，Q1、Q2 截止：左中點接 0、右中點接 Vo，vL=−Vo，diL/dt=−Vo/L。正向電感電流經 Q2p 送至輸出、由 Q1p 續流，iL 在此段下降。\n\n4. 兩窄脈波之間的傳能段\n\nQ1、Q2p 導通，Q1p、Q2 截止：左中點接 Vin、右中點接 Vo，vL=Vin−Vo，diL/dt=(Vin−Vo)/L。Vin>Vo 時上升、Vin<Vo 時下降、Vin=Vo 時水平；Q2 Gate 低不代表 iL 必然下降。\n\n③ 公式一步一步來\n真正控制電感斜率的是兩中點差\n𝑣\n𝐿\n=\n𝑣\n𝑆\n𝑊\n,\n𝐿\n−\n𝑣\n𝑆\n𝑊\n,\n𝑅\n=\n𝐿\n𝑑\n𝑖\n𝐿\n𝑑\n𝑡\nv\nL\n\t​\n\n=v\nSW,L\n\t​\n\n−v\nSW,R\n\t​\n\n=L\ndt\ndi\nL\n\t​\n\n\t​\n\n\n先由兩顆導通開關找中點電壓，再相減；結果正、負、零分別對應升流、降流與水平。\n\n紅色谷底窄脈波：Q1、Q2 導通\n𝑣\n𝐿\n=\n𝑉\n𝑖\n𝑛\n−\n0\n=\n𝑉\n𝑖\n𝑛\n,\n𝑑\n𝑖\n𝐿\n𝑑\n𝑡\n=\n𝑉\n𝑖\n𝑛\n𝐿\nv\nL\n\t​\n\n=V\nin\n\t​\n\n−0=V\nin\n\t​\n\n,\ndt\ndi\nL\n\t​\n\n\t​\n\n=\nL\nV\nin\n\t​\n\n\t​\n\n\n左上管把左中點接至 Vin、右下管把右中點接地，兩端差為正。\n\n綠色波峰窄脈波：Q1p、Q2p 導通\n𝑣\n𝐿\n=\n0\n−\n𝑉\n𝑜\n=\n−\n𝑉\n𝑜\n,\n𝑑\n𝑖\n𝐿\n𝑑\n𝑡\n=\n−\n𝑉\n𝑜\n𝐿\nv\nL\n\t​\n\n=0−V\no\n\t​\n\n=−V\no\n\t​\n\n,\ndt\ndi\nL\n\t​\n\n\t​\n\n=−\nL\nV\no\n\t​\n\n\t​\n\n\n左下管把左中點接地、右上管把右中點接至 Vo，兩端差為負。\n\n兩窄脈波之間：Q1、Q2p 導通\n𝑣\n𝐿\n=\n𝑉\n𝑖\n𝑛\n−\n𝑉\n𝑜\n,\n𝑑\n𝑖\n𝐿\n𝑑\n𝑡\n=\n𝑉\n𝑖\n𝑛\n−\n𝑉\n𝑜\n𝐿\nv\nL\n\t​\n\n=V\nin\n\t​\n\n−V\no\n\t​\n\n,\ndt\ndi\nL\n\t​\n\n\t​\n\n=\nL\nV\nin\n\t​\n\n−V\no\n\t​\n\n\t​\n\n\n兩側上管接通輸入與輸出，斜率符號取決於 Vin 和 Vo 的大小，相等時斜率為零。\n\n④ 帶數字算一次\n\n沿原圖三種狀態，另取 Vin=24 V、Vo=24 V、L=100 µH、fs=100 kHz。紅、綠窄脈波各 1 µs，中間傳能段每週期合計 8 µs；這些時間只供計算，並非量取原圖的占比。\n\n紅色谷底窄脈波，Q1、Q2 導通：vSW,L=24 V、vSW,R=0 V；vL=+24 V、diL/dt=+0.24 A/µs，t=1 µs，ΔiL=+0.24 A。\n綠色波峰窄脈波，Q1p、Q2p 導通：vSW,L=0 V、vSW,R=24 V；vL=−24 V、diL/dt=−0.24 A/µs，t=1 µs，ΔiL=−0.24 A。\n兩窄脈波之間，Q1、Q2p 導通：vSW,L=24 V、vSW,R=24 V；vL=0 V、diL/dt=0 A/µs，合計 t=8 µs，ΔiL=0 A。\n一個 10 µs 週期內，+24×1+0×8−24×1=0 V·µs，電感電流回到起點。傳能段在此例水平，原因是 Vin=Vo；若改變兩端電壓，須重新由 Vin−Vo 判斷斜率。\n\n算完應該理解：圈出任一 Gate 時段後，都要依序回答：導通的是哪兩管、左／右中點各為多少、相減後的 vL 是多少、iL 上升或下降或水平。三種狀態都可用這個順序核對。\n\n⑤ 適用條件與常見誤解\n依原圖兩條載波與四條 Gate 判讀三狀態；假設 Vin、Vo 為正且一週期內近似固定，電感處於正向 CCM，開關理想。\n先忽略切換邊緣的 dead time、body diode 與寄生壓降；實機在死區內的中點電壓還受電流方向影響，不能只憑 Gate 高低代入理想值。\n\n容易搞錯：只看 Q2 的窄脈波就把其餘時間全當成降流，漏掉綠色脈波與中間傳能段的不同導通組合；或將 vL 的左減右極性反過來。\n\n⑥ 想過再揭曉\n在兩窄脈波之間圈出一段：哪兩管導通？若 Vin 分別大於、小於、等於 Vo，iL 斜率各如何？\n\n回到原圖，在紅色谷底、綠色波峰與兩者之間各畫一條垂直線，逐條讀完四個 Gate；寫下導通管組、兩中點電壓、左減右的 vL 與 iL 斜率，再用本頁三狀態核對。\n\n前往對應的互動課節：四開關 Buck-Boost 的橋臂與控制 →",
+  "visibleSections": [
+    "① 用白話想像物理現象\n\n先認圖上的管名：左側 Buck 橋臂上管 Q1 接 Vin、下管 Q1p 接地；右側 Boost 橋臂下管 Q2 接地、上管 Q2p 接 Vo。電感跨在兩中點之間，vL 定義為左中點減右中點。\n\n沿同一時間軸把紅色 Boost 載波、綠色 Buck 載波與 Q1、Q1p、Q2、Q2p 四條 Gate 對齊。從紅色谷底窄脈波出發，接著是傳能段、綠色波峰窄脈波，再回到傳能段；這一頁要逐段讀這三種狀態。",
+    "② 追蹤訊號與能量流\n1. 先將四條 Gate 垂直對齊\n\n令 iL 正方向由左向右，vL=vSW,L−vSW,R。任選一段時間，同時讀左右橋臂各一條高 Gate；理想互補下，Q1 與 Q1p、Q2 與 Q2p 各有一管導通。\n\n2. 紅色 Boost 載波谷底的窄脈波\n\nQ1、Q2 導通，Q1p、Q2p 截止：左中點接 Vin、右中點接 0，vL=+Vin，diL/dt=+Vin/L。沿 Vin→Q1→電感→Q2→地追電流，iL 在此段上升。\n\n3. 綠色 Buck 載波波峰的窄脈波\n\nQ1p、Q2p 導通，Q1、Q2 截止：左中點接 0、右中點接 Vo，vL=−Vo，diL/dt=−Vo/L。正向電感電流經 Q2p 送至輸出、由 Q1p 續流，iL 在此段下降。\n\n4. 兩窄脈波之間的傳能段\n\nQ1、Q2p 導通，Q1p、Q2 截止：左中點接 Vin、右中點接 Vo，vL=Vin−Vo，diL/dt=(Vin−Vo)/L。Vin>Vo 時上升、Vin<Vo 時下降、Vin=Vo 時水平；Q2 Gate 低不代表 iL 必然下降。",
+    "③ 公式一步一步來\n真正控制電感斜率的是兩中點差\n𝑣\n𝐿\n=\n𝑣\n𝑆\n𝑊\n,\n𝐿\n−\n𝑣\n𝑆\n𝑊\n,\n𝑅\n=\n𝐿\n𝑑\n𝑖\n𝐿\n𝑑\n𝑡\nv\nL\n\t​\n\n=v\nSW,L\n\t​\n\n−v\nSW,R\n\t​\n\n=L\ndt\ndi\nL\n\t​\n\n\t​\n\n\n先由兩顆導通開關找中點電壓，再相減；結果正、負、零分別對應升流、降流與水平。\n\n紅色谷底窄脈波：Q1、Q2 導通\n𝑣\n𝐿\n=\n𝑉\n𝑖\n𝑛\n−\n0\n=\n𝑉\n𝑖\n𝑛\n,\n𝑑\n𝑖\n𝐿\n𝑑\n𝑡\n=\n𝑉\n𝑖\n𝑛\n𝐿\nv\nL\n\t​\n\n=V\nin\n\t​\n\n−0=V\nin\n\t​\n\n,\ndt\ndi\nL\n\t​\n\n\t​\n\n=\nL\nV\nin\n\t​\n\n\t​\n\n\n左上管把左中點接至 Vin、右下管把右中點接地，兩端差為正。\n\n綠色波峰窄脈波：Q1p、Q2p 導通\n𝑣\n𝐿\n=\n0\n−\n𝑉\n𝑜\n=\n−\n𝑉\n𝑜\n,\n𝑑\n𝑖\n𝐿\n𝑑\n𝑡\n=\n−\n𝑉\n𝑜\n𝐿\nv\nL\n\t​\n\n=0−V\no\n\t​\n\n=−V\no\n\t​\n\n,\ndt\ndi\nL\n\t​\n\n\t​\n\n=−\nL\nV\no\n\t​\n\n\t​\n\n\n左下管把左中點接地、右上管把右中點接至 Vo，兩端差為負。\n\n兩窄脈波之間：Q1、Q2p 導通\n𝑣\n𝐿\n=\n𝑉\n𝑖\n𝑛\n−\n𝑉\n𝑜\n,\n𝑑\n𝑖\n𝐿\n𝑑\n𝑡\n=\n𝑉\n𝑖\n𝑛\n−\n𝑉\n𝑜\n𝐿\nv\nL\n\t​\n\n=V\nin\n\t​\n\n−V\no\n\t​\n\n,\ndt\ndi\nL\n\t​\n\n\t​\n\n=\nL\nV\nin\n\t​\n\n−V\no\n\t​\n\n\t​\n\n\n兩側上管接通輸入與輸出，斜率符號取決於 Vin 和 Vo 的大小，相等時斜率為零。",
+    "④ 帶數字算一次\n\n沿原圖三種狀態，另取 Vin=24 V、Vo=24 V、L=100 µH、fs=100 kHz。紅、綠窄脈波各 1 µs，中間傳能段每週期合計 8 µs；這些時間只供計算，並非量取原圖的占比。\n\n紅色谷底窄脈波，Q1、Q2 導通：vSW,L=24 V、vSW,R=0 V；vL=+24 V、diL/dt=+0.24 A/µs，t=1 µs，ΔiL=+0.24 A。\n綠色波峰窄脈波，Q1p、Q2p 導通：vSW,L=0 V、vSW,R=24 V；vL=−24 V、diL/dt=−0.24 A/µs，t=1 µs，ΔiL=−0.24 A。\n兩窄脈波之間，Q1、Q2p 導通：vSW,L=24 V、vSW,R=24 V；vL=0 V、diL/dt=0 A/µs，合計 t=8 µs，ΔiL=0 A。\n一個 10 µs 週期內，+24×1+0×8−24×1=0 V·µs，電感電流回到起點。傳能段在此例水平，原因是 Vin=Vo；若改變兩端電壓，須重新由 Vin−Vo 判斷斜率。\n\n算完應該理解：圈出任一 Gate 時段後，都要依序回答：導通的是哪兩管、左／右中點各為多少、相減後的 vL 是多少、iL 上升或下降或水平。三種狀態都可用這個順序核對。",
+    "⑤ 適用條件與常見誤解\n依原圖兩條載波與四條 Gate 判讀三狀態；假設 Vin、Vo 為正且一週期內近似固定，電感處於正向 CCM，開關理想。\n先忽略切換邊緣的 dead time、body diode 與寄生壓降；實機在死區內的中點電壓還受電流方向影響，不能只憑 Gate 高低代入理想值。\n\n容易搞錯：只看 Q2 的窄脈波就把其餘時間全當成降流，漏掉綠色脈波與中間傳能段的不同導通組合；或將 vL 的左減右極性反過來。",
+    "⑥ 想過再揭曉\n在兩窄脈波之間圈出一段：哪兩管導通？若 Vin 分別大於、小於、等於 Vo，iL 斜率各如何？\n\n回到原圖，在紅色谷底、綠色波峰與兩者之間各畫一條垂直線，逐條讀完四個 Gate；寫下導通管組、兩中點電壓、左減右的 vL 與 iL 斜率，再用本頁三狀態核對。\n\n前往對應的互動課節：四開關 Buck-Boost 的橋臂與控制 →"
+  ],
+  "formulas": [
+    {
+      "tex": "v_L=v_{SW,L}-v_{SW,R}=L\\frac{di_L}{dt}",
+      "rendered": true
+    },
+    {
+      "tex": "v_L=V_{in}-0=V_{in},\\quad\\frac{di_L}{dt}=\\frac{V_{in}}{L}",
+      "rendered": true
+    },
+    {
+      "tex": "v_L=0-V_o=-V_o,\\quad\\frac{di_L}{dt}=-\\frac{V_o}{L}",
+      "rendered": true
+    },
+    {
+      "tex": "v_L=V_{in}-V_o,\\quad\\frac{di_L}{dt}=\\frac{V_{in}-V_o}{L}",
+      "rendered": true
+    }
+  ],
+  "checkflags": {
+    "studentClickPathComplete": true,
+    "productionReleaseMatches": true,
+    "vLIsLeftMinusRight": true,
+    "iLPositiveLeftToRight": true,
+    "redBoostValleyPulse": true,
+    "greenBuckPeakPulse": true,
+    "transferStateBetweenPulses": true,
+    "transferSlopeAllThreeCases": true,
+    "exampleInputs24V24V100uH": true,
+    "examplePulseAndTransferTimes": true,
+    "timesExplicitlyIllustrative": true,
+    "examplePositiveSlopeAndDelta": true,
+    "exampleNegativeSlopeAndDelta": true,
+    "exampleTransferSlopeZero": true,
+    "exampleVoltSecondBalance": true,
+    "originalPDFNotLoaded": true,
+    "allFourEquationsRendered": true,
+    "noPageErrors": true
+  },
+  "pageerrors": [],
+  "screenshots": {
+    "gateStates": "../screenshots/final697071-middle-p27-gate-states.png",
+    "fullGuide": "../screenshots/final697071-middle-p27-full.png"
+  },
+  "independentArithmetic": {
+    "Vin_V": 24,
+    "Vo_V": 24,
+    "L_uH": 100,
+    "period_us": 10,
+    "pulseDuration_us": 1,
+    "transferTotal_us": 8,
+    "redSlope_A_per_us": 0.24,
+    "greenSlope_A_per_us": -0.24,
+    "transferSlope_A_per_us": 0,
+    "voltSeconds_V_us": 0,
+    "netDeltaI_A": 0,
+    "transferSlopeCases": [
+      {
+        "Vin": 36,
+        "Vo": 24,
+        "slope_A_per_us": 0.12
+      },
+      {
+        "Vin": 12,
+        "Vo": 24,
+        "slope_A_per_us": -0.12
+      },
+      {
+        "Vin": 24,
+        "Vo": 24,
+        "slope_A_per_us": 0
+      }
+    ]
+  },
+  "visualInspection": {
+    "status": "PASS",
+    "images": [
+      "../screenshots/final697071-middle-p27-gate-states.png"
+    ],
+    "method": "view_image",
+    "note": "Viewed actual Chromium screenshots. Required visible instructions, numeric values and formulas are legible without clipping or overlays.",
+    "checkedAt": "2026-11-12T16:17:39.6838124Z"
+  }
+}

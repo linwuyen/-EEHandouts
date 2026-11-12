@@ -1,0 +1,146 @@
+{
+  "status": "PASS",
+  "checkedAt": "2026-11-12T16:15:42.255Z",
+  "base": "https://linwuyen.github.io/-EEHandouts/",
+  "releaseBefore": "f660bf9abf55c002e8779147ed4a8b9f5f221574",
+  "checks": [
+    {
+      "page": "中冊 P.21",
+      "status": "PASS",
+      "route": [
+        "上冊首頁",
+        "中冊 DC-DC 首頁",
+        "原講義索引",
+        "P.21 逐頁導讀"
+      ],
+      "url": "https://linwuyen.github.io/-EEHandouts/middle.html#slide/21",
+      "given": "依原圖固定 Vo=100 V、L=100 µH、fs=100 kHz，比較 D=0.35 與 D=0.50 的理想 Boost BCM 邊界。",
+      "worked": [
+        "D=0.35：Vin=65 V，ΔIL=65×0.35/(100 µH×100 kHz)=2.275 App；IL,crit=1.1375 A，Io,crit≈0.739 A。",
+        "D=0.50：Vin=50 V，ΔIL=50×0.50/(100 µH×100 kHz)=2.5 App；IL,crit=1.25 A，Io,crit=0.625 A。",
+        "沿原圖從 D=0.35 移到 0.50，IL,crit 上升，但 Io,crit 從約 0.739 A 降至 0.625 A；兩點的 Vin 不同，Vo 始終為 100 V。",
+        "在原圖各標一個高點：IL,crit 在 D=1/2 最大，Io,crit 在 D=1/3 最大。D=0.50 時 Rcrit=100/0.625=160 Ω。"
+      ],
+      "points": [
+        {
+          "d": 0.35,
+          "vin": 65,
+          "il": 1.1375,
+          "io": 0.739
+        },
+        {
+          "d": 0.5,
+          "vin": 50,
+          "il": 1.25,
+          "io": 0.625
+        }
+      ],
+      "inductorPeakDuty": 0.5,
+      "outputPeakDuty": 0.3333333333333333,
+      "instructions": "⑥ 想過再揭曉\n固定 Vo、L、fs 的理想 Boost，IL,crit 的 Duty 峰值在 50%；Io,crit 也在 50% 嗎？\n\n直接對照原圖與本頁例題：固定 Vo=100 V、L=100 µH、fs=100 kHz，從 D=0.35 移到 0.50，核對 Io,crit≈0.739→0.625 A，再標出 IL,crit 的 D=1/2 高點與 Io,crit 的 D=1/3 高點。\n\n前往對應的互動課節：Boost 的 BCM 與 DCM →",
+      "evidence": "../screenshots/final697071-middle-p21-comparison.png",
+      "visibleText": "中冊第 21 頁 · STEP BY STEP\nBoost 的 BCM 門檻怎麼算？為什麼 IL,crit 和 Io,crit 曲線不一樣？\n\n先想：同一個 Boost 的臨界輸入電感電流與臨界輸出負載電流，為什麼不是同一條曲線？\n\n一句話記住：BCM 電感谷值剛好碰 0，所以 IL,crit=ΔIL/2；輸出只在 OFF 時接收電感電流，Io,crit=(1−D)IL,crit。固定 Vo 時兩者對 D 的變化並不同。\n\n以下為本站導讀，可對照自己的講義 PDF 閱讀。\n\n原始投影片 PDF 對照\n\n可載入中冊 R2（169 頁）或 52 頁版。PDF 只留在這台裝置。\n\n載入原始講義 PDF\n手邊是 PPTX 時，請先匯出為 PDF。\n① 用白話想像物理現象\n\n把電感電流想成一個三角形：負載越輕，整個三角形往下移；當最底點第一次碰 0 A，就是 CCM 與 DCM 的邊界。這個判斷看的是電感電流，不是 MOSFET Gate。\n\nBoost 的輸入電流在電感裡整個週期都有，而輸出二極體只在 OFF 的一段時間導通。因此即使 BCM 的電感電流平均已知，輸出電流仍要再乘上 OFF 比例。\n\n② 追蹤訊號與能量流\n1. 找到 BCM 的三角電流\n\n谷值=0、峰值=ΔIL，因此週期平均 IL,crit=Ipk/2；理想 CCM 邊界的漣波 ΔIL=Vin D/(Lfs)。\n\n2. 轉成輸出臨界電流\n\n輸出只在 OFF 接收電流，Io,crit=(1−D)IL,crit=Vin D(1−D)/(2Lfs)。\n\n3. 原圖固定 Vo，把 Vin 換成 Vo(1−D)\n\n原圖比較固定 Vo 的邊界，所以改 D 時 Vin 必須一起變為 Vo(1−D)；因此 IL,crit=Vo D(1−D)/(2Lfs)，Io,crit=Vo D(1−D)²/(2Lfs)。\n\n4. 比較曲線的峰值\n\n固定 Vo 時，IL,crit 隨 D(1−D) 變化，在 D=0.5 取峰值；Io,crit 隨 D(1−D)² 變化，在 D=1/3 取峰值。\n\n③ 公式一步一步來\n原圖固定 Vo 的臨界電感電流\n𝐼\n𝐿\n,\n𝑐\n𝑟\n𝑖\n𝑡\n=\n𝑉\n𝑜\n𝐷\n(\n1\n−\n𝐷\n)\n2\n𝐿\n𝑓\n𝑠\nI\nL,crit\n\t​\n\n=\n2Lf\ns\n\t​\n\nV\no\n\t​\n\nD(1−D)\n\t​\n\n\n谷值為零時，電感平均為峰值的一半；再用 Vin=Vo(1−D) 換成原圖的固定輸出條件。\n\n輸出電流的臨界關係\n𝐼\n𝑜\n,\n𝑐\n𝑟\n𝑖\n𝑡\n=\n(\n1\n−\n𝐷\n)\n𝐼\n𝐿\n,\n𝑐\n𝑟\n𝑖\n𝑡\nI\no,crit\n\t​\n\n=(1−D)I\nL,crit\n\t​\n\n\nBoost 二極體只於 OFF 導通，輸出端平均只接收其對應時段的電感電流。\n\n固定 Vo 時的輸出臨界曲線\n𝐼\n𝑜\n,\n𝑐\n𝑟\n𝑖\n𝑡\n=\n𝑉\n𝑜\n𝐷\n(\n1\n−\n𝐷\n)\n2\n2\n𝐿\n𝑓\n𝑠\nI\no,crit\n\t​\n\n=\n2Lf\ns\n\t​\n\nV\no\n\t​\n\nD(1−D)\n2\n\t​\n\n\n只在理想 BCM 邊界 Vo=Vin/(1−D) 可代換 Vin，才能得到固定 Vo 的曲線。\n\n④ 帶數字算一次\n\n依原圖固定 Vo=100 V、L=100 µH、fs=100 kHz，比較 D=0.35 與 D=0.50 的理想 Boost BCM 邊界。\n\nD=0.35：Vin=65 V，ΔIL=65×0.35/(100 µH×100 kHz)=2.275 App；IL,crit=1.1375 A，Io,crit≈0.739 A。\nD=0.50：Vin=50 V，ΔIL=50×0.50/(100 µH×100 kHz)=2.5 App；IL,crit=1.25 A，Io,crit=0.625 A。\n沿原圖從 D=0.35 移到 0.50，IL,crit 上升，但 Io,crit 從約 0.739 A 降至 0.625 A；兩點的 Vin 不同，Vo 始終為 100 V。\n在原圖各標一個高點：IL,crit 在 D=1/2 最大，Io,crit 在 D=1/3 最大。D=0.50 時 Rcrit=100/0.625=160 Ω。\n\n算完應該理解：固定 Vo 的兩條曲線有不同峰值：IL,crit 在 D=1/2、Io,crit 在 D=1/3。由 D=0.35 到 0.50，輸出臨界電流下降，不能用固定 Vin 的 Duty 掃描解讀。\n\n⑤ 適用條件與常見誤解\n理想非同步 Boost，固定頻率、線性 L、固定 Vo 的邊界掃描；不包含 Burst、PFM、同步反向電流或大漣波寄生。\n在 DCM 側的 Vo 與 Vin 關係會改變，不能把固定 Vo 邊界公式拿去當任意 DCM 工作點的輸出電流。\n\n容易搞錯：把 IL,crit 和 Io,crit 畫成相同曲線，或忽略固定 Vo 條件，使 D 掃描時混用固定 Vin 的公式。\n\n⑥ 想過再揭曉\n固定 Vo、L、fs 的理想 Boost，IL,crit 的 Duty 峰值在 50%；Io,crit 也在 50% 嗎？\n\n直接對照原圖與本頁例題：固定 Vo=100 V、L=100 µH、fs=100 kHz，從 D=0.35 移到 0.50，核對 Io,crit≈0.739→0.625 A，再標出 IL,crit 的 D=1/2 高點與 Io,crit 的 D=1/3 高點。\n\n前往對應的互動課節：Boost 的 BCM 與 DCM →",
+      "formulas": [
+        {
+          "visible": "原圖固定 Vo 的臨界電感電流\n𝐼\n𝐿\n,\n𝑐\n𝑟\n𝑖\n𝑡\n=\n𝑉\n𝑜\n𝐷\n(\n1\n−\n𝐷\n)\n2\n𝐿\n𝑓\n𝑠\nI\nL,crit\n\t​\n\n=\n2Lf\ns\n\t​\n\nV\no\n\t​\n\nD(1−D)\n\t​\n\n\n谷值為零時，電感平均為峰值的一半；再用 Vin=Vo(1−D) 換成原圖的固定輸出條件。",
+          "tex": "I_{L,crit}=\\frac{V_oD(1-D)}{2Lf_s}"
+        },
+        {
+          "visible": "輸出電流的臨界關係\n𝐼\n𝑜\n,\n𝑐\n𝑟\n𝑖\n𝑡\n=\n(\n1\n−\n𝐷\n)\n𝐼\n𝐿\n,\n𝑐\n𝑟\n𝑖\n𝑡\nI\no,crit\n\t​\n\n=(1−D)I\nL,crit\n\t​\n\n\nBoost 二極體只於 OFF 導通，輸出端平均只接收其對應時段的電感電流。",
+          "tex": "I_{o,crit}=(1-D)I_{L,crit}"
+        },
+        {
+          "visible": "固定 Vo 時的輸出臨界曲線\n𝐼\n𝑜\n,\n𝑐\n𝑟\n𝑖\n𝑡\n=\n𝑉\n𝑜\n𝐷\n(\n1\n−\n𝐷\n)\n2\n2\n𝐿\n𝑓\n𝑠\nI\no,crit\n\t​\n\n=\n2Lf\ns\n\t​\n\nV\no\n\t​\n\nD(1−D)\n2\n\t​\n\n\n只在理想 BCM 邊界 Vo=Vin/(1−D) 可代換 Vin，才能得到固定 Vo 的曲線。",
+          "tex": "I_{o,crit}=\\frac{V_oD(1-D)^2}{2Lf_s}"
+        }
+      ],
+      "links": [
+        {
+          "text": "前往對應的互動課節：Boost 的 BCM 與 DCM →",
+          "href": "#lesson/mid-boost/mid-boost-dcm"
+        }
+      ]
+    }
+  ],
+  "pageErrors": [],
+  "chromium": "141.0.7390.37",
+  "linkedFixedVinLesson": {
+    "url": "https://linwuyen.github.io/-EEHandouts/middle.html#lesson/mid-boost/mid-boost-dcm",
+    "visitedByActualGuideLink": true,
+    "visibleText": "← 返回 Boost、效率與 DCM\nCH 03 · BOOST、效率與 DCM\nBoost 的 BCM 與 DCM\n\n當負載太輕，Boost 的電感電流可能在 OFF 階段先降到零。\n\n講義 P.21–22\n白話導讀\n先理解物理現象\n\nBoost BCM 的電感電流谷值剛好到零；在 DCM，OFF 導通二極體的一段時間後電感電流變成零，剩下第三個區段。\n\n講義第 21 頁針對固定 Vo 推導臨界電感／輸出電流與 Duty 的曲線；第 22 頁將零電流區段納入 DCM 伏秒關係。\n\nDCM 的轉壓比不再只由 D 決定，也會隨負載與 L、fs 改變。\n\n核心公式與條件\nƒ\nKEY RELATION\nDCM 伏秒平衡\n𝑉\ni\nn\n𝐷\n𝑇\n𝑠\n+\n(\n𝑉\ni\nn\n−\n𝑉\n𝑜\n)\nΔ\n1\n𝑇\n𝑠\n=\n0\nV\nin\n\t​\n\nDT\ns\n\t​\n\n+(V\nin\n\t​\n\n−V\no\n\t​\n\n)Δ\n1\n\t​\n\nT\ns\n\t​\n\n=0\nBoost DCM 轉壓比\n𝑉\n𝑜\n𝑉\ni\nn\n=\n𝐷\n+\nΔ\n1\nΔ\n1\nV\nin\n\t​\n\nV\no\n\t​\n\n\t​\n\n=\nΔ\n1\n\t​\n\nD+Δ\n1\n\t​\n\n\t​\n\n帶入數字看看\n當 D=0.3、Δ1=0.2，Vo/Vin=2.5；這只是該 DCM 區段關係，仍需配合平均負載方程。\n工程現場要注意\n量測時要注意二極體恢復與寄生振鈴可能模糊真正的零電流點。\nCCM/BCM/DCM 控制器不能未經確認直接共用同一控制小訊號模型。\n!\n常見誤解\n套用 CCM 的 Vo=Vin/(1−D) 算所有 DCM 工作點。\n操作、預測、驗證\n\n先做預測，再改變參數觀察即時模型；波形與開關區間使用同一份計算結果。模型是教學近似，不可視為實機量測。\n\nACTIVE LEARNING\nBoost：能量、工作模式與電壓增益\n\n減少負載後，Boost 何時離開 CCM？\n\n先預測：其他參數不變，將「輸出定電流負載」由 0.8 A 降低至 0.2 A 後，「零電流時間比例」會？\n增加\n減少\n不變\n套用指定變更並驗證直接探索（不計入預測）\n\n先選擇預測，再套用指定變更；或選擇自由探索。\n\n輸出定電流負載\n0.8 A\nDuty\n50 %\nVin\n48 V\n電感\n100 μH\n開關頻率\n100 kHz\n理想 Vout\n96 V\nIL Peak\n2.8 A\nIL Valley\n0.4 A\nBCM 輸出 Io\n0.6 A\n零電流時間比例\n0 %\n\n模型狀態：限定假設下可比較（非實機設計驗證）\n\n波形／曲線將在驗證後揭曉；直接調參數將轉為自由探索。\n\nON 儲能、OFF 由輸入與電感一起向輸出送能。\n\n模型條件：理想非同步 Boost、固定 Duty、定電流負載；Gate 指令為 0/1（非 VGS），Vsw 為 MOSFET Drain 開關節點，DCM 歸零區忽略寄生振鈴；小漣波與動態未納入。\n\n重設實驗與預測\n30 秒觀念確認\nBoost DCM 中會多出哪一段？\nA\n電感電流歸零的區段\nB\nMOSFET 永久導通\nC\n輸出電容永久斷路\n✓ 標記這節已完成\n← 上一節\n下一節 →",
+    "controls": [
+      {
+        "type": "range",
+        "id": "",
+        "value": "0.8",
+        "min": "0.2",
+        "max": "5",
+        "ariaLabel": "輸出定電流負載",
+        "labels": [
+          "輸出定電流負載\n0.8 A"
+        ],
+        "parentText": "輸出定電流負載\n0.8 A"
+      },
+      {
+        "type": "range",
+        "id": "",
+        "value": "50",
+        "min": "10",
+        "max": "80",
+        "ariaLabel": "Duty",
+        "labels": [
+          "Duty\n50 %"
+        ],
+        "parentText": "Duty\n50 %"
+      },
+      {
+        "type": "range",
+        "id": "",
+        "value": "48",
+        "min": "12",
+        "max": "72",
+        "ariaLabel": "Vin",
+        "labels": [
+          "Vin\n48 V"
+        ],
+        "parentText": "Vin\n48 V"
+      },
+      {
+        "type": "range",
+        "id": "",
+        "value": "100",
+        "min": "40",
+        "max": "300",
+        "ariaLabel": "電感",
+        "labels": [
+          "電感\n100 μH"
+        ],
+        "parentText": "電感\n100 μH"
+      },
+      {
+        "type": "range",
+        "id": "",
+        "value": "100",
+        "min": "50",
+        "max": "250",
+        "ariaLabel": "開關頻率",
+        "labels": [
+          "開關頻率\n100 kHz"
+        ],
+        "parentText": "開關頻率\n100 kHz"
+      }
+    ],
+    "screenshot": "../screenshots/final697071-middle-p21-fixed-vin-lesson.png"
+  },
+  "releaseAfter": "f660bf9abf55c002e8779147ed4a8b9f5f221574",
+  "finishedAt": "2026-11-12T16:15:51.01Z",
+  "visualInspection": {
+    "status": "PASS",
+    "images": [
+      "../screenshots/final697071-middle-p21-comparison.png"
+    ],
+    "method": "view_image",
+    "note": "Viewed actual Chromium screenshots. Required visible instructions, numeric values and formulas are legible without clipping or overlays.",
+    "checkedAt": "2026-11-12T16:17:39.6807885Z"
+  }
+}

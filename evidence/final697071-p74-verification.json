@@ -1,0 +1,44 @@
+{
+  "status": "PASS",
+  "checkedAt": "2026-11-12T16:15:15.006Z",
+  "base": "https://linwuyen.github.io/-EEHandouts/",
+  "releaseBefore": "f660bf9abf55c002e8779147ed4a8b9f5f221574",
+  "checks": [
+    {
+      "page": "上冊 P.74",
+      "status": "PASS",
+      "route": [
+        "上冊首頁",
+        "原講義索引",
+        "P.74 逐頁導讀"
+      ],
+      "url": "https://linwuyen.github.io/-EEHandouts/index.html#slide/74",
+      "given": "沿用 P.73 的 Vs=100 Vrms、f=50 Hz、Ls=10 mH，固定 Vd=0.90Vm≈127.28 V。",
+      "takeaway": "一句話記住：沿 P.73 圖 5-16(c)，源電壓下降穿越 Vd 時 vL 轉負，電流才開始下降，直到歸零才截止；當 Vd 趨近 Vm，充電脈衝消失，Id→0，而 Vm/Vd0=π/2≈1.5708。",
+      "worked": [
+        "無濾波平均基準 Vd0=2Vm/π≈90.03 V，因此正規化電壓 Vd/Vd0≈1.4137。",
+        "電流在 64.16° 起流，115.84° 達峰約 2.698 A；此後 vL<0、電流下降，到 142.23° 才歸零截止。",
+        "來源電感的電流尺度 Ishort=Vs,rms/(ωLs)=100/(314.159×0.01)≈31.83 A。",
+        "由 P.73 的電流波形積分得到 Id≈0.6582 A，若採上述 RMS 電流尺度則 Id/Ishort≈0.02068。",
+        "若固定來源條件而提高 Vd 至 0.95Vm，導通脈衝變窄、平均 Id 下降至約 0.1628 A。"
+      ],
+      "computed": {
+        "startDegrees": 64.15806723683288,
+        "peakDegrees": 115.84193276316714,
+        "endDegrees": 142.23292204711225,
+        "peakAmps": 2.697866601891822
+      },
+      "evidence": "../screenshots/final697071-upper-p74-timing.png",
+      "normalizationLimit": 1.5707963267948966
+    }
+  ],
+  "pageErrors": [],
+  "chromium": "141.0.7390.37",
+  "pr71": {
+    "status": "PASS",
+    "firstParagraph": "P.74 原圖是 P.73 固定 DC Vd、來源電感 Ls 的正規化平均電流對電壓曲線，不是帶電容與電阻的通用效率曲線。橫軸以無濾波全波平均 Vd0=2Vm/π 為基準。",
+    "evidence": "../screenshots/final697071-upper-p74-formatting.png"
+  },
+  "releaseAfter": "f660bf9abf55c002e8779147ed4a8b9f5f221574",
+  "finishedAt": "2026-11-12T16:15:17.738Z"
+}

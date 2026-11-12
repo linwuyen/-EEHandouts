@@ -1,0 +1,297 @@
+{
+  "status": "PASS",
+  "checkedAt": "2026-11-12T16:18:33.746Z",
+  "checkedAtTaipei": "2026/11/13 00:18",
+  "timezone": "Asia/Taipei",
+  "releaseSha": "f660bf9abf55c002e8779147ed4a8b9f5f221574",
+  "pageCount": 17,
+  "pullRequests": [
+    {
+      "number": 69,
+      "url": "https://github.com/linwuyen/-EEHandouts/pull/69",
+      "merged": true,
+      "head_sha": "fa7db003cf26b1401546cdf437e2477213b210e1",
+      "merge_commit_sha": "bc35d6b8425c6630178bb4fa6bbad98c71ad2102",
+      "merged_at": "2026-11-11T16:56:46Z",
+      "changed_files": 11
+    },
+    {
+      "number": 70,
+      "url": "https://github.com/linwuyen/-EEHandouts/pull/70",
+      "merged": true,
+      "head_sha": "3a9b1a244370ad485ce882de9e464c3734e33979",
+      "merge_commit_sha": "b510b258d5fd53539dbfbd80c28342967edf9c58",
+      "merged_at": "2026-11-12T15:11:13Z",
+      "changed_files": 1
+    },
+    {
+      "number": 71,
+      "url": "https://github.com/linwuyen/-EEHandouts/pull/71",
+      "merged": true,
+      "head_sha": "ebcd222e595f9039cecac09c39f931226c1530ad",
+      "merge_commit_sha": "f660bf9abf55c002e8779147ed4a8b9f5f221574",
+      "merged_at": "2026-11-12T15:54:59Z",
+      "changed_files": 1
+    }
+  ],
+  "pages": [
+    {
+      "page": "上冊 P.4",
+      "result": "通過",
+      "verification": "頁末以 +3 A／−3 A 各半週手算，平均 0 A、RMS 3 A。",
+      "screenshots": [
+        "screenshots/final697071-upper-p4-review.png"
+      ],
+      "liveUrl": "https://linwuyen.github.io/-EEHandouts/index.html#slide/4"
+    },
+    {
+      "page": "上冊 P.8",
+      "result": "通過",
+      "verification": "DC 與不同頻率的均方相加：4+4.5+8=16.5，RMS≈4.062 A。",
+      "screenshots": [
+        "screenshots/final697071-upper-p8-review.png"
+      ],
+      "liveUrl": "https://linwuyen.github.io/-EEHandouts/index.html#slide/8"
+    },
+    {
+      "page": "上冊 P.11",
+      "result": "通過",
+      "verification": "手算 PF=400/500=0.8、CF=12/5=2.4；功率比與峰值比區分清楚。",
+      "screenshots": [
+        "screenshots/final697071-upper-p11-review.png"
+      ],
+      "liveUrl": "https://linwuyen.github.io/-EEHandouts/index.html#slide/11"
+    },
+    {
+      "page": "上冊 P.22",
+      "result": "通過",
+      "verification": "i1 左上流入、i2 右上流出，淨安匝 N1i1−N2i2；實心同名端點標指向 P.24 圖 3-19。",
+      "screenshots": [
+        "screenshots/final697071-upper-p22-polarity.png",
+        "screenshots/final697071-upper-p22-worked.png"
+      ],
+      "liveUrl": "https://linwuyen.github.io/-EEHandouts/index.html#slide/22"
+    },
+    {
+      "page": "上冊 P.35",
+      "result": "通過",
+      "verification": "IC1=0.20 A、IB2=0.21 A、末級 IC2=6.30 A、外部共接 C 端=6.50 A。",
+      "screenshots": [
+        "screenshots/final697071-upper-p35-worked.png"
+      ],
+      "liveUrl": "https://linwuyen.github.io/-EEHandouts/index.html#slide/35"
+    },
+    {
+      "page": "上冊 P.74",
+      "result": "通過",
+      "verification": "64.16° 起流、115.84° 達峰約 2.698 A、142.23° 歸零；下降穿越 Vd 後先降流；正規化曲線與 π/2 極限保留。 PR #71 移除指定前後四個星號；完整段落逐字保留。",
+      "screenshots": [
+        "screenshots/final697071-upper-p74-timing.png",
+        "screenshots/final697071-upper-p74-formatting.png"
+      ],
+      "liveUrl": "https://linwuyen.github.io/-EEHandouts/index.html#slide/74"
+    },
+    {
+      "page": "上冊 P.83",
+      "result": "通過",
+      "verification": "回電源為正，iN=iA+iB+iC；每相基波 5 Arms、同相三次 15%，25% 游標 −3.182 A，RMS 2.25 A；文字備援同號。",
+      "screenshots": [
+        "screenshots/final697071-upper-p83-neutral.png",
+        "screenshots/final697071-upper-p83-neutral-fallback.png"
+      ],
+      "liveUrl": "https://linwuyen.github.io/-EEHandouts/index.html#slide/83"
+    },
+    {
+      "page": "上冊 P.84",
+      "result": "通過",
+      "verification": "沿 P.83 回電源正向，iN=iA+iB+iC；不同頻率 RMS 平方合成，頁內例題約 6.185 A；連結波形 25% 仍為 −3.182 A。",
+      "screenshots": [
+        "screenshots/final697071-upper-p84-direction.png",
+        "screenshots/final697071-upper-p84-worked.png"
+      ],
+      "liveUrl": "https://linwuyen.github.io/-EEHandouts/index.html#slide/84"
+    },
+    {
+      "page": "上冊 P.85",
+      "result": "通過",
+      "verification": "同課節同步文字保留回電源正向與 iN=iA+iB+iC；實際點入課節，25% 游標 −3.182 A、RMS 2.25 A。",
+      "screenshots": [
+        "screenshots/final697071-upper-p85-direction.png",
+        "screenshots/final697071-upper-p85-neutral.png"
+      ],
+      "liveUrl": "https://linwuyen.github.io/-EEHandouts/index.html#slide/85"
+    },
+    {
+      "page": "上冊 P.93",
+      "result": "通過",
+      "verification": "由該頁導讀進入課節；PF=P3φ/(3×V相,rms×I線,rms)，三相總有功功率、相電壓及線電流定義齊全；KaTeX 與純文字備援皆正確。",
+      "screenshots": [
+        "screenshots/final697071-upper-p93-pf.png",
+        "screenshots/final697071-upper-p93-pf-fallback.png"
+      ],
+      "liveUrl": "https://linwuyen.github.io/-EEHandouts/index.html#slide/93"
+    },
+    {
+      "page": "上冊 P.94",
+      "result": "通過",
+      "verification": "由該頁導讀進入課節；PF=P3φ/(3×V相,rms×I線,rms)，三相總有功功率、相電壓及線電流定義齊全；KaTeX 與純文字備援皆正確。",
+      "screenshots": [
+        "screenshots/final697071-upper-p94-pf.png",
+        "screenshots/final697071-upper-p94-pf-fallback.png"
+      ],
+      "liveUrl": "https://linwuyen.github.io/-EEHandouts/index.html#slide/94"
+    },
+    {
+      "page": "上冊 P.95",
+      "result": "通過",
+      "verification": "由該頁導讀進入課節；PF=P3φ/(3×V相,rms×I線,rms)，三相總有功功率、相電壓及線電流定義齊全；KaTeX 與純文字備援皆正確。",
+      "screenshots": [
+        "screenshots/final697071-upper-p95-pf.png",
+        "screenshots/final697071-upper-p95-pf-fallback.png"
+      ],
+      "liveUrl": "https://linwuyen.github.io/-EEHandouts/index.html#slide/95"
+    },
+    {
+      "page": "上冊 P.96",
+      "result": "通過",
+      "verification": "由該頁導讀進入課節；PF=P3φ/(3×V相,rms×I線,rms)，三相總有功功率、相電壓及線電流定義齊全；KaTeX 與純文字備援皆正確。",
+      "screenshots": [
+        "screenshots/final697071-upper-p96-pf.png",
+        "screenshots/final697071-upper-p96-pf-fallback.png"
+      ],
+      "liveUrl": "https://linwuyen.github.io/-EEHandouts/index.html#slide/96"
+    },
+    {
+      "page": "中冊 P.15",
+      "result": "通過",
+      "verification": "操作指示使用本頁 ON／OFF 導通損公式；RON 在 ON、VD 在 OFF；算例 Vo≈90.33 V。",
+      "screenshots": [
+        "screenshots/final697071-middle-p15-instructions.png",
+        "screenshots/final697071-middle-p15-example.png"
+      ],
+      "liveUrl": "https://linwuyen.github.io/-EEHandouts/middle.html#slide/15"
+    },
+    {
+      "page": "中冊 P.19",
+      "result": "通過",
+      "verification": "僅改 RON 0.1→0.2 Ω，Vo 90.33→89.48 V；總導通損 29.155678987… W 最後四捨五入為 29.16 W；中間保留全精度說明可見。",
+      "screenshots": [
+        "screenshots/final697071-p19-loss-rounding.png"
+      ],
+      "liveUrl": "https://linwuyen.github.io/-EEHandouts/middle.html#slide/19"
+    },
+    {
+      "page": "中冊 P.21",
+      "result": "通過",
+      "verification": "固定 Vo=100 V、L=100 µH、fs=100 kHz；D 0.35→0.50，Io,crit 0.739→0.625 A；IL,crit 在 D=1/2 最大，Io,crit 在 D=1/3 最大。 既有固定 Vin 互動模型保留。",
+      "screenshots": [
+        "screenshots/final697071-middle-p21-comparison.png",
+        "screenshots/final697071-middle-p21-fixed-vin-lesson.png"
+      ],
+      "liveUrl": "https://linwuyen.github.io/-EEHandouts/middle.html#slide/21"
+    },
+    {
+      "page": "中冊 P.27",
+      "result": "通過",
+      "verification": "紅谷底 Q1/Q2：Vin／0、+Vin；綠波峰 Q1p/Q2p：0／Vo、−Vo；兩段間 Q1/Q2p：Vin／Vo、Vin−Vo。斜率為 vL/L，第三段隨差值正／負／零上升／下降／水平。",
+      "screenshots": [
+        "screenshots/final697071-middle-p27-gate-states.png"
+      ],
+      "liveUrl": "https://linwuyen.github.io/-EEHandouts/middle.html#slide/27"
+    }
+  ],
+  "closedIssues": [
+    {
+      "page": "中冊 P.19",
+      "pr": 70,
+      "status": "已解決",
+      "detail": "總損耗統一為 29.16 W，中間 Vo、Io、IL 與功率保留全精度，最後才四捨五入。"
+    },
+    {
+      "page": "上冊 P.74",
+      "pr": 71,
+      "status": "已解決",
+      "detail": "原樣顯示的 Markdown 星號已移除，「正規化平均電流對電壓曲線」與其完整段落均保留。"
+    }
+  ],
+  "unresolvedIssues": [],
+  "sourceIntegrity": {
+    "status": "PASS",
+    "unchangedPr69Files": 9,
+    "liveAssetMatches": 5,
+    "onlyFollowupChanges": "PR70 P19 全精度說明與 29.16 W；PR71 P74 刪除四個星號"
+  },
+  "ciRuns": [
+    {
+      "id": 43250185695,
+      "name": "Verify EEHandouts",
+      "event": "pull_request",
+      "head_sha": "ebcd222e595f9039cecac09c39f931226c1530ad",
+      "html_url": "https://github.com/linwuyen/-EEHandouts/actions/runs/43250185695",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-12T15:39:37Z",
+      "updated_at": "2026-11-12T15:52:22Z"
+    },
+    {
+      "id": 43250121687,
+      "name": "Verify EEHandouts",
+      "event": "push",
+      "head_sha": "ebcd222e595f9039cecac09c39f931226c1530ad",
+      "html_url": "https://github.com/linwuyen/-EEHandouts/actions/runs/43250121687",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-12T15:39:15Z",
+      "updated_at": "2026-11-12T15:54:14Z"
+    },
+    {
+      "id": 43252947661,
+      "name": "Verify EEHandouts",
+      "event": "push",
+      "head_sha": "f660bf9abf55c002e8779147ed4a8b9f5f221574",
+      "html_url": "https://github.com/linwuyen/-EEHandouts/actions/runs/43252947661",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-12T15:55:02Z",
+      "updated_at": "2026-11-12T16:09:36Z"
+    },
+    {
+      "id": 43255605508,
+      "name": "Publish EEHandouts only after verified CI",
+      "event": "workflow_run",
+      "head_sha": "f660bf9abf55c002e8779147ed4a8b9f5f221574",
+      "html_url": "https://github.com/linwuyen/-EEHandouts/actions/runs/43255605508",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-12T16:09:40Z",
+      "updated_at": "2026-11-12T16:10:08Z"
+    }
+  ],
+  "evidence": [
+    "evidence/final697071-upper-4-8-11-verification.json",
+    "evidence/final697071-upper-22-35-verification.json",
+    "evidence/final697071-p74-verification.json",
+    "evidence/final697071-middle-p15-verification.json",
+    "evidence/final697071-p19-loss-rounding-verification.json",
+    "evidence/final697071-middle-p21-verification.json",
+    "evidence/final697071-middle-p21-fixed-vin-confirmed.json",
+    "evidence/final697071-middle-p27-verification.json",
+    "evidence/final697071-neutral-pf-verification.json",
+    "evidence/final697071-source-integrity-verification.json"
+  ],
+  "chromium": "141.0.7390.37",
+  "pageErrorCount": 0,
+  "pfAcceptanceCalculation": {
+    "threePhaseWatts": 584.5,
+    "phaseVoltsRms": 120,
+    "lineAmpsRms": 2.749,
+    "pf": 0.5906188108807243
+  },
+  "scope": "本輪驗收線上逐頁導讀、對應課節、公式、純文字備援與互動波形；依使用者提供的原圖方向規格核對，未重新載入原始 PDF。",
+  "publication": {
+    "purpose": "PR #71 結案證據；獨立保存驗收報告與圖片",
+    "primaryScreenshotCount": 28,
+    "totalScreenshotCount": 59,
+    "sourceReleaseSha": "f660bf9abf55c002e8779147ed4a8b9f5f221574"
+  }
+}

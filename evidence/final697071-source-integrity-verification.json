@@ -1,0 +1,556 @@
+{
+  "status": "PASS",
+  "startedAt": "2026-11-12T16:15:55.895Z",
+  "expectedSha": "f660bf9abf55c002e8779147ed4a8b9f5f221574",
+  "checks": [
+    {
+      "name": "All three PRs merged",
+      "passed": true
+    },
+    {
+      "name": "Fresh origin/main matches expected release",
+      "passed": true
+    },
+    {
+      "name": "Ancestry fa7db003cf26b1401546cdf437e2477213b210e1 → bc35d6b8425c6630178bb4fa6bbad98c71ad2102",
+      "passed": true
+    },
+    {
+      "name": "Ancestry bc35d6b8425c6630178bb4fa6bbad98c71ad2102 → 3a9b1a244370ad485ce882de9e464c3734e33979",
+      "passed": true
+    },
+    {
+      "name": "Ancestry 3a9b1a244370ad485ce882de9e464c3734e33979 → b510b258d5fd53539dbfbd80c28342967edf9c58",
+      "passed": true
+    },
+    {
+      "name": "Ancestry b510b258d5fd53539dbfbd80c28342967edf9c58 → ebcd222e595f9039cecac09c39f931226c1530ad",
+      "passed": true
+    },
+    {
+      "name": "Ancestry ebcd222e595f9039cecac09c39f931226c1530ad → f660bf9abf55c002e8779147ed4a8b9f5f221574",
+      "passed": true
+    },
+    {
+      "name": "Merge preserves PR tree fa7db003cf26b1401546cdf437e2477213b210e1",
+      "passed": true
+    },
+    {
+      "name": "Merge preserves PR tree 3a9b1a244370ad485ce882de9e464c3734e33979",
+      "passed": true
+    },
+    {
+      "name": "Merge preserves PR tree ebcd222e595f9039cecac09c39f931226c1530ad",
+      "passed": true
+    },
+    {
+      "name": "Nine PR69 files unchanged; only two reviewed follow-up files differ",
+      "passed": true
+    },
+    {
+      "name": "PR70 modified only P19 guide file",
+      "passed": true
+    },
+    {
+      "name": "Whole P19 file differs only by approved precision note",
+      "passed": true
+    },
+    {
+      "name": "PR71 changed only upper guide",
+      "passed": true
+    },
+    {
+      "name": "Whole upper guide differs only by four asterisks",
+      "passed": true
+    },
+    {
+      "name": "Release before",
+      "passed": true
+    },
+    {
+      "name": "Five live JS assets match release byte for byte",
+      "passed": true
+    },
+    {
+      "name": "GitHub main matches live release",
+      "passed": true
+    },
+    {
+      "name": "All PR71, branch, main CI and publish runs successful",
+      "passed": true
+    },
+    {
+      "name": "PR CI ran reviewed head",
+      "passed": true
+    },
+    {
+      "name": "Main CI and deploy ran hosted commit",
+      "passed": true
+    },
+    {
+      "name": "Main CI and publish jobs successful",
+      "passed": true
+    },
+    {
+      "name": "Existing CI uses Node 22 and npm test",
+      "passed": true
+    },
+    {
+      "name": "Release after",
+      "passed": true
+    },
+    {
+      "name": "Product working tree unchanged",
+      "passed": true
+    }
+  ],
+  "release": [
+    {
+      "stage": "before",
+      "status": 200,
+      "sha": "f660bf9abf55c002e8779147ed4a8b9f5f221574",
+      "checkedAt": "2026-11-12T16:15:58.234Z"
+    },
+    {
+      "stage": "after",
+      "status": 200,
+      "sha": "f660bf9abf55c002e8779147ed4a8b9f5f221574",
+      "checkedAt": "2026-11-12T16:16:01.242Z"
+    }
+  ],
+  "assets": [
+    {
+      "file": "upper-page-guides.js",
+      "url": "https://linwuyen.github.io/-EEHandouts/upper-page-guides.js?final697071=7931fa11-76d2-4562-a9bd-4a0ddf0894e0",
+      "status": 200,
+      "sourceBytes": 401811,
+      "liveBytes": 401811,
+      "sourceSha256": "3426af50a921474c3863b2c2f31da42305afa61f0f16af8201b8b37f1c0f4795",
+      "liveSha256": "3426af50a921474c3863b2c2f31da42305afa61f0f16af8201b8b37f1c0f4795",
+      "identical": true
+    },
+    {
+      "file": "middle-page-guides.js",
+      "url": "https://linwuyen.github.io/-EEHandouts/middle-page-guides.js?final697071=f6a58a68-a880-4b98-9e72-90c4b5a49554",
+      "status": 200,
+      "sourceBytes": 207854,
+      "liveBytes": 207854,
+      "sourceSha256": "3f287fda86f90e71123c52378b6c25f86a24a39e761e69e16d81b85cfc2b07c2",
+      "liveSha256": "3f287fda86f90e71123c52378b6c25f86a24a39e761e69e16d81b85cfc2b07c2",
+      "identical": true
+    },
+    {
+      "file": "data.js",
+      "url": "https://linwuyen.github.io/-EEHandouts/data.js?final697071=37e66d3a-6199-4900-b2bd-dc100dcc2889",
+      "status": 200,
+      "sourceBytes": 58765,
+      "liveBytes": 58765,
+      "sourceSha256": "1f631564cf351adcab4f136e7654585cb5f4cfea3b3633739d7a9360933b68a9",
+      "liveSha256": "1f631564cf351adcab4f136e7654585cb5f4cfea3b3633739d7a9360933b68a9",
+      "identical": true
+    },
+    {
+      "file": "formula-math.js",
+      "url": "https://linwuyen.github.io/-EEHandouts/formula-math.js?final697071=17a2bea7-2831-4c16-beb3-f26e1f0a142a",
+      "status": 200,
+      "sourceBytes": 16006,
+      "liveBytes": 16006,
+      "sourceSha256": "ea6699243ed27f99e404fd3066cff7b3d2fe709add645c30b84680834b5c59ed",
+      "liveSha256": "ea6699243ed27f99e404fd3066cff7b3d2fe709add645c30b84680834b5c59ed",
+      "identical": true
+    },
+    {
+      "file": "interactive-lessons.js",
+      "url": "https://linwuyen.github.io/-EEHandouts/interactive-lessons.js?final697071=8b29d374-7ec0-4fb8-92b8-0937c304bfad",
+      "status": 200,
+      "sourceBytes": 78744,
+      "liveBytes": 78744,
+      "sourceSha256": "d67e91466cb1d7264e58f56a8ed0a2336eac1a318b5cf0856187831014dec764",
+      "liveSha256": "d67e91466cb1d7264e58f56a8ed0a2336eac1a318b5cf0856187831014dec764",
+      "identical": true
+    }
+  ],
+  "workflowRuns": [
+    {
+      "id": 43250185695,
+      "name": "Verify EEHandouts",
+      "event": "pull_request",
+      "head_sha": "ebcd222e595f9039cecac09c39f931226c1530ad",
+      "html_url": "https://github.com/linwuyen/-EEHandouts/actions/runs/43250185695",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-12T15:39:37Z",
+      "updated_at": "2026-11-12T15:52:22Z"
+    },
+    {
+      "id": 43250121687,
+      "name": "Verify EEHandouts",
+      "event": "push",
+      "head_sha": "ebcd222e595f9039cecac09c39f931226c1530ad",
+      "html_url": "https://github.com/linwuyen/-EEHandouts/actions/runs/43250121687",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-12T15:39:15Z",
+      "updated_at": "2026-11-12T15:54:14Z"
+    },
+    {
+      "id": 43252947661,
+      "name": "Verify EEHandouts",
+      "event": "push",
+      "head_sha": "f660bf9abf55c002e8779147ed4a8b9f5f221574",
+      "html_url": "https://github.com/linwuyen/-EEHandouts/actions/runs/43252947661",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-12T15:55:02Z",
+      "updated_at": "2026-11-12T16:09:36Z"
+    },
+    {
+      "id": 43255605508,
+      "name": "Publish EEHandouts only after verified CI",
+      "event": "workflow_run",
+      "head_sha": "f660bf9abf55c002e8779147ed4a8b9f5f221574",
+      "html_url": "https://github.com/linwuyen/-EEHandouts/actions/runs/43255605508",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-12T16:09:40Z",
+      "updated_at": "2026-11-12T16:10:08Z"
+    }
+  ],
+  "pullRequests": {
+    "checkedAt": "2026-11-12T16:15:13.091Z",
+    "source": "GitHub connector get_pr_info",
+    "pullRequests": [
+      {
+        "number": 69,
+        "url": "https://github.com/linwuyen/-EEHandouts/pull/69",
+        "merged": true,
+        "head_sha": "fa7db003cf26b1401546cdf437e2477213b210e1",
+        "merge_commit_sha": "bc35d6b8425c6630178bb4fa6bbad98c71ad2102",
+        "merged_at": "2026-11-11T16:56:46Z",
+        "changed_files": 11
+      },
+      {
+        "number": 70,
+        "url": "https://github.com/linwuyen/-EEHandouts/pull/70",
+        "merged": true,
+        "head_sha": "3a9b1a244370ad485ce882de9e464c3734e33979",
+        "merge_commit_sha": "b510b258d5fd53539dbfbd80c28342967edf9c58",
+        "merged_at": "2026-11-12T15:11:13Z",
+        "changed_files": 1
+      },
+      {
+        "number": 71,
+        "url": "https://github.com/linwuyen/-EEHandouts/pull/71",
+        "merged": true,
+        "head_sha": "ebcd222e595f9039cecac09c39f931226c1530ad",
+        "merge_commit_sha": "f660bf9abf55c002e8779147ed4a8b9f5f221574",
+        "merged_at": "2026-11-12T15:54:59Z",
+        "changed_files": 1
+      }
+    ]
+  },
+  "retainedPr69Files": [
+    {
+      "file": "data.js",
+      "unchanged": true
+    },
+    {
+      "file": "formula-math.js",
+      "unchanged": true
+    },
+    {
+      "file": "interactive-lessons.js",
+      "unchanged": true
+    },
+    {
+      "file": "middle-page-guides.js",
+      "unchanged": false
+    },
+    {
+      "file": "tests/interactive-engineering.mjs",
+      "unchanged": true
+    },
+    {
+      "file": "tests/interactive-smoke.mjs",
+      "unchanged": true
+    },
+    {
+      "file": "tests/math-smoke.mjs",
+      "unchanged": true
+    },
+    {
+      "file": "tests/middle-boost-guides.mjs",
+      "unchanged": true
+    },
+    {
+      "file": "tests/middle-bridge-guides.mjs",
+      "unchanged": true
+    },
+    {
+      "file": "tests/upper-threephase-guides.mjs",
+      "unchanged": true
+    },
+    {
+      "file": "upper-page-guides.js",
+      "unchanged": false
+    }
+  ],
+  "followupDiff": "middle-page-guides.js | 3 ++-\n upper-page-guides.js  | 2 +-\n 2 files changed, 3 insertions(+), 2 deletions(-)",
+  "currentWorkflowJobs": [
+    {
+      "runId": 43252947661,
+      "total_count": 1,
+      "jobs": [
+        {
+          "id": 131303435315,
+          "run_id": 43252947661,
+          "workflow_name": "Verify EEHandouts",
+          "head_branch": "main",
+          "run_url": "https://api.github.com/repos/linwuyen/-EEHandouts/actions/runs/43252947661",
+          "run_attempt": 1,
+          "node_id": "CR_kwDOVba3NM8AAAAekktsMw",
+          "head_sha": "f660bf9abf55c002e8779147ed4a8b9f5f221574",
+          "url": "https://api.github.com/repos/linwuyen/-EEHandouts/actions/jobs/131303435315",
+          "html_url": "https://github.com/linwuyen/-EEHandouts/actions/runs/43252947661/job/131303435315",
+          "status": "completed",
+          "conclusion": "success",
+          "created_at": "2026-11-12T15:55:02Z",
+          "started_at": "2026-11-12T15:55:05Z",
+          "completed_at": "2026-11-12T16:09:36Z",
+          "name": "browser-regression",
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1,
+              "started_at": "2026-11-12T15:55:06Z",
+              "completed_at": "2026-11-12T15:55:07Z"
+            },
+            {
+              "name": "Checkout",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2,
+              "started_at": "2026-11-12T15:55:07Z",
+              "completed_at": "2026-11-12T15:55:08Z"
+            },
+            {
+              "name": "Set up Node",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3,
+              "started_at": "2026-11-12T15:55:08Z",
+              "completed_at": "2026-11-12T15:55:10Z"
+            },
+            {
+              "name": "Install pinned browser test dependencies",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4,
+              "started_at": "2026-11-12T15:55:10Z",
+              "completed_at": "2026-11-12T15:55:33Z"
+            },
+            {
+              "name": "Prepare SHA-512-verified local PDF.js assets",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5,
+              "started_at": "2026-11-12T15:55:33Z",
+              "completed_at": "2026-11-12T15:55:34Z"
+            },
+            {
+              "name": "Run static site locally",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6,
+              "started_at": "2026-11-12T15:55:34Z",
+              "completed_at": "2026-11-12T15:55:35Z"
+            },
+            {
+              "name": "Browser and engineering regression",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7,
+              "started_at": "2026-11-12T15:55:35Z",
+              "completed_at": "2026-11-12T16:09:30Z"
+            },
+            {
+              "name": "Upload browser screenshots",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 8,
+              "started_at": "2026-11-12T16:09:30Z",
+              "completed_at": "2026-11-12T16:09:34Z"
+            },
+            {
+              "name": "Post Set up Node",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 15,
+              "started_at": "2026-11-12T16:09:34Z",
+              "completed_at": "2026-11-12T16:09:34Z"
+            },
+            {
+              "name": "Post Checkout",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 16,
+              "started_at": "2026-11-12T16:09:34Z",
+              "completed_at": "2026-11-12T16:09:34Z"
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 17,
+              "started_at": "2026-11-12T16:09:34Z",
+              "completed_at": "2026-11-12T16:09:34Z"
+            }
+          ],
+          "check_run_url": "https://api.github.com/repos/linwuyen/-EEHandouts/check-runs/131303435315",
+          "labels": [
+            "ubuntu-24.04"
+          ],
+          "runner_id": 1000012847,
+          "runner_name": "GitHub Actions 1000012847",
+          "runner_group_id": 0,
+          "runner_group_name": "GitHub Actions"
+        }
+      ]
+    },
+    {
+      "runId": 43255605508,
+      "total_count": 1,
+      "jobs": [
+        {
+          "id": 131312860785,
+          "run_id": 43255605508,
+          "workflow_name": "Publish EEHandouts only after verified CI",
+          "head_branch": "main",
+          "run_url": "https://api.github.com/repos/linwuyen/-EEHandouts/actions/runs/43255605508",
+          "run_attempt": 1,
+          "node_id": "CR_kwDOVba3NM8AAAAekts-cQ",
+          "head_sha": "f660bf9abf55c002e8779147ed4a8b9f5f221574",
+          "url": "https://api.github.com/repos/linwuyen/-EEHandouts/actions/jobs/131312860785",
+          "html_url": "https://github.com/linwuyen/-EEHandouts/actions/runs/43255605508/job/131312860785",
+          "status": "completed",
+          "conclusion": "success",
+          "created_at": "2026-11-12T16:09:41Z",
+          "started_at": "2026-11-12T16:09:46Z",
+          "completed_at": "2026-11-12T16:10:08Z",
+          "name": "deploy",
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1,
+              "started_at": "2026-11-12T16:09:47Z",
+              "completed_at": "2026-11-12T16:09:49Z"
+            },
+            {
+              "name": "Checkout the exact SHA that passed browser regression",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2,
+              "started_at": "2026-11-12T16:09:49Z",
+              "completed_at": "2026-11-12T16:09:50Z"
+            },
+            {
+              "name": "Skip a stale CI result before packaging",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3,
+              "started_at": "2026-11-12T16:09:50Z",
+              "completed_at": "2026-11-12T16:09:51Z"
+            },
+            {
+              "name": "Prepare SHA-512-verified local PDF.js assets",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4,
+              "started_at": "2026-11-12T16:09:51Z",
+              "completed_at": "2026-11-12T16:09:51Z"
+            },
+            {
+              "name": "Stamp exact verified SHA into the Pages artifact",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5,
+              "started_at": "2026-11-12T16:09:51Z",
+              "completed_at": "2026-11-12T16:09:51Z"
+            },
+            {
+              "name": "Configure GitHub Pages",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6,
+              "started_at": "2026-11-12T16:09:51Z",
+              "completed_at": "2026-11-12T16:09:52Z"
+            },
+            {
+              "name": "Package static website",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7,
+              "started_at": "2026-11-12T16:09:52Z",
+              "completed_at": "2026-11-12T16:09:53Z"
+            },
+            {
+              "name": "Recheck latest main SHA immediately before deploy",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 8,
+              "started_at": "2026-11-12T16:09:53Z",
+              "completed_at": "2026-11-12T16:09:54Z"
+            },
+            {
+              "name": "Deploy only the newest verified SHA",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 9,
+              "started_at": "2026-11-12T16:09:54Z",
+              "completed_at": "2026-11-12T16:10:01Z"
+            },
+            {
+              "name": "Verify hosted release SHA and all three entry pages",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 10,
+              "started_at": "2026-11-12T16:10:01Z",
+              "completed_at": "2026-11-12T16:10:05Z"
+            },
+            {
+              "name": "Post Checkout the exact SHA that passed browser regression",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 20,
+              "started_at": "2026-11-12T16:10:05Z",
+              "completed_at": "2026-11-12T16:10:06Z"
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 21,
+              "started_at": "2026-11-12T16:10:06Z",
+              "completed_at": "2026-11-12T16:10:06Z"
+            }
+          ],
+          "check_run_url": "https://api.github.com/repos/linwuyen/-EEHandouts/check-runs/131312860785",
+          "labels": [
+            "ubuntu-24.04"
+          ],
+          "runner_id": 1000012851,
+          "runner_name": "GitHub Actions 1000012851",
+          "runner_group_id": 0,
+          "runner_group_name": "GitHub Actions"
+        }
+      ]
+    }
+  ],
+  "verificationWorkflow": "name: Verify EEHandouts\n\non:\n  push:\n    branches:\n      - main\n      - 'fix/**'\n  pull_request:\n    branches: [main]\n  workflow_dispatch:\n\npermissions:\n  contents: read\n\njobs:\n  browser-regression:\n    runs-on: ubuntu-24.04\n    timeout-minutes: 15\n    steps:\n      - name: Checkout\n        uses: actions/checkout@v7\n      - name: Set up Node\n        uses: actions/setup-node@v7\n        with:\n          node-version: '22'\n          cache: 'npm'\n      - name: Install pinned browser test dependencies\n        run: |\n          npm ci --ignore-scripts --no-audit --no-fund\n          # The hosted Noble runner uses a mirror list for its signed Ubuntu packages.\n          if [[ -f /etc/apt/apt-mirrors.txt ]] && ! getent ahostsv4 azure.archive.ubuntu.com >/dev/null; then\n            for mirror in https://mirrors.edge.kernel.org/ubuntu https://mirror.math.princeton.edu/pub/ubuntu; do\n              if curl -fsSL --max-time 10 -o /dev/null \"$mirror/dists/noble/InRelease\"; then\n                printf '%s\\n' \"$mirror/\" | sudo tee /etc/apt/apt-mirrors.txt >/dev/null\n                echo \"Using $mirror for Ubuntu packages\"\n                break\n              fi\n            done\n          fi\n          npx playwright install --with-deps chromium\n      - name: Prepare SHA-512-verified local PDF.js assets\n        run: bash scripts/prepare-pdfjs.sh\n      - name: Run static site locally\n        run: |\n          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/eehandouts-server.log 2>&1 &\n          for i in $(seq 1 20); do\n            if curl -fsS http://127.0.0.1:4173/index.html > /dev/null; then exit 0; fi\n            sleep 1\n          done\n          cat /tmp/eehandouts-server.log\n          exit 1\n      - name: Browser and engineering regression\n        run: npm test\n      - name: Upload browser screenshots\n        if: always()\n        uses: actions/upload-artifact@v7\n        with:\n          name: eehandouts-review-screenshots\n          path: tests/screenshots/\n          if-no-files-found: ignore\n          retention-days: 7",
+  "workingTree": "",
+  "finishedAt": "2026-11-12T16:16:01.299Z"
+}

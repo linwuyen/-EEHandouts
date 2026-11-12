@@ -1,0 +1,129 @@
+{
+  "status": "PASS",
+  "checkedAt": "2026-11-12T16:15:01.926Z",
+  "base": "https://linwuyen.github.io/-EEHandouts/",
+  "expectedSha": "f660bf9abf55c002e8779147ed4a8b9f5f221574",
+  "scope": "Online upper-volume guides only. No user-local PDF has been loaded or verified.",
+  "pages": [
+    {
+      "page": "上冊 P.4",
+      "status": "PASS",
+      "route": [
+        "線上首頁",
+        "原講義索引",
+        "P.4 逐頁導讀"
+      ],
+      "url": "https://linwuyen.github.io/-EEHandouts/index.html#slide/4",
+      "given": "1 Ω 電阻上的電流在 2 A、4 A 各停半週。另有一電源輸入 100 W、輸出 90 W。",
+      "worked": [
+        "平均電流是 3 A，總 RMS = √[(2² + 4²)/2] = √10 A。",
+        "電阻平均發熱是 (√10)² × 1 = 10 W。先扣掉平均 3 A 後，只剩 ±1 A 漣波，其 RMS 是 1 A。",
+        "另一電源效率 η=90/100=90%，損耗為 10 W。"
+      ],
+      "instructions": "⑥ 想過再揭曉\n+3 A 與 −3 A 各半週的 RMS 是多少？\n\n平均電流為零，但 RMS=3 A，對 1 Ω 的平均發熱仍有 9 W。\n\n沿本頁 +3 A、−3 A 各半週的例題，手算平均電流 (3−3)/2=0 A 與 RMS=√[(3²+3²)/2]=3 A，再比較兩者意義。\n\n前往對應的互動課節：瞬時、平均與 RMS →",
+      "visibleText": "上冊第 4 頁 · STEP BY STEP\n效率、負載調整率與 RMS 分別在量什麼？\n\n先想：平均電流零，為何電阻仍會熱？\n\n一句話記住：電流 RMS 給出相同電阻發熱所需的等效直流值；平均功率要先逐點計算 vi。\n\n以下為本站導讀，可對照自己的講義 PDF 閱讀。\n\n原始投影片 PDF 對照\n\n可載入電力電子初級班講義（上）R2（107 頁）。PDF 只留在這台裝置。\n\n載入原始講義 PDF\n手邊是 PPTX 時，請先匯出為 PDF。\n① 用白話想像物理現象\n\n同一張圖的 Pin、Po、Ploss 描述效率；空載與滿載電壓描述調整率。\n\n正負交替的電流平均為零，但平方後都會對電阻產生熱。\n\n② 追蹤訊號與能量流\n追蹤輸入輸出功率帳\n\n週期穩態輸入功率等於輸出與內部損耗，待機也可有損耗。\n\n分清調整率與效率\n\n輸出電壓空載到滿載的變化，不能直接表示轉換能量效率。\n\n計算 RMS 與平均功率\n\nRMS 先平方平均再開根號，功率則先逐點相乘再平均。\n\n③ 公式一步一步來\n效率\n𝜂\n=\n𝑃\n𝑜\n/\n𝑃\n𝑖\nη=P\no\n\t​\n\n/P\ni\n\t​\n\n\n穩態平均功率且輸出與輸入定義一致。\n\n均方根值\n𝐼\n𝑟\n𝑚\n𝑠\n=\n1\n𝑇\n∫\n0\n𝑇\n𝑖\n2\n(\n𝑡\n)\n𝑑\n𝑡\nI\nrms\n\t​\n\n=\nT\n1\n\t​\n\n∫\n0\nT\n\t​\n\ni\n2\n(t)dt\n\t​\n\n\n對完整週期或具代表性的量測時間窗積分。\n\n電壓調整率\n𝑉\n𝑅\n=\n𝑉\n𝑁\n𝐿\n−\n𝑉\n𝐹\n𝐿\n𝑉\n𝐹\n𝐿\n×\n100\n%\nVR=\nV\nFL\n\t​\n\nV\nNL\n\t​\n\n−V\nFL\n\t​\n\n\t​\n\n×100%\n\n原講義以滿載電壓為分母，不代表所有規格採同定義。\n\n④ 帶數字算一次\n\n1 Ω 電阻上的電流在 2 A、4 A 各停半週。另有一電源輸入 100 W、輸出 90 W。\n\n平均電流是 3 A，總 RMS = √[(2² + 4²)/2] = √10 A。\n電阻平均發熱是 (√10)² × 1 = 10 W。先扣掉平均 3 A 後，只剩 ±1 A 漣波，其 RMS 是 1 A。\n另一電源效率 η=90/100=90%，損耗為 10 W。\n\n算完應該理解：平均電流為零仍可能發熱；效率、調整率及 RMS 分別回答能量、電壓穩定度與有效電流的問題。\n\n⑤ 適用條件與常見誤解\n例題兩組數字屬不同情境，不應直接把電阻損耗與電源損耗相加。\n週期波形取完整週期計算 RMS，平方前保留流過電阻的直流成分。\n\n容易搞錯：若零電流時量測通道仍有讀值，先扣掉校準得到的偏移。實際流過負載的直流電流也會發熱，算總 RMS 時要保留。\n\n⑥ 想過再揭曉\n+3 A 與 −3 A 各半週的 RMS 是多少？\n\n平均電流為零，但 RMS=3 A，對 1 Ω 的平均發熱仍有 9 W。\n\n沿本頁 +3 A、−3 A 各半週的例題，手算平均電流 (3−3)/2=0 A 與 RMS=√[(3²+3²)/2]=3 A，再比較兩者意義。\n\n前往對應的互動課節：瞬時、平均與 RMS →",
+      "checks": {
+        "pageEndUsesHandCalculation": true,
+        "zeroMeanNonzeroRms": true,
+        "originalWorkedExampleConsistent": true
+      },
+      "computed": {
+        "mean": 0,
+        "rms": 3,
+        "heatWatts": 9,
+        "workedMean": 3,
+        "workedRms": 3.1622776601683795,
+        "rippleRms": 1,
+        "efficiency": 0.9
+      },
+      "screenshots": {
+        "instructions": "../screenshots/final697071-upper-p4-instructions.png",
+        "worked": "../screenshots/final697071-upper-p4-worked.png",
+        "full": "../screenshots/final697071-upper-p4-full.png",
+        "review": "../screenshots/final697071-upper-p4-review.png"
+      }
+    },
+    {
+      "page": "上冊 P.8",
+      "status": "PASS",
+      "route": [
+        "線上首頁",
+        "原講義索引",
+        "P.8 逐頁導讀"
+      ],
+      "url": "https://linwuyen.github.io/-EEHandouts/index.html#slide/8",
+      "given": "x(t)=2+3cosωt+4sin2ωt，電流單位 A。",
+      "worked": [
+        "直流分量 2 A，基波 RMS=3/√2 A。",
+        "二次諧波 RMS=4/√2 A。",
+        "總 RMS=sqrt(4+4.5+8)=sqrt16.5≈4.062 A。"
+      ],
+      "instructions": "⑥ 想過再揭曉\n2 A DC 加 3 A 峰值正弦的 RMS 是 5 A 嗎？\n\n不是 5 A；RMS=sqrt(2²+3²/2)≈2.915 A。\n\n沿本頁 x(t)=2+3cosωt+4sin2ωt，手算 DC 與各頻率的均方值 4、4.5、8，再相加開根號得到 RMS≈4.062 A。\n\n前往對應的互動課節：非正弦波與傅立葉級數 →",
+      "visibleText": "上冊第 8 頁 · STEP BY STEP\n傅立葉係數與 Parseval RMS 如何推導？\n\n先想：為什麼不同頻率 RMS 要平方相加？\n\n一句話記住：sin 與 cos 互相正交，因此各諧波能量平方平均可加總。\n\n以下為本站導讀，可對照自己的講義 PDF 閱讀。\n\n原始投影片 PDF 對照\n\n可載入電力電子初級班講義（上）R2（107 頁）。PDF 只留在這台裝置。\n\n載入原始講義 PDF\n手邊是 PPTX 時，請先匯出為 PDF。\n① 用白話想像物理現象\n\n把波形乘上指定頻率的 sin 或 cos 並積分，就像投影到不同座標軸。\n\n講義 F0 是直流平均，Fh 是各次諧波 RMS 幅值，別把係數直接當 RMS。\n\n② 追蹤訊號與能量流\n展開 DC 和諧波\n\nf=a0/2+Σ(ah cos hωt+bh sin hωt)，h 為正整數。\n\n求傅立葉投影係數\n\n完整週期中不同整數次頻率正交，積分可單獨求出 ah、bh。\n\n用 Parseval 求 RMS\n\nFrms²=F0²+Σ(ah²+bh²)/2。\n\n③ 公式一步一步來\n傅立葉級數\n𝑓\n(\n𝑡\n)\n=\n𝑎\n0\n/\n2\n+\n∑\nℎ\n=\n1\n∞\n(\n𝑎\nℎ\ncos\n⁡\nℎ\n𝜔\n𝑡\n+\n𝑏\nℎ\nsin\n⁡\nℎ\n𝜔\n𝑡\n)\nf(t)=a\n0\n\t​\n\n/2+\nh=1\n∑\n∞\n\t​\n\n(a\nh\n\t​\n\ncoshωt+b\nh\n\t​\n\nsinhωt)\n\n具有一般傅立葉展開條件的週期函數。\n\n餘弦係數\n𝑎\nℎ\n=\n2\n𝑇\n∫\n0\n𝑇\n𝑓\n(\n𝑡\n)\ncos\n⁡\n(\nℎ\n𝜔\n𝑡\n)\n𝑑\n𝑡\na\nh\n\t​\n\n=\nT\n2\n\t​\n\n∫\n0\nT\n\t​\n\nf(t)cos(hωt)dt\n\n對 h≥1 的正交投影，不可直接套 h=0。\n\nParseval RMS\n𝐹\n𝑟\n𝑚\n𝑠\n2\n=\n𝐹\n0\n2\n+\n∑\nℎ\n=\n1\n∞\n(\n𝑎\nℎ\n2\n+\n𝑏\nℎ\n2\n)\n/\n2\nF\nrms\n2\n\t​\n\n=F\n0\n2\n\t​\n\n+\nh=1\n∑\n∞\n\t​\n\n(a\nh\n2\n\t​\n\n+b\nh\n2\n\t​\n\n)/2\n\nDC 和各次諧波的平方平均獨立相加。\n\n④ 帶數字算一次\n\nx(t)=2+3cosωt+4sin2ωt，電流單位 A。\n\n直流分量 2 A，基波 RMS=3/√2 A。\n二次諧波 RMS=4/√2 A。\n總 RMS=sqrt(4+4.5+8)=sqrt16.5≈4.062 A。\n\n算完應該理解：利用傅立葉正交性，總 RMS 的平方由 DC 與各次諧波的 RMS 平方組成。\n\n⑤ 適用條件與常見誤解\n完整整數週期、頻率互為基頻整數倍，未考慮取樣窗外的非週期訊號。\n公式中的 aₕ、bₕ 是正餘弦的峰值係數，因此算每項均方時要除以 2。\n\n容易搞錯：不能把不同頻率 RMS 或峰值直接相加。\n\n⑥ 想過再揭曉\n2 A DC 加 3 A 峰值正弦的 RMS 是 5 A 嗎？\n\n不是 5 A；RMS=sqrt(2²+3²/2)≈2.915 A。\n\n沿本頁 x(t)=2+3cosωt+4sin2ωt，手算 DC 與各頻率的均方值 4、4.5、8，再相加開根號得到 RMS≈4.062 A。\n\n前往對應的互動課節：非正弦波與傅立葉級數 →",
+      "checks": {
+        "pageEndUsesHandCalculation": true,
+        "dcAndFrequencyMeanSquaresAdd": true,
+        "waveformNumericalIntegrationMatches": true
+      },
+      "computed": {
+        "meanSquares": [
+          4,
+          4.5,
+          8
+        ],
+        "totalMeanSquare": 16.5,
+        "rms": 4.06201920231798,
+        "sampledMeanSquare": 16.49999999999981
+      },
+      "screenshots": {
+        "instructions": "../screenshots/final697071-upper-p8-instructions.png",
+        "worked": "../screenshots/final697071-upper-p8-worked.png",
+        "full": "../screenshots/final697071-upper-p8-full.png",
+        "review": "../screenshots/final697071-upper-p8-review.png"
+      }
+    },
+    {
+      "page": "上冊 P.11",
+      "status": "PASS",
+      "route": [
+        "線上首頁",
+        "原講義索引",
+        "P.11 逐頁導讀"
+      ],
+      "url": "https://linwuyen.github.io/-EEHandouts/index.html#slide/11",
+      "given": "Vs=100 Vrms、Is1=4 Arms、THDi=75%、φ1=0°，另量到峰值 12 A。",
+      "worked": [
+        "Idis=0.75×4=3 A，總 Is=sqrt(16+9)=5 A。",
+        "P=100×4=400 W；S=100×5=500 VA，PF=0.8。",
+        "CF=12/5=2.4，與 PF/THD 是不同指標。"
+      ],
+      "instructions": "⑥ 想過再揭曉\nDPF=1、THDi=0.75，真 PF？\n\nPF=1/sqrt(1+0.75²)=0.8。\n\n沿本頁數值手算 PF=400/500=0.8 與 CF=12/5=2.4，並說明真實功因使用功率比，峰值因數使用峰值與總 RMS 比。\n\n前往對應的互動課節：THD、DPF、PF 與峰值因數 →",
+      "visibleText": "上冊第 11 頁 · STEP BY STEP\nTHD、CF、DPF 與 PF：如何驗證整流器電流？\n\n先想：THDi=75%，基波同相時為何 PF 只有 0.8？\n\n一句話記住：THDi 用諧波 RMS/基波 RMS，CF 用峰值/總 RMS，兩者描述不同現象。\n\n以下為本站導讀，可對照自己的講義 PDF 閱讀。\n\n原始投影片 PDF 對照\n\n可載入電力電子初級班講義（上）R2（107 頁）。PDF 只留在這台裝置。\n\n載入原始講義 PDF\n手邊是 PPTX 時，請先匯出為 PDF。\n① 用白話想像物理現象\n\n整流器在電容附近補電，線電流可能變窄尖峰，即使基波仍與電壓同相。\n\n講義的 PF 公式必須假設電壓為純正弦，若電壓也畸變需用完整功率定義。\n\n② 追蹤訊號與能量流\n從原圖觀察整流路徑\n\n二極體橋與大電容造成部分相角才輸入補充電荷的脈衝。\n\n分離基波與諧波 RMS\n\nIs²=Is1²+Idis²，THDi=Idis/Is1。\n\n算位移與真 PF\n\nDPF=cosφ1，而 PF=DPF/sqrt(1+THDi²)，只在正弦電壓條件成立。\n\n③ 公式一步一步來\n總諧波失真\n𝑇\n𝐻\n𝐷\n𝑖\n=\n𝐼\n𝑑\n𝑖\n𝑠\n/\n𝐼\n1\nTHD\ni\n\t​\n\n=I\ndis\n\t​\n\n/I\n1\n\t​\n\n\n基波分母為 RMS，75% 要用小數 0.75 代入。\n\n峰值因數\n𝐶\n𝐹\n=\n𝐼\n𝑝\n𝑒\n𝑎\n𝑘\n/\n𝐼\n𝑟\n𝑚\n𝑠\nCF=I\npeak\n\t​\n\n/I\nrms\n\t​\n\n\n取絕對峰值除以包含所有諧波的總 RMS。\n\n正弦電壓功因\n𝑃\n𝐹\n=\n𝐷\n𝑃\n𝐹\n/\n1\n+\n𝑇\n𝐻\n𝐷\n𝑖\n2\nPF=DPF/\n1+THD\ni\n2\n\t​\n\n\t​\n\n\n忽略 DC 與非整數次頻率，電壓純正弦。\n\n④ 帶數字算一次\n\nVs=100 Vrms、Is1=4 Arms、THDi=75%、φ1=0°，另量到峰值 12 A。\n\nIdis=0.75×4=3 A，總 Is=sqrt(16+9)=5 A。\nP=100×4=400 W；S=100×5=500 VA，PF=0.8。\nCF=12/5=2.4，與 PF/THD 是不同指標。\n\n算完應該理解：DPF 完全同相仍不代表真實 PF 等於 1；THD 與 CF 分別描述 RMS 畸變及瞬間尖峰。\n\n⑤ 適用條件與常見誤解\n需在指定量測頻寬和週期計算 THD；諧波電壓會使上述簡式失效。\n例題的 12 A 峰值是另外量到的；只有各次諧波的 RMS，還缺少重建峰值需要的相位。\n\n容易搞錯：不要把 75% 代成 75，也不能用 DPF 取代真 PF。\n\n⑥ 想過再揭曉\nDPF=1、THDi=0.75，真 PF？\n\nPF=1/sqrt(1+0.75²)=0.8。\n\n沿本頁數值手算 PF=400/500=0.8 與 CF=12/5=2.4，並說明真實功因使用功率比，峰值因數使用峰值與總 RMS 比。\n\n前往對應的互動課節：THD、DPF、PF 與峰值因數 →",
+      "checks": {
+        "pageEndUsesHandCalculation": true,
+        "pfUsesRealToApparentPower": true,
+        "cfUsesPeakToTotalRms": true
+      },
+      "computed": {
+        "harmonicRms": 3,
+        "totalRms": 5,
+        "realWatts": 400,
+        "apparentVA": 500,
+        "pf": 0.8,
+        "cf": 2.4
+      },
+      "screenshots": {
+        "instructions": "../screenshots/final697071-upper-p11-instructions.png",
+        "worked": "../screenshots/final697071-upper-p11-worked.png",
+        "full": "../screenshots/final697071-upper-p11-full.png",
+        "review": "../screenshots/final697071-upper-p11-review.png"
+      }
+    }
+  ],
+  "pageErrors": [],
+  "consoleErrors": [],
+  "releaseBefore": "f660bf9abf55c002e8779147ed4a8b9f5f221574",
+  "chromium": "141.0.7390.37",
+  "releaseAfter": "f660bf9abf55c002e8779147ed4a8b9f5f221574",
+  "finishedAt": "2026-11-12T16:15:08.428Z"
+}

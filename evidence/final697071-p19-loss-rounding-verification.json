@@ -1,0 +1,118 @@
+{
+  "status": "PASS",
+  "startedAt": "2026-11-12T16:15:42.211Z",
+  "release": {
+    "expectedSha": "f660bf9abf55c002e8779147ed4a8b9f5f221574",
+    "before": {
+      "url": "https://linwuyen.github.io/-EEHandouts/release-sha.txt?verify=1794500142215-cfd51f83-00ac-444d-8f65-943475f20bb2",
+      "status": 200,
+      "sha": "f660bf9abf55c002e8779147ed4a8b9f5f221574",
+      "checkedAt": "2026-11-12T16:15:42.692Z"
+    },
+    "after": {
+      "url": "https://linwuyen.github.io/-EEHandouts/release-sha.txt?verify=1794500149618-dda48ff9-3cee-48a4-a4d9-30a3786a5f8d",
+      "status": 200,
+      "sha": "f660bf9abf55c002e8779147ed4a8b9f5f221574",
+      "checkedAt": "2026-11-12T16:15:49.799Z"
+    }
+  },
+  "route": [
+    {
+      "label": "首頁",
+      "url": "https://linwuyen.github.io/-EEHandouts/index.html#home"
+    },
+    {
+      "label": "中冊首頁",
+      "url": "https://linwuyen.github.io/-EEHandouts/middle.html"
+    },
+    {
+      "label": "原講義索引",
+      "url": "https://linwuyen.github.io/-EEHandouts/middle.html#slides/all"
+    },
+    {
+      "label": "中冊 P.19",
+      "url": "https://linwuyen.github.io/-EEHandouts/middle.html#slide/19"
+    }
+  ],
+  "url": "https://linwuyen.github.io/-EEHandouts/middle.html#slide/19",
+  "visibleworked": "④ 帶數字算一次\n\n固定 Vin=48 V、D=50%、R=20 Ω、RL=0.2 Ω、RD=0.05 Ω、VD=0.7 V，忽略開關損；只將 RON 從 0.1 Ω 改成 0.2 Ω。\n\nRON=0.1 Ω：rEff=0.2+0.5×0.1+0.5×0.05=0.275 Ω；代入本頁平均輸出式，Vo≈90.33 V。\n只改 RON=0.2 Ω：rEff=0.2+0.5×0.2+0.5×0.05=0.325 Ω；其餘量不變，Vo≈89.48 V，比原來降低約 0.85 V。\n更新後 Io=Vo/20≈4.47 A、IL=Io/0.5≈8.95 A；電阻導通損 IL²×0.325≈26.02 W，二極體固定壓降損 VD×Io≈3.13 W。\n更新後輸入 Vin IL≈429.52 W、負載 Vo Io≈400.37 W，總導通損約 29.16 W；以未捨入值計算，輸入與輸出的差額等於上述兩類導通損之和。\nVo、Io、IL 與各項功率的中間計算均保留全精度，不先捨入；最後才將顯示結果四捨五入至小數點後兩位，總導通損 29.155678987… W 因此顯示為 29.16 W。\n\n算完應該理解：固定其餘參數，只增加 RON，Vo 便從 90.33 V 降到 89.48 V；IL 也要重新計算，再核對導通損的功率帳，不能沿用舊電流。",
+  "numbers": {
+    "before": {
+      "inputs": {
+        "vin": 48,
+        "duty": 0.5,
+        "resistance": 20,
+        "rl": 0.2,
+        "rd": 0.05,
+        "vd": 0.7,
+        "ron": 0.1
+      },
+      "rEff": 0.275,
+      "vo": 90.33175355450237,
+      "io": 4.516587677725118,
+      "il": 9.033175355450236,
+      "input": 433.59241706161134,
+      "output": 407.9912850115675,
+      "resistor": 22.439520675636214,
+      "diodeDrop": 3.1616113744075824,
+      "totalByDifference": 25.601132050043816,
+      "totalByComponents": 25.601132050043795
+    },
+    "after": {
+      "inputs": {
+        "vin": 48,
+        "duty": 0.5,
+        "resistance": 20,
+        "rl": 0.2,
+        "rd": 0.05,
+        "vd": 0.7,
+        "ron": 0.2
+      },
+      "rEff": 0.32500000000000007,
+      "vo": 89.48356807511738,
+      "io": 4.474178403755869,
+      "il": 8.948356807511738,
+      "input": 429.52112676056345,
+      "output": 400.3654477727083,
+      "resistor": 26.023754105226047,
+      "diodeDrop": 3.131924882629108,
+      "totalByDifference": 29.15567898785514,
+      "totalByComponents": 29.155678987855154
+    },
+    "displayedTotal": "29.16"
+  },
+  "screenshots": {
+    "worked": "../screenshots/final697071-p19-loss-rounding.png",
+    "fullGuide": "../screenshots/final697071-p19-loss-rounding-full.png"
+  },
+  "pageErrors": [],
+  "errors": [],
+  "baseUrl": "https://linwuyen.github.io/-EEHandouts/",
+  "chromium": "141.0.7390.37",
+  "given": "固定 Vin=48 V、D=50%、R=20 Ω、RL=0.2 Ω、RD=0.05 Ω、VD=0.7 V，忽略開關損；只將 RON 從 0.1 Ω 改成 0.2 Ω。",
+  "visibleFormulas": [
+    "r\neff\n\t​\n\n=R\nL\n\t​\n\n+DR\non\n\t​\n\n+(1−D)R\nD\n\t​\n",
+    "V\no\n\t​\n\n=\n(1−D)\n2\n+r\neff\n\t​\n\n/R\n[V\nin\n\t​\n\n−(1−D)V\nD\n\t​\n\n](1−D)\n\t​\n",
+    "P\nD\n\t​\n\n≈(1−D)I\nL\n2\n\t​\n\nR\nD\n\t​\n\n+V\nD\n\t​\n\nI\no\n\t​\n"
+  ],
+  "screenshotViewport": {
+    "width": 1440,
+    "height": 8000
+  },
+  "screenshotGuideBounds": {
+    "x": 346,
+    "y": 387.09375,
+    "width": 1024,
+    "height": 2853.078125
+  },
+  "finishedAt": "2026-11-12T16:15:49.974Z",
+  "visualInspection": {
+    "status": "PASS",
+    "images": [
+      "../screenshots/final697071-p19-loss-rounding.png"
+    ],
+    "method": "view_image",
+    "note": "Viewed actual Chromium screenshots. Required visible instructions, numeric values and formulas are legible without clipping or overlays.",
+    "checkedAt": "2026-11-12T16:17:39.5850907Z"
+  }
+}

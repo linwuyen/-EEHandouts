@@ -1,0 +1,219 @@
+{
+  "status": "PASS",
+  "checkedAt": "2026-11-12T16:15:01.951Z",
+  "base": "https://linwuyen.github.io/-EEHandouts/",
+  "expectedSha": "f660bf9abf55c002e8779147ed4a8b9f5f221574",
+  "scope": "Online upper-volume guides only. No user-local PDF has been loaded or verified.",
+  "checks": [
+    {
+      "page": "上冊 P.22",
+      "pageNumber": 22,
+      "status": "PASS",
+      "checkedAt": "2026-11-12T16:15:04.377Z",
+      "route": [
+        {
+          "action": "navigate",
+          "url": "https://linwuyen.github.io/-EEHandouts/index.html#home",
+          "label": "上冊首頁"
+        },
+        {
+          "action": "click",
+          "selector": ".section-title a[href=\"#slides/all\"]",
+          "url": "https://linwuyen.github.io/-EEHandouts/index.html#slides/all",
+          "label": "原講義索引"
+        },
+        {
+          "action": "click",
+          "selector": ".slide-title-link[href=\"#slide/22\"]",
+          "url": "https://linwuyen.github.io/-EEHandouts/index.html#slide/22",
+          "label": "P.22 逐頁導讀"
+        }
+      ],
+      "finalUrl": "https://linwuyen.github.io/-EEHandouts/index.html#slide/22",
+      "visibleText": "上冊第 22 頁 · STEP BY STEP\n變壓器中誰負責磁化？誰是漏磁？從原圖拆開三種磁通\n\n先想：有負載時原邊電流增加，為何磁芯磁化電流不一定同量增加？\n\n一句話記住：主磁通由 N1i1−N2i2 的淨安匝建立，原副邊還各有不完全耦合的漏磁通。\n\n以下為本站導讀，可對照自己的講義 PDF 閱讀。\n\n原始投影片 PDF 對照\n\n可載入電力電子初級班講義（上）R2（107 頁）。PDF 只留在這台裝置。\n\n載入原始講義 PDF\n手邊是 PPTX 時，請先匯出為 PDF。\n① 用白話想像物理現象\n\n變壓器不只是兩個匝數會縮放電壓的理想元件。線圈電流既可能建立共同穿過兩邊的主磁通，也可能建立只鏈結自己繞組的漏磁通。\n\nP.22 圖 3-18(a) 用繞向、電流箭頭、電壓極性與磁通方向描述耦合；i1 流入左上端、i2 流出右上端，淨安匝為 N1i1−N2i2。實心同名端點標則見 P.24 圖 3-19。\n\n② 追蹤訊號與能量流\n固定原圖的繞向與電流箭頭\n\n沿圖 3-18(a) 的繞向，i1 流入左上端、i2 流出右上端，兩者安匝相抵而有 N1i1−N2i2=N1im；換箭頭就要重訂負號。\n\n區分共同主磁通與各自漏磁通\n\n共同 Φ 穿過磁芯並鏈結兩繞組；Φl1、Φl2 主要與各自電流相關，不應統統當作能送到負載的主磁通。\n\n由淨安匝求磁化支路電流\n\ni_m=i1−(N2/N1)i2；當次級電流按匝比增加時，原邊負載電流可相應增加而使 im 不變。\n\n連結到磁芯 B-H 與飽和\n\n主磁通 Φ≈N1im/ℜc，B=Φ/A；若鐵芯非線性，不能只用固定 ℜc 推算磁化電流。\n\n③ 公式一步一步來\n講義的淨磁動勢\n𝑁\n1\n𝑖\n1\n−\n𝑁\n2\n𝑖\n2\n=\n𝑁\n1\n𝑖\n𝑚\nN\n1\n\t​\n\ni\n1\n\t​\n\n−N\n2\n\t​\n\ni\n2\n\t​\n\n=N\n1\n\t​\n\ni\nm\n\t​\n\n\n依圖 3-18(a) 的繞向，i1 流入左上端、i2 流出右上端，兩側安匝相抵。\n\n磁化電流\n𝑖\n𝑚\n=\n𝑖\n1\n−\n𝑁\n2\n𝑁\n1\n𝑖\n2\ni\nm\n\t​\n\n=i\n1\n\t​\n\n−\nN\n1\n\t​\n\nN\n2\n\t​\n\n\t​\n\ni\n2\n\t​\n\n\n淨磁化支路電流以原邊折算，不能直接當作總輸入電流。\n\n主磁通的線性近似\nΦ\n≈\n𝑁\n1\n𝑖\n𝑚\n𝑅\n𝑐\nΦ≈\nR\nc\n\t​\n\nN\n1\n\t​\n\ni\nm\n\t​\n\n\t​\n\n\n同一主磁路且 ℜc 近似固定時成立；漏磁需各自建模。\n\n④ 帶數字算一次\n\n示例：N1=100 匝、N2=50 匝；採 P.22 的方向定義，i1=2 A、i2=3 A，假設 ℜc=1×10⁶ A·turn/Wb。\n\n由淨磁動勢 N1i1−N2i2=200−150=50 A·turn。\n磁化電流 im=50/100=0.5 A，不是原邊總電流 2 A。\n主磁通 Φ≈50/(1×10⁶)=50 µWb，漏磁通 Φl1、Φl2 必須另依漏磁阻計算。\n\n算完應該理解：如果次級電流上升而原邊負載分量按匝比增加，主磁芯不一定因此同步逼近飽和。\n\n⑤ 適用條件與常見誤解\n依 P.22 圖 3-18(a) 的繞向、電流箭頭與極性使用淨安匝負號；同名端的實心點標另見 P.24 圖 3-19。\n本數值採線性磁芯與單一主磁通，未包含漏磁耦合、繞組電阻或磁滯。\n\n容易搞錯：把全部原邊電流當成磁化電流，或把漏磁通都當作同樣能完全耦合到次級。\n\n⑥ 想過再揭曉\nN1=100、N2=50、i1=2 A、i2=3 A，按講義方向 im 等於多少？\n\n依 P.22 圖 3-18(a) 標主磁通及兩個漏磁通，沿繞向與 i1、i2 箭頭推導 im，再對照 P.24 圖 3-19 的同名端點標。\n\n前往對應的互動課節：變壓器：激磁、漏感與鐵芯損耗 →",
+      "given": "示例：N1=100 匝、N2=50 匝；採 P.22 的方向定義，i1=2 A、i2=3 A，假設 ℜc=1×10⁶ A·turn/Wb。",
+      "worked": [
+        "由淨磁動勢 N1i1−N2i2=200−150=50 A·turn。",
+        "磁化電流 im=50/100=0.5 A，不是原邊總電流 2 A。",
+        "主磁通 Φ≈50/(1×10⁶)=50 µWb，漏磁通 Φl1、Φl2 必須另依漏磁阻計算。"
+      ],
+      "sections": [
+        "① 用白話想像物理現象\n\n變壓器不只是兩個匝數會縮放電壓的理想元件。線圈電流既可能建立共同穿過兩邊的主磁通，也可能建立只鏈結自己繞組的漏磁通。\n\nP.22 圖 3-18(a) 用繞向、電流箭頭、電壓極性與磁通方向描述耦合；i1 流入左上端、i2 流出右上端，淨安匝為 N1i1−N2i2。實心同名端點標則見 P.24 圖 3-19。",
+        "② 追蹤訊號與能量流\n固定原圖的繞向與電流箭頭\n\n沿圖 3-18(a) 的繞向，i1 流入左上端、i2 流出右上端，兩者安匝相抵而有 N1i1−N2i2=N1im；換箭頭就要重訂負號。\n\n區分共同主磁通與各自漏磁通\n\n共同 Φ 穿過磁芯並鏈結兩繞組；Φl1、Φl2 主要與各自電流相關，不應統統當作能送到負載的主磁通。\n\n由淨安匝求磁化支路電流\n\ni_m=i1−(N2/N1)i2；當次級電流按匝比增加時，原邊負載電流可相應增加而使 im 不變。\n\n連結到磁芯 B-H 與飽和\n\n主磁通 Φ≈N1im/ℜc，B=Φ/A；若鐵芯非線性，不能只用固定 ℜc 推算磁化電流。",
+        "③ 公式一步一步來\n講義的淨磁動勢\n𝑁\n1\n𝑖\n1\n−\n𝑁\n2\n𝑖\n2\n=\n𝑁\n1\n𝑖\n𝑚\nN\n1\n\t​\n\ni\n1\n\t​\n\n−N\n2\n\t​\n\ni\n2\n\t​\n\n=N\n1\n\t​\n\ni\nm\n\t​\n\n\n依圖 3-18(a) 的繞向，i1 流入左上端、i2 流出右上端，兩側安匝相抵。\n\n磁化電流\n𝑖\n𝑚\n=\n𝑖\n1\n−\n𝑁\n2\n𝑁\n1\n𝑖\n2\ni\nm\n\t​\n\n=i\n1\n\t​\n\n−\nN\n1\n\t​\n\nN\n2\n\t​\n\n\t​\n\ni\n2\n\t​\n\n\n淨磁化支路電流以原邊折算，不能直接當作總輸入電流。\n\n主磁通的線性近似\nΦ\n≈\n𝑁\n1\n𝑖\n𝑚\n𝑅\n𝑐\nΦ≈\nR\nc\n\t​\n\nN\n1\n\t​\n\ni\nm\n\t​\n\n\t​\n\n\n同一主磁路且 ℜc 近似固定時成立；漏磁需各自建模。",
+        "④ 帶數字算一次\n\n示例：N1=100 匝、N2=50 匝；採 P.22 的方向定義，i1=2 A、i2=3 A，假設 ℜc=1×10⁶ A·turn/Wb。\n\n由淨磁動勢 N1i1−N2i2=200−150=50 A·turn。\n磁化電流 im=50/100=0.5 A，不是原邊總電流 2 A。\n主磁通 Φ≈50/(1×10⁶)=50 µWb，漏磁通 Φl1、Φl2 必須另依漏磁阻計算。\n\n算完應該理解：如果次級電流上升而原邊負載分量按匝比增加，主磁芯不一定因此同步逼近飽和。",
+        "⑤ 適用條件與常見誤解\n依 P.22 圖 3-18(a) 的繞向、電流箭頭與極性使用淨安匝負號；同名端的實心點標另見 P.24 圖 3-19。\n本數值採線性磁芯與單一主磁通，未包含漏磁耦合、繞組電阻或磁滯。\n\n容易搞錯：把全部原邊電流當成磁化電流，或把漏磁通都當作同樣能完全耦合到次級。",
+        "⑥ 想過再揭曉\nN1=100、N2=50、i1=2 A、i2=3 A，按講義方向 im 等於多少？\n\n依 P.22 圖 3-18(a) 標主磁通及兩個漏磁通，沿繞向與 i1、i2 箭頭推導 im，再對照 P.24 圖 3-19 的同名端點標。\n\n前往對應的互動課節：變壓器：激磁、漏感與鐵芯損耗 →"
+      ],
+      "equations": [
+        {
+          "ready": true,
+          "visibleText": "講義的淨磁動勢\n𝑁\n1\n𝑖\n1\n−\n𝑁\n2\n𝑖\n2\n=\n𝑁\n1\n𝑖\n𝑚\nN\n1\n\t​\n\ni\n1\n\t​\n\n−N\n2\n\t​\n\ni\n2\n\t​\n\n=N\n1\n\t​\n\ni\nm\n\t​\n\n\n依圖 3-18(a) 的繞向，i1 流入左上端、i2 流出右上端，兩側安匝相抵。",
+          "latex": "N_1i_1-N_2i_2=N_1i_m",
+          "katexCount": 1
+        },
+        {
+          "ready": true,
+          "visibleText": "磁化電流\n𝑖\n𝑚\n=\n𝑖\n1\n−\n𝑁\n2\n𝑁\n1\n𝑖\n2\ni\nm\n\t​\n\n=i\n1\n\t​\n\n−\nN\n1\n\t​\n\nN\n2\n\t​\n\n\t​\n\ni\n2\n\t​\n\n\n淨磁化支路電流以原邊折算，不能直接當作總輸入電流。",
+          "latex": "i_m=i_1-\\frac{N_2}{N_1}i_2",
+          "katexCount": 1
+        },
+        {
+          "ready": true,
+          "visibleText": "主磁通的線性近似\nΦ\n≈\n𝑁\n1\n𝑖\n𝑚\n𝑅\n𝑐\nΦ≈\nR\nc\n\t​\n\nN\n1\n\t​\n\ni\nm\n\t​\n\n\t​\n\n\n同一主磁路且 ℜc 近似固定時成立；漏磁需各自建模。",
+          "latex": "\\Phi\\approx\\frac{N_1i_m}{\\mathcal R_c}",
+          "katexCount": 1
+        }
+      ],
+      "katexErrors": 0,
+      "screenshots": {
+        "full": "../screenshots/final697071-upper-p22-full.png",
+        "formulas": "../screenshots/final697071-upper-p22-formulas.png",
+        "worked": "../screenshots/final697071-upper-p22-worked.png",
+        "polarity": "../screenshots/final697071-upper-p22-polarity.png"
+      },
+      "screenshotViewport": {
+        "width": 1440,
+        "height": 4029
+      },
+      "numericalVerification": {
+        "source": {
+          "N1": 100,
+          "N2": 50,
+          "i1": 2,
+          "i2": 3,
+          "coreReluctance": 1000000
+        },
+        "observed": {
+          "netAmpereTurns": 50,
+          "magnetizingCurrentA": 0.5,
+          "fluxMicroWb": 50
+        },
+        "computed": {
+          "netAmpereTurns": 50,
+          "magnetizingCurrentA": 0.5,
+          "fluxMicroWb": 50
+        }
+      },
+      "requirements": {
+        "windingCurrentVoltageFluxDirections": "PASS",
+        "i1EntersUpperLeft_i2LeavesUpperRight": "PASS",
+        "netAmpereTurnsSubtract": "PASS",
+        "solidPolarityDotsReferToP24Figure319": "PASS",
+        "instructionsAndWorkedExampleConsistent": "PASS"
+      }
+    },
+    {
+      "page": "上冊 P.35",
+      "pageNumber": 35,
+      "status": "PASS",
+      "checkedAt": "2026-11-12T16:15:05.884Z",
+      "route": [
+        {
+          "action": "navigate",
+          "url": "https://linwuyen.github.io/-EEHandouts/index.html#home",
+          "label": "上冊首頁"
+        },
+        {
+          "action": "click",
+          "selector": ".section-title a[href=\"#slides/all\"]",
+          "url": "https://linwuyen.github.io/-EEHandouts/index.html#slides/all",
+          "label": "原講義索引"
+        },
+        {
+          "action": "click",
+          "selector": ".slide-title-link[href=\"#slide/35\"]",
+          "url": "https://linwuyen.github.io/-EEHandouts/index.html#slide/35",
+          "label": "P.35 逐頁導讀"
+        }
+      ],
+      "finalUrl": "https://linwuyen.github.io/-EEHandouts/index.html#slide/35",
+      "visibleText": "上冊第 35 頁 · STEP BY STEP\n兩級與三級 Darlington：為何電流放大更大，卻可能更慢更熱？\n\n先想：增加 BJT 串級數量是否代表功率開關一定有更低導通壓降？\n\n一句話記住：Darlington 以多級基極電流放大降低前級驅動電流，但多接面讓 VBE、VCE(sat) 與儲存電荷代價變大。\n\n以下為本站導讀，可對照自己的講義 PDF 閱讀。\n\n原始投影片 PDF 對照\n\n可載入電力電子初級班講義（上）R2（107 頁）。PDF 只留在這台裝置。\n\n載入原始講義 PDF\n手邊是 PPTX 時，請先匯出為 PDF。\n① 用白話想像物理現象\n\nP.35 原始左右圖分別是雙級與三級 Darlington：前級射極電流成為後級基流，因此輸入小電流可帶動較大的末級電流。\n\n大電流增益不是免費的：多個串接的 BE 接面增加所需驅動電壓，飽和結構導通壓降與關斷時的儲存時間也可能增加。\n\n② 追蹤訊號與能量流\n對照 P.35 左右的串接接法\n\n先循輸入 B 電流找到前級集射電流，再辨識前級射極如何送入下一級 B，最後到集極主功率電流。\n\n用放大區近似計算等效增益\n\n在匹配簡化條件下，兩級等效 β≈β1β2+β1+β2；多級的電流增益增加，但飽和實際能力必須另驗證。\n\n比較 VBE 與開關關斷負擔\n\n兩級需約兩個 BE 接面壓降，三級可更多；關斷需抽除多級儲存電荷，切換頻率和損失不一定優於單顆 BJT。\n\n③ 公式一步一步來\n二級 Darlington 放大區電流增益\n𝛽\n𝑒\n𝑞\n≈\n𝛽\n1\n𝛽\n2\n+\n𝛽\n1\n+\n𝛽\n2\nβ\neq\n\t​\n\n≈β\n1\n\t​\n\nβ\n2\n\t​\n\n+β\n1\n\t​\n\n+β\n2\n\t​\n\n\n只適用簡化兩級電流增益關係，不能推導飽和區的強迫 β 或安全額定。\n\n兩級 BE 驅動電壓\n𝑉\n𝐵\n𝐸\n,\n𝑡\n𝑜\n𝑡\n𝑎\n𝑙\n≈\n𝑉\n𝐵\n𝐸\n1\n+\n𝑉\n𝐵\n𝐸\n2\nV\nBE,total\n\t​\n\n≈V\nBE1\n\t​\n\n+V\nBE2\n\t​\n\n\n在指定正向偏壓下估算，實際電壓隨電流、溫度及器件製程變化。\n\n④ 帶數字算一次\n\n假設兩級 Darlington 在理想放大工作區 β1=20、β2=30，每個 BE 接面近似 0.7 V。\n\n等效增益 βeq≈20×30+20+30=650。\n若前級輸入 IB1=10 mA，IC1=20×0.010=0.20 A，IB2=IE1=0.20+0.010=0.21 A；末級 IC2=30×0.21=6.30 A。\n外部共接 C 端電流為 IC1+IC2=0.20+6.30=6.50 A，對應 βeq=650；實際電流仍可能因供電與飽和而受限。\n兩級 BE 需要約 0.7+0.7=1.4 V；三級接面更多並非低壓降保證，不能直接據此宣稱低導通損。\n\n算完應該理解：Darlington 換來高電流增益但通常需要較高 BE 驅動電壓；導通與關斷性能須另外驗證。\n\n⑤ 適用條件與常見誤解\n增益公式採放大區、忽略 Early effect、電源限制及不匹配；多級飽和時不可直接照用。\n原圖為結構對照，沒有提供實際器件的儲存時間與熱資料；需查 datasheet 與實際驅動方式。\n\n容易搞錯：把 βeq≈650 直接當成大電流開關可保證的強迫 β，或認為增加級數必然減少 VCE(sat)。\n\n⑥ 想過再揭曉\nβ1=20、β2=30 的理想兩級 Darlington 等效 β 約多少？\n\n對照 P.35 二級與三級的節點，分別標示 VBE 串級與主電流路徑。\n\n前往對應的互動課節：SCR、BJT、GTO 等受控元件 →",
+      "given": "假設兩級 Darlington 在理想放大工作區 β1=20、β2=30，每個 BE 接面近似 0.7 V。",
+      "worked": [
+        "等效增益 βeq≈20×30+20+30=650。",
+        "若前級輸入 IB1=10 mA，IC1=20×0.010=0.20 A，IB2=IE1=0.20+0.010=0.21 A；末級 IC2=30×0.21=6.30 A。",
+        "外部共接 C 端電流為 IC1+IC2=0.20+6.30=6.50 A，對應 βeq=650；實際電流仍可能因供電與飽和而受限。",
+        "兩級 BE 需要約 0.7+0.7=1.4 V；三級接面更多並非低壓降保證，不能直接據此宣稱低導通損。"
+      ],
+      "sections": [
+        "① 用白話想像物理現象\n\nP.35 原始左右圖分別是雙級與三級 Darlington：前級射極電流成為後級基流，因此輸入小電流可帶動較大的末級電流。\n\n大電流增益不是免費的：多個串接的 BE 接面增加所需驅動電壓，飽和結構導通壓降與關斷時的儲存時間也可能增加。",
+        "② 追蹤訊號與能量流\n對照 P.35 左右的串接接法\n\n先循輸入 B 電流找到前級集射電流，再辨識前級射極如何送入下一級 B，最後到集極主功率電流。\n\n用放大區近似計算等效增益\n\n在匹配簡化條件下，兩級等效 β≈β1β2+β1+β2；多級的電流增益增加，但飽和實際能力必須另驗證。\n\n比較 VBE 與開關關斷負擔\n\n兩級需約兩個 BE 接面壓降，三級可更多；關斷需抽除多級儲存電荷，切換頻率和損失不一定優於單顆 BJT。",
+        "③ 公式一步一步來\n二級 Darlington 放大區電流增益\n𝛽\n𝑒\n𝑞\n≈\n𝛽\n1\n𝛽\n2\n+\n𝛽\n1\n+\n𝛽\n2\nβ\neq\n\t​\n\n≈β\n1\n\t​\n\nβ\n2\n\t​\n\n+β\n1\n\t​\n\n+β\n2\n\t​\n\n\n只適用簡化兩級電流增益關係，不能推導飽和區的強迫 β 或安全額定。\n\n兩級 BE 驅動電壓\n𝑉\n𝐵\n𝐸\n,\n𝑡\n𝑜\n𝑡\n𝑎\n𝑙\n≈\n𝑉\n𝐵\n𝐸\n1\n+\n𝑉\n𝐵\n𝐸\n2\nV\nBE,total\n\t​\n\n≈V\nBE1\n\t​\n\n+V\nBE2\n\t​\n\n\n在指定正向偏壓下估算，實際電壓隨電流、溫度及器件製程變化。",
+        "④ 帶數字算一次\n\n假設兩級 Darlington 在理想放大工作區 β1=20、β2=30，每個 BE 接面近似 0.7 V。\n\n等效增益 βeq≈20×30+20+30=650。\n若前級輸入 IB1=10 mA，IC1=20×0.010=0.20 A，IB2=IE1=0.20+0.010=0.21 A；末級 IC2=30×0.21=6.30 A。\n外部共接 C 端電流為 IC1+IC2=0.20+6.30=6.50 A，對應 βeq=650；實際電流仍可能因供電與飽和而受限。\n兩級 BE 需要約 0.7+0.7=1.4 V；三級接面更多並非低壓降保證，不能直接據此宣稱低導通損。\n\n算完應該理解：Darlington 換來高電流增益但通常需要較高 BE 驅動電壓；導通與關斷性能須另外驗證。",
+        "⑤ 適用條件與常見誤解\n增益公式採放大區、忽略 Early effect、電源限制及不匹配；多級飽和時不可直接照用。\n原圖為結構對照，沒有提供實際器件的儲存時間與熱資料；需查 datasheet 與實際驅動方式。\n\n容易搞錯：把 βeq≈650 直接當成大電流開關可保證的強迫 β，或認為增加級數必然減少 VCE(sat)。",
+        "⑥ 想過再揭曉\nβ1=20、β2=30 的理想兩級 Darlington 等效 β 約多少？\n\n對照 P.35 二級與三級的節點，分別標示 VBE 串級與主電流路徑。\n\n前往對應的互動課節：SCR、BJT、GTO 等受控元件 →"
+      ],
+      "equations": [
+        {
+          "ready": true,
+          "visibleText": "二級 Darlington 放大區電流增益\n𝛽\n𝑒\n𝑞\n≈\n𝛽\n1\n𝛽\n2\n+\n𝛽\n1\n+\n𝛽\n2\nβ\neq\n\t​\n\n≈β\n1\n\t​\n\nβ\n2\n\t​\n\n+β\n1\n\t​\n\n+β\n2\n\t​\n\n\n只適用簡化兩級電流增益關係，不能推導飽和區的強迫 β 或安全額定。",
+          "latex": "\\beta_{eq}\\approx\\beta_1\\beta_2+\\beta_1+\\beta_2",
+          "katexCount": 1
+        },
+        {
+          "ready": true,
+          "visibleText": "兩級 BE 驅動電壓\n𝑉\n𝐵\n𝐸\n,\n𝑡\n𝑜\n𝑡\n𝑎\n𝑙\n≈\n𝑉\n𝐵\n𝐸\n1\n+\n𝑉\n𝐵\n𝐸\n2\nV\nBE,total\n\t​\n\n≈V\nBE1\n\t​\n\n+V\nBE2\n\t​\n\n\n在指定正向偏壓下估算，實際電壓隨電流、溫度及器件製程變化。",
+          "latex": "V_{BE,total}\\approx V_{BE1}+V_{BE2}",
+          "katexCount": 1
+        }
+      ],
+      "katexErrors": 0,
+      "screenshots": {
+        "full": "../screenshots/final697071-upper-p35-full.png",
+        "formulas": "../screenshots/final697071-upper-p35-formulas.png",
+        "worked": "../screenshots/final697071-upper-p35-worked.png"
+      },
+      "screenshotViewport": {
+        "width": 1440,
+        "height": 3730
+      },
+      "numericalVerification": {
+        "source": {
+          "beta1": 20,
+          "beta2": 30,
+          "IB1": 0.01,
+          "vbeEach": 0.7
+        },
+        "observed": {
+          "IC1": 0.2,
+          "IB2": 0.21,
+          "IC2": 6.3,
+          "externalCollectorA": 6.5,
+          "equivalentBeta": 650
+        },
+        "computed": {
+          "IC1": 0.2,
+          "IB2": 0.21000000000000002,
+          "IC2": 6.300000000000001,
+          "externalCollectorA": 6.500000000000001,
+          "equivalentBeta": 650,
+          "vbeTotal": 1.4
+        }
+      },
+      "requirements": {
+        "externalCIsIC1PlusIC2": "PASS",
+        "finalStageIC2Is6Point30A": "PASS",
+        "externalCTotalIs6Point50A": "PASS",
+        "instructionsAndWorkedExampleConsistent": "PASS"
+      }
+    }
+  ],
+  "pageErrors": [],
+  "consoleErrors": [],
+  "chromium": "141.0.7390.37",
+  "releaseBefore": {
+    "url": "https://linwuyen.github.io/-EEHandouts/release-sha.txt?upper22-35-review=1794500102135",
+    "status": 200,
+    "sha": "f660bf9abf55c002e8779147ed4a8b9f5f221574",
+    "checkedAt": "2026-11-12T16:15:02.396Z"
+  },
+  "releaseAfter": {
+    "url": "https://linwuyen.github.io/-EEHandouts/release-sha.txt?upper22-35-review=1794500106591",
+    "status": 200,
+    "sha": "f660bf9abf55c002e8779147ed4a8b9f5f221574",
+    "checkedAt": "2026-11-12T16:15:06.771Z"
+  },
+  "releaseMatchesExpected": true,
+  "finishedAt": "2026-11-12T16:15:06.830Z"
+}

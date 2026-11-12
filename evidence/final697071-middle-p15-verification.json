@@ -1,0 +1,153 @@
+{
+  "status": "PASS",
+  "scope": "Production website guide only; original PDF not loaded",
+  "checkedAt": "2026-11-12T16:15:42.214Z",
+  "base": "https://linwuyen.github.io/-EEHandouts/",
+  "expectedSha": "f660bf9abf55c002e8779147ed4a8b9f5f221574",
+  "releaseBefore": "f660bf9abf55c002e8779147ed4a8b9f5f221574",
+  "checks": [
+    {
+      "page": "Middle P.15",
+      "number": 15,
+      "route": [
+        {
+          "action": "goto",
+          "url": "https://linwuyen.github.io/-EEHandouts/index.html#home"
+        },
+        {
+          "action": "click middle volume entrance",
+          "url": "https://linwuyen.github.io/-EEHandouts/middle.html"
+        },
+        {
+          "action": "click original slides index",
+          "url": "https://linwuyen.github.io/-EEHandouts/middle.html#slides/all"
+        },
+        {
+          "action": "click page guide 15",
+          "url": "https://linwuyen.github.io/-EEHandouts/middle.html#slide/15"
+        }
+      ],
+      "url": "https://linwuyen.github.io/-EEHandouts/middle.html#slide/15",
+      "capturedAt": "2026-11-12T16:15:48.752Z",
+      "visibleText": "中冊第 15 頁 · STEP BY STEP\nBoost 開始計算 MOSFET、二極體損耗時，先畫哪兩張等效電路？\n\n先想：除了電感 RL，MOSFET RDS(on)、二極體 Vf／RD 分別在哪一段造成壓降？\n\n一句話記住：同一電感在 ON、OFF 的導通路徑不同；電阻壓降與二極體固定 Vf 必須按實際導通階段分開列出，再用平均伏秒和電荷平衡求輸出。\n\n以下為本站導讀，可對照自己的講義 PDF 閱讀。\n\n原始投影片 PDF 對照\n\n可載入中冊 R2（169 頁）或 52 頁版。PDF 只留在這台裝置。\n\n載入原始講義 PDF\n手邊是 PPTX 時，請先匯出為 PDF。\n① 用白話想像物理現象\n\n每個元件的損耗不是隨便塞進一個『效率折扣』。MOSFET 只在 ON 承受主要電感電流；二極體在 OFF 導通才有 Vf 和 RD 壓降；電感 RL 則在兩段都承受電流。\n\n先逐段畫出導通路徑，才能知道哪些電阻該乘 D、哪些該乘 (1−D)。即使算出平均電壓，也還不代表算到切換瞬間的 Eon、Eoff 或 Qrr。\n\n② 追蹤訊號與能量流\n1. ON：MOSFET 與電感銅阻導通\n\n二極體反偏，電感兩端約 vL,ON=Vin−IL(RL+RON)；電容暫供負載電流。\n\n2. OFF：二極體導通，MOSFET 截止\n\n電感兩端約 vL,OFF=Vin−Vo−VD−IL(RL+RD)；OFF 時 MOSFET RON 不在主要續流路徑。\n\n3. 伏秒平衡找出等效串聯阻抗\n\n把 ON 和 OFF 各乘導通比例並相加，可得 Vin=(1−D)(Vo+VD)+IL[RL+D RON+(1−D)RD]。\n\n4. 再使用平均輸出電流解出 Vo\n\n理想 CCM 且忽略二極體反向恢復時，Io≈(1−D)IL=Vo/R。最後才能得到含 RL、RON、RD、VD 的平均增益。\n\n③ 公式一步一步來\nON／OFF 的電感壓降\n𝑣\n𝐿\n,\n𝑜\n𝑛\n≈\n𝑉\n𝑖\n𝑛\n−\n𝐼\n𝐿\n(\n𝑅\n𝐿\n+\n𝑅\n𝑜\n𝑛\n)\nv\nL,on\n\t​\n\n≈V\nin\n\t​\n\n−I\nL\n\t​\n\n(R\nL\n\t​\n\n+R\non\n\t​\n\n)\n\n僅 ON 時 MOSFET RDS(on) 出現在主要電流路徑，並以平均 IL 近似瞬時電流。\n\n含寄生壓降的平均伏秒\n𝑉\n𝑖\n𝑛\n=\n𝐷\n′\n(\n𝑉\n𝑜\n+\n𝑉\n𝐷\n)\n+\n𝐼\n𝐿\n(\n𝑅\n𝐿\n+\n𝐷\n𝑅\n𝑜\n𝑛\n+\n𝐷\n′\n𝑅\n𝐷\n)\nV\nin\n\t​\n\n=D\n′\n(V\no\n\t​\n\n+V\nD\n\t​\n\n)+I\nL\n\t​\n\n(R\nL\n\t​\n\n+DR\non\n\t​\n\n+D\n′\nR\nD\n\t​\n\n)\n\nD′=1−D；二極體固定壓降只出現在 OFF，電感 RL 則兩段都有。\n\n等效增益（R 負載、CCM）\n𝑉\n𝑜\n=\n(\n𝑉\n𝑖\n𝑛\n−\n𝐷\n′\n𝑉\n𝐷\n)\n𝐷\n′\n𝐷\n′\n2\n+\n[\n𝑅\n𝐿\n+\n𝐷\n𝑅\n𝑜\n𝑛\n+\n𝐷\n′\n𝑅\n𝐷\n]\n/\n𝑅\nV\no\n\t​\n\n=\nD\n′2\n+[R\nL\n\t​\n\n+DR\non\n\t​\n\n+D\n′\nR\nD\n\t​\n\n]/R\n(V\nin\n\t​\n\n−D\n′\nV\nD\n\t​\n\n)D\n′\n\t​\n\n\n由 Io=D′IL=Vo/R 消去 IL；尚不含開關損、電流漣波造成的 RMS 差異。\n\n④ 帶數字算一次\n\nVin=48 V、D=50%、R=20 Ω、RL=0.2 Ω、RON=0.1 Ω、RD=0.05 Ω、VD=0.7 V，假設 CCM。\n\nD′=0.5，等效導通電阻 rEff=0.2+0.5×0.1+0.5×0.05=0.275 Ω。\nVo=(48−0.5×0.7)×0.5/[0.5²+0.275/20]=23.825/0.26375≈90.33 V。\nIo≈4.52 A，IL≈9.03 A。相較理想 96 V，寄生導通壓降使輸出降低，實際熱損仍需另行計算。\n\n算完應該理解：不要把每顆電阻無條件相加成同一個導通路徑；正確係數由 ON／OFF 導通時間與路徑決定。\n\n⑤ 適用條件與常見誤解\n非同步 Boost 固定 Duty、CCM、小漣波、固定 R 負載；RON、RD、RL 與 VD 都視為常數。\n未包含二極體反向恢復、MOSFET 切換過渡、Coss、驅動損、佈線寄生、磁芯損耗或熱效應。\n\n容易搞錯：把二極體 Vf 放進 ON 時段、把 MOSFET RDS(on) 放進 OFF 時段，或把平均等效的增益當作完整效率與切換波形。\n\n⑥ 想過再揭曉\n為什麼 Boost 的 MOSFET RDS(on) 前面乘 D，而二極體 RD 前面乘 D′？\n\n直接用本頁 ON／OFF 等效電路與導通損公式練習：先圈出 RON 只在 ON、VD 只在 OFF，再將本例代入平均伏秒式核對 Vo≈90.33 V。\n\n前往對應的互動課節：MOSFET、二極體與 Ripple 的損耗 →",
+      "given": "Vin=48 V、D=50%、R=20 Ω、RL=0.2 Ω、RON=0.1 Ω、RD=0.05 Ω、VD=0.7 V，假設 CCM。",
+      "worked": [
+        "D′=0.5，等效導通電阻 rEff=0.2+0.5×0.1+0.5×0.05=0.275 Ω。",
+        "Vo=(48−0.5×0.7)×0.5/[0.5²+0.275/20]=23.825/0.26375≈90.33 V。",
+        "Io≈4.52 A，IL≈9.03 A。相較理想 96 V，寄生導通壓降使輸出降低，實際熱損仍需另行計算。"
+      ],
+      "instructions": "⑥ 想過再揭曉\n為什麼 Boost 的 MOSFET RDS(on) 前面乘 D，而二極體 RD 前面乘 D′？\n\n直接用本頁 ON／OFF 等效電路與導通損公式練習：先圈出 RON 只在 ON、VD 只在 OFF，再將本例代入平均伏秒式核對 Vo≈90.33 V。\n\n前往對應的互動課節：MOSFET、二極體與 Ripple 的損耗 →",
+      "formulaErrors": 0,
+      "formulaCount": 3,
+      "formulas": [
+        {
+          "visible": "ON／OFF 的電感壓降\n𝑣\n𝐿\n,\n𝑜\n𝑛\n≈\n𝑉\n𝑖\n𝑛\n−\n𝐼\n𝐿\n(\n𝑅\n𝐿\n+\n𝑅\n𝑜\n𝑛\n)\nv\nL,on\n\t​\n\n≈V\nin\n\t​\n\n−I\nL\n\t​\n\n(R\nL\n\t​\n\n+R\non\n\t​\n\n)\n\n僅 ON 時 MOSFET RDS(on) 出現在主要電流路徑，並以平均 IL 近似瞬時電流。",
+          "tex": "v_{L,on}\\approx V_{in}-I_L(R_L+R_{on})"
+        },
+        {
+          "visible": "含寄生壓降的平均伏秒\n𝑉\n𝑖\n𝑛\n=\n𝐷\n′\n(\n𝑉\n𝑜\n+\n𝑉\n𝐷\n)\n+\n𝐼\n𝐿\n(\n𝑅\n𝐿\n+\n𝐷\n𝑅\n𝑜\n𝑛\n+\n𝐷\n′\n𝑅\n𝐷\n)\nV\nin\n\t​\n\n=D\n′\n(V\no\n\t​\n\n+V\nD\n\t​\n\n)+I\nL\n\t​\n\n(R\nL\n\t​\n\n+DR\non\n\t​\n\n+D\n′\nR\nD\n\t​\n\n)\n\nD′=1−D；二極體固定壓降只出現在 OFF，電感 RL 則兩段都有。",
+          "tex": "V_{in}=D'(V_o+V_D)+I_L(R_L+DR_{on}+D'R_D)"
+        },
+        {
+          "visible": "等效增益（R 負載、CCM）\n𝑉\n𝑜\n=\n(\n𝑉\n𝑖\n𝑛\n−\n𝐷\n′\n𝑉\n𝐷\n)\n𝐷\n′\n𝐷\n′\n2\n+\n[\n𝑅\n𝐿\n+\n𝐷\n𝑅\n𝑜\n𝑛\n+\n𝐷\n′\n𝑅\n𝐷\n]\n/\n𝑅\nV\no\n\t​\n\n=\nD\n′2\n+[R\nL\n\t​\n\n+DR\non\n\t​\n\n+D\n′\nR\nD\n\t​\n\n]/R\n(V\nin\n\t​\n\n−D\n′\nV\nD\n\t​\n\n)D\n′\n\t​\n\n\n由 Io=D′IL=Vo/R 消去 IL；尚不含開關損、電流漣波造成的 RMS 差異。",
+          "tex": "V_o=\\frac{(V_{in}-D'V_D)D'}{D'^2+[R_L+DR_{on}+D'R_D]/R}"
+        }
+      ],
+      "links": [
+        {
+          "text": "前往對應的互動課節：MOSFET、二極體與 Ripple 的損耗 →",
+          "href": "#lesson/mid-boost/mid-boost-parasitic"
+        }
+      ],
+      "screenshots": {
+        "full": "../screenshots/final697071-middle-p15-full.png",
+        "example": "../screenshots/final697071-middle-p15-example.png",
+        "instructions": "../screenshots/final697071-middle-p15-instructions.png"
+      },
+      "numericalChecks": {
+        "source": "Parameters and equations read from live visible guide; computed independently with JavaScript double precision",
+        "fixedParameters": {
+          "Vin": 48,
+          "D": 0.5,
+          "R": 20,
+          "RL": 0.2,
+          "RD": 0.05,
+          "VD": 0.7
+        },
+        "baseline": {
+          "RON": 0.1,
+          "rEff": 0.275,
+          "Vo": 90.33175355450237,
+          "Io": 4.516587677725118,
+          "IL": 9.033175355450236,
+          "resistorLoss": 22.439520675636214,
+          "diodeDropLoss": 3.1616113744075824,
+          "Pin": 433.59241706161134,
+          "Pout": 407.9912850115675,
+          "totalLoss": 25.601132050043816,
+          "voltSecondResidual": -1.7763568394002505e-15
+        }
+      },
+      "instructionCheck": "PASS: directs students to this page conduction formulas, correctly assigns RON to ON and VD to OFF, agrees with 90.33 V example",
+      "linkedLesson": {
+        "url": "https://linwuyen.github.io/-EEHandouts/middle.html#lesson/mid-boost/mid-boost-parasitic",
+        "visitedByActualGuideLink": true,
+        "visibleText": "← 返回 Boost、效率與 DCM\nCH 03 · BOOST、效率與 DCM\nMOSFET、二極體與 Ripple 的損耗\n\n平均模型可快速估算，但電流波形的 RMS 也很重要。\n\n講義 P.15–20\n白話導讀\n先理解物理現象\n\n講義把 RL、MOSFET RDS(on)、二極體正向壓降 VD 與二極體動態電阻 RD 放入導通期間的等效模型。\n\nMOSFET 的導通損耗要用 I²R，若電感 Ripple 很大，RMS 電流就高於只用平均電流估的值；第 20 頁專門比較不同 Ripple 下平均模型的誤差。\n\n開關損耗、二極體恢復損耗、Coss、Gate drive 與寄生感抗等仍需另列，不能將講義等效式視為總損耗。\n\n核心公式與條件\nƒ\nKEY RELATION\nMOSFET 導通損耗\n𝑃\nc\no\nn\nd\n,\nM\nO\nS\n≈\n𝐼\nr\nm\ns\n,\nM\nO\nS\n2\n𝑅\nD\nS\n(\no\nn\n)\nP\ncond,MOS\n\t​\n\n≈I\nrms,MOS\n2\n\t​\n\nR\nDS(on)\n\t​\n\n二極體導通損耗（粗估）\n𝑃\nd\ni\no\nd\ne\n≈\n𝑉\n𝐷\n𝐼\na\nv\ng\n,\nD\nP\ndiode\n\t​\n\n≈V\nD\n\t​\n\nI\navg,D\n\t​\n\n帶入數字看看\nMOSFET I_rms=8 A，RDS(on)=40 mΩ，導通損耗約 2.56 W（未計溫度）。\n工程現場要注意\n使用電流 RMS 而非只用平均值估 I²R。\n有大電流漣波或高頻切換時，應核對 RMS、Qrr 和熱設計。\n!\n常見誤解\n電流 Ripple 很大時仍直接以平均電流平方預估開關損耗。\n操作、預測、驗證\n\n先做預測，再改變參數觀察即時模型；波形與開關區間使用同一份計算結果。模型是教學近似，不可視為實機量測。\n\nACTIVE LEARNING\n切換能量與開關頻率\n\n增大單次開關損耗，Boost 元件熱負擔如何改變？\n\n先預測：其他參數不變，將「每次 ON／OFF 能量」由 50 μJ 增加至 55 μJ 後，「開關切換損耗」會？\n增加\n減少\n不變\n套用指定變更並驗證直接探索（不計入預測）\n\n先選擇預測，再套用指定變更；或選擇自由探索。\n\n每次 ON／OFF 能量\n50 μJ\n切換頻率\n100 kHz\n總 Gate Charge\n50 nC\n開關切換損耗\n10 W\nGate 驅動功率\n0.06 W\n\n模型狀態：限定假設下可比較（非實機設計驗證）\n\n波形／曲線將在驗證後揭曉；直接調參數將轉為自由探索。\n\n頻率提高通常使固定單次損耗的總功率增加。\n\n模型條件：假設 Eon=Eoff=設定值且不隨電流、溫度、母線電壓變化；Vgate=12 V。Gate 功率是驅動端近似能量預算。\n\n重設實驗與預測\n30 秒觀念確認\n同一電阻下，RMS 電流變兩倍，導通損耗約？\nA\n變兩倍\nB\n變四倍\nC\n不變\n✓ 標記這節已完成\n← 上一節\n下一節 →",
+        "controls": [
+          {
+            "tag": "INPUT",
+            "type": "range",
+            "id": "",
+            "value": "50",
+            "min": "5",
+            "max": "250",
+            "labels": [
+              "每次 ON／OFF 能量\n50 μJ"
+            ],
+            "parentText": "每次 ON／OFF 能量\n50 μJ"
+          },
+          {
+            "tag": "INPUT",
+            "type": "range",
+            "id": "",
+            "value": "100",
+            "min": "20",
+            "max": "250",
+            "labels": [
+              "切換頻率\n100 kHz"
+            ],
+            "parentText": "切換頻率\n100 kHz"
+          },
+          {
+            "tag": "INPUT",
+            "type": "range",
+            "id": "",
+            "value": "50",
+            "min": "10",
+            "max": "150",
+            "labels": [
+              "總 Gate Charge\n50 nC"
+            ],
+            "parentText": "總 Gate Charge\n50 nC"
+          }
+        ],
+        "controlCount": 3
+      },
+      "status": "PASS"
+    }
+  ],
+  "pageErrors": [],
+  "chromium": "141.0.7390.37",
+  "releaseAfter": "f660bf9abf55c002e8779147ed4a8b9f5f221574",
+  "finishedAt": "2026-11-12T16:15:50.435Z",
+  "visualInspection": {
+    "status": "PASS",
+    "images": [
+      "../screenshots/final697071-middle-p15-instructions.png",
+      "../screenshots/final697071-middle-p15-full.png"
+    ],
+    "method": "view_image",
+    "note": "Viewed actual Chromium screenshots. Required visible instructions, numeric values and formulas are legible without clipping or overlays.",
+    "checkedAt": "2026-11-12T16:17:39.6731571Z"
+  }
+}
