@@ -70,6 +70,13 @@ near(dcm.io,dcm.diodeArea,1e-12,'P25 capacitor charge balance');
 assert.ok(dcm.zero>.25&&dcm.zero<.26,'P25 positive DCM idle');
 assert.ok(invertDcm(24,.3,100e-6,100e3,20).zero<0,
   'P25 heavy-load false DCM must be rejected');
+// P25 must not make the output diode conduct when the next MOSFET ON starts.
+const idle25=g[25].steps.find(step=>step.title.startsWith('ZERO')).detail;
+const nextOn25=idle25.match(/下一次\s+ON[^；。]*/)?.[0]||'';
+const nextOff25=idle25.match(/下一次\s+OFF[^；。]*/)?.[0]||'';
+assert.match(nextOn25,/儲能/,'P25 next ON stores energy in the inductor');
+assert.match(nextOn25,/二極體.*截止/,'P25 next ON keeps the output diode off');
+assert.match(nextOff25,/二極體.*導通/,'P25 next OFF resumes output diode conduction');
 // P26 polarity and magnitude across distinct ideal topologies.
 const gain=.4/(1-.4);near(-12*gain,-8,1e-12,'P26 Cuk signed output');
 near(+12*gain,8,1e-12,'P26 SEPIC/ZETA positive output');
