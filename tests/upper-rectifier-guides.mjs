@@ -55,6 +55,14 @@ const dc=24*Math.SQRT2-2;
 near(dc,31.94112549695428,1e-10,'P66 peak output under ideal light load');
 near(.5*.001*dc**2,.510117749,1e-6,'P66 stored capacitor energy');
 assert.ok(g[66].pitfall.includes('電容'),'P66 capacitor can worsen source current shape');
+// Source voltage below VC can still charge Cd while stored Ls energy keeps id > iLoad.
+near((90-100)/.01,-1000,1e-12,'P66 existing rectifier current decreases with negative source-inductor voltage');
+near((3-1)/.001,2000,1e-12,'P66 capacitor voltage can rise during that decreasing-current interval');
+assert.ok(g[66].steps.some(s=>s.detail.includes('id>iLoad')&&s.detail.includes('id<iLoad')),
+ 'P66 charge/discharge must follow capacitor KCL rather than source voltage alone');
+const capacitorExplanation=lessons.find(l=>l.id==='capacitor').explain.join(' ');
+assert.ok(capacitorExplanation.includes('從零')&&capacitorExplanation.includes('id>iLoad'),
+ 'Capacitor lesson must separate zero-current turn-on from continued charging through Ls');
 // P67: resistive vs forced-Id source current differ despite same |Vac|.
 near(2*Math.SQRT2/Math.PI*100,90.03163161571061,1e-10,'P67 bridge mean voltage');
 near(100*Math.SQRT2/50,2.8284271247461903,1e-10,'P67 R current peak');

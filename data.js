@@ -114,7 +114,7 @@ window.EE_DATA = {
             "對平衡 Y 型系統，線電壓 RMS 是相電壓 RMS 的 √3 倍，而不是直接加兩倍。"
           ],
           "formula": "Vᴸᴸ = √3 × Vphase；P₃φ = √3 × Vᴸᴸ × Iᴸ × cosφ",
-          "example": "相電壓 220 V：線電壓 ≈ 381 V；若線電流 10 A、PF = 0.8，總功率約 5.27 kW。",
+          "example": "平衡三相，相電壓 220 V：線電壓 ≈ 381 V；若線電流 10 A、PF = 0.8，總功率約 5.28 kW（3×220×10×0.8=5280 W）。",
           "points": [
             "三相功率簡式需平衡且使用對應的 RMS 量。",
             "AC 相電壓在同一時刻大小不同，不能把 RMS 直接相加。"
@@ -581,7 +581,7 @@ window.EE_DATA = {
           "pages": "36–39",
           "lead": "MOSFET Gate 看似電壓控制，實際切換仍要搬動電荷。",
           "explain": [
-            "MOSFET 導通時在指定工作區可近似用 RDS(on) 描述壓降。Gate 有 Ciss、Coss、Crss 等非理想電容，Driver 充放電 Gate 電荷需要時間與電流。",
+            "MOSFET 導通時在指定工作區可近似用 RDS(on) 描述壓降。G、D、S 端之間有寄生電容，資料表以輸入 Ciss、輸出 Coss 與反向轉移 Crss 描述；Coss=Cds+Cgd，不能全都歸為 Gate 電容。Driver 充放電 Gate 電荷需要時間與電流。",
             "Miller 平台與 drain dv/dt、封裝／PCB 共源寄生電感都會影響實際 VGS 與開關速度。"
           ],
           "formula": "Pcond ≈ Irms² × RDS(on)；Pgate ≈ Qg × Vg × fsw",
@@ -792,7 +792,7 @@ window.EE_DATA = {
           "pages": "73–79",
           "lead": "輸出電壓變平，輸入電流卻可能變得更尖。",
           "explain": [
-            "橋式整流後接大電容，電容在整流電壓高於電容電壓（加上導通壓降）時才顯著補充能量，所以充電電流往往集中在峰值附近。",
+            "橋式整流後接大電容，電流從零開始導通需整流源電壓高於電容電壓加導通壓降。若有來源電感 Ls，電壓下降低於此門檻後仍可能有電流；令 id 為整流橋輸出電流、iLoad 為負載電流，電容電流 iC=id−iLoad，id>iLoad 才充電，id<iLoad 則放電。補充電荷通常集中在電壓峰值附近，截止仍須看整流電流是否歸零。",
             "這會增加輸入電流的峰值、RMS、諧波和 THDi；即使基本波相位還不錯，總 PF 仍可能偏低。"
           ],
           "formula": "ΔV ≈ Iload / (2 × fline × C)（單相全波近似）",
